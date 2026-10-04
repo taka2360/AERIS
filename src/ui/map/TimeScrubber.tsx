@@ -88,7 +88,7 @@ export function TimeScrubber({
             setPlaying(false)
             cursor.scrubTo(toInstant(epoch(span.start) + Number(e.target.value) * 60_000))
           }}
-          aria-label="時刻カーソル(地図)"
+          aria-label="地図の時刻"
           aria-valuetext={`${formatTime(cursor.t, false)} ${cursor.mode === 'live' ? '現在' : '指定時刻'}`}
           style={{ ['--obs' as string]: `${obsPct}%` }}
         />

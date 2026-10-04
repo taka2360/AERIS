@@ -19,10 +19,14 @@ test.describe('boot', () => {
   test('respects reduced motion (no line animation)', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto(bootUrl)
-    const line = page.getByText('WEATHER DATA LINK')
-    await expect(line).toBeVisible()
-    const anim = await line.evaluate((el) => getComputedStyle(el.closest('li')!).animationName)
-    expect(anim).toBe('none')
+    // Read the style in the same frame the line appears: the boot may end right after.
+    const anim = await page.waitForFunction(() => {
+      const li = [...document.querySelectorAll('li')].find((l) =>
+        l.textContent?.includes('WEATHER DATA LINK'),
+      )
+      return li ? getComputedStyle(li).animationName : null
+    })
+    expect(await anim.jsonValue()).toBe('none')
   })
 })
 
@@ -46,6 +50,8 @@ test('timeline cursor follows the pointer and the keyboard', async ({ page }) =>
   const readout = page.getByLabel('カーソル位置の値')
   await expect(readout).toContainText('16:00')
 
+  // The terminal is taller than the viewport; bring the timeline on screen first.
+  await slider.scrollIntoViewIfNeeded()
   const box = (await slider.boundingBox())!
   await page.mouse.move(box.x + box.width * 0.99, box.y + box.height / 2)
   await expect(readout).toContainText('T+24H')
@@ -108,7 +114,7 @@ test.describe('time cursor', () => {
   test('scrubbing pins every view to a past time until LIVE is pressed', async ({ page }) => {
     await page.goto(mockUrl())
     await waitForTerminal(page)
-    const slider = page.getByRole('slider', { name: '時刻カーソル(地図)' })
+    const slider = page.getByRole('slider', { name: '地図の時刻' })
     await expect(page.getByText('LIVE へ戻る')).toHaveCount(0)
     await slider.focus()
     await page.keyboard.press('Home')
