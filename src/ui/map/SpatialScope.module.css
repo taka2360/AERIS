@@ -373,3 +373,43 @@
   font-size: var(--fs-micro);
   color: var(--red);
 }
+
+/* ── Unified time scrubber ─────────────────────────── */
+.radarBar[data-mode='scrub'] .radarTime {
+  color: var(--yellow);
+}
+.radarKind[data-kind='none'] {
+  color: var(--text-faint);
+}
+.sliderWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.sliderWrap .slider {
+  width: 100%;
+}
+.tick {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 5px;
+  margin-left: -1px;
+  background: var(--text-dim);
+  pointer-events: none;
+}
+.tick[data-tone='alert'] {
+  background: var(--red);
+  height: 7px;
+}
+.live {
+  padding: 1px 6px;
+  background: var(--yellow);
+  border: 0;
+  color: #000;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--track);
+}

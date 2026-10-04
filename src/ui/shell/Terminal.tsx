@@ -16,6 +16,7 @@ import { Solar } from '../panels/Solar'
 import { AlertBand } from './AlertBand'
 import { BootSequence } from './BootSequence'
 import { SystemPanel } from './SystemPanel'
+import { TimeCursorBand } from './TimeCursorBand'
 import { TopBar } from './TopBar'
 import s from './Terminal.module.css'
 
@@ -79,6 +80,7 @@ export function Terminal() {
       <BootSequence />
       <TopBar searchOpen={searchOpen} setSearchOpen={setSearchOpen} />
       <AlertBand />
+      <TimeCursorBand />
       <main id="main" className={s.grid}>
         <div className={`${s.area} ${s.left}`} data-view-group="status">
           <CurrentStatus />

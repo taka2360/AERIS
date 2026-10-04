@@ -16,9 +16,9 @@ import {
   type ReactNode,
 } from 'react'
 import { compass16, formatCoord } from '@/domain/derive'
-import type { NowcastFrame } from '@/domain/model'
-import { formatTime, minutesBetween } from '@/domain/time'
-import { useMinuteClock } from '@/query/clock'
+import { frameAt, framesToIntervals, latestObserved } from '@/domain/earth/temporal'
+import { formatTime } from '@/domain/time'
+import { useTimeCursor } from '@/query/time-cursor'
 import { useNowcastFrames, useResolvedLocation, useStations, useWindField } from '@/query/hooks'
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
@@ -26,6 +26,7 @@ import { Panel } from '../primitives/Panel'
 import type { MapLayers, MapRange, MapScene } from './MapView'
 import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
 import { legendColor, RADAR_PALETTE } from './style'
+import { TimeScrubber, type ScrubSpan } from './TimeScrubber'
 import s from './SpatialScope.module.css'
 
 const MapView = lazy(() => import('./MapView'))
@@ -73,69 +74,13 @@ class MapBoundary extends Component<
   }
 }
 
-function RadarBar({
-  frames,
-  index,
-  setIndex,
-  playing,
-  setPlaying,
-  now,
-}: {
-  frames: NowcastFrame[]
-  index: number
-  setIndex: (i: number) => void
-  playing: boolean
-  setPlaying: (v: boolean) => void
-  now: string
-}) {
-  const f = frames[index]
-  if (!f) return <div className={s.radarBar}>RADAR · NO FRAMES</div>
-  const offset = Math.round(minutesBetween(now, f.validTime) / 5) * 5
-  return (
-    <div className={s.radarBar}>
-      <button
-        type="button"
-        className={s.play}
-        onClick={() => setPlaying(!playing)}
-        aria-label={playing ? 'レーダー再生を停止' : 'レーダーを再生'}
-        aria-pressed={playing}
-      >
-        {playing ? '■' : '▶'}
-      </button>
-      <span className={s.radarTime} data-kind={f.kind}>
-        {formatTime(f.validTime, false)}
-      </span>
-      <span className={s.radarKind} data-kind={f.kind}>
-        {f.kind === 'observation' ? 'OBS' : 'FCST'} {offset >= 0 ? '+' : '−'}
-        {Math.abs(offset)}M
-      </span>
-      <input
-        type="range"
-        className={s.slider}
-        min={0}
-        max={frames.length - 1}
-        value={index}
-        onChange={(e) => {
-          setPlaying(false)
-          setIndex(Number(e.target.value))
-        }}
-        aria-label="レーダー時刻"
-        aria-valuetext={`${formatTime(f.validTime, false)} ${f.kind === 'observation' ? '実況' : '予測'}`}
-        style={{
-          ['--obs' as string]: `${(frames.filter((x) => x.kind === 'observation').length / frames.length) * 100}%`,
-        }}
-      />
-    </div>
-  )
-}
-
 export const SpatialScope = memo(function SpatialScope({ active = true }: { active?: boolean }) {
   const { location } = useResolvedLocation()
   const stations = useStations()
   const wind = useWindField()
   const nowcast = useNowcastFrames()
   const mapStatus = useMapStatus()
-  const now = useMinuteClock()
+  const cursor = useTimeCursor()
 
   const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
   const [range, setRange] = useState<MapRange>(() =>
@@ -146,30 +91,44 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const [focus, setFocus] = useState<string | null>(null)
   const [recenter, setRecenter] = useState(0)
 
-  const frames = useMemo(() => nowcast.data?.data ?? [], [nowcast.data])
-  const latestObs = Math.max(
-    0,
-    frames.findLastIndex((f) => f.kind === 'observation'),
+  const frames = useMemo(
+    () =>
+      framesToIntervals(
+        (nowcast.data?.data ?? []).map((f) => ({
+          ...f,
+          role: f.kind === 'observation' ? ('observed' as const) : ('nowcast' as const),
+        })),
+      ),
+    [nowcast.data],
   )
-  // A user-picked frame belongs to one frame list; a new list resets to the latest observation.
-  const listKey = nowcast.dataUpdatedAt
-  const [picked, setPickedRaw] = useState<{ key: number; index: number } | null>(null)
+  // LIVE shows the latest observation; SCRUB shows only what was valid at t.
+  const shown =
+    cursor.mode === 'live' ? latestObserved(frames, cursor.now) : frameAt(frames, cursor.t)
+  const span = useMemo<ScrubSpan | null>(() => {
+    const first = frames[0]
+    const last = frames.at(-1)
+    if (!first || !last) return null
+    return {
+      start: first.validTime,
+      end: last.validTime,
+      observedUntil: latestObserved(frames, last.validTime)?.validTime ?? first.validTime,
+      stepMin: 5,
+    }
+  }, [frames])
   const [playing, setPlaying] = useState(false)
-  const pickedIndex = picked?.key === listKey ? picked.index : null
-  const frameIndex = Math.min(pickedIndex ?? latestObs, Math.max(0, frames.length - 1))
-  const setPicked = (index: number) => setPickedRaw({ key: listKey, index })
 
-  // Play only while requested; the interval exists only during playback.
+  // Playback steps the global cursor through the frame times, wrapping around.
+  const { scrubTo } = cursor
+  const cursorT = cursor.t
   useEffect(() => {
     if (!playing || frames.length === 0) return
     const id = setInterval(() => {
-      setPickedRaw((p) => {
-        const cur = p?.key === listKey ? p.index : latestObs
-        return { key: listKey, index: (cur + 1) % frames.length }
-      })
+      const ms = Date.parse(cursorT)
+      const next = frames.find((f) => Date.parse(f.validTime) > ms) ?? frames[0]!
+      scrubTo(next.validTime)
     }, 650)
     return () => clearInterval(id)
-  }, [playing, frames.length, latestObs, listKey])
+  }, [playing, frames, cursorT, scrubTo])
 
   const showMap = mode === 'map' && !mapFailed && active
   useEffect(() => {
@@ -187,7 +146,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   )
   const focused = stationList.find((st) => st.id === focus) ?? stationList[0]
   const obsTime = stationList[0]?.observedAt
-  const radarUrl = frames[frameIndex]?.tileUrlTemplate ?? null
+  const radarUrl = shown?.tileUrlTemplate ?? null
 
   const scene = useMemo<MapScene>(
     () => ({
@@ -362,13 +321,13 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           )}
         </div>
         {showMap && layers.echo && (
-          <RadarBar
-            frames={frames}
-            index={frameIndex}
-            setIndex={setPicked}
+          <TimeScrubber
+            cursor={cursor}
+            span={span}
+            shown={shown}
+            label="RADAR"
             playing={playing}
             setPlaying={setPlaying}
-            now={now}
           />
         )}
       </div>

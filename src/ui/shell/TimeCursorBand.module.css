@@ -1,0 +1,41 @@
+.band {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 3px var(--s5);
+  font-size: var(--fs-label);
+  color: var(--yellow);
+  border-bottom: 1px solid var(--yellow);
+  background: rgba(255, 225, 74, 0.06);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tag {
+  padding: 0 5px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: #000;
+  background: var(--yellow);
+}
+.offset {
+  font-size: var(--fs-data);
+  letter-spacing: var(--track);
+}
+.time {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.live {
+  margin-left: auto;
+  padding: 1px 8px;
+  background: transparent;
+  border: 1px solid var(--yellow);
+  color: var(--yellow);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track);
+}
+.live:hover {
+  background: var(--yellow);
+  color: #000;
+}

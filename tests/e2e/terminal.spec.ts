@@ -101,3 +101,21 @@ test('keyboard users can skip to content and use shortcuts', async ({ page }) =>
   await page.keyboard.press('/')
   await expect(page.getByRole('combobox', { name: '地名' })).toBeFocused()
 })
+
+test.describe('time cursor', () => {
+  test.use({ scopeMode: 'map' })
+
+  test('scrubbing pins every view to a past time until LIVE is pressed', async ({ page }) => {
+    await page.goto(mockUrl())
+    await waitForTerminal(page)
+    const slider = page.getByRole('slider', { name: '時刻カーソル(地図)' })
+    await expect(page.getByText('LIVE へ戻る')).toHaveCount(0)
+    await slider.focus()
+    await page.keyboard.press('Home')
+    const band = page.getByRole('status').filter({ hasText: 'SCRUB' })
+    await expect(band).toContainText('T−')
+    await expect(band).toContainText('(過去)')
+    await band.getByRole('button', { name: 'LIVE へ戻る' }).click()
+    await expect(page.getByText('LIVE へ戻る')).toHaveCount(0)
+  })
+})
