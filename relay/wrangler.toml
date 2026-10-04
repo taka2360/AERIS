@@ -1,0 +1,23 @@
+# AERIS relay — a dedicated Worker (Rate Limiting bindings are Workers-only).
+# Deploy: npx wrangler deploy --config relay/wrangler.toml
+# Secret: npx wrangler secret put FIRMS_MAP_KEY --config relay/wrangler.toml
+name = "aeris-relay"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[vars]
+# Set to the deployed AERIS origin(s), comma-separated.
+ALLOWED_ORIGINS = "http://localhost:5173"
+
+[[kv_namespaces]]
+binding = "SNAPSHOTS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
+
+[triggers]
+# Upstreams are called only here: 6 calls/hour per source regardless of traffic.
+crons = ["*/10 * * * *"]

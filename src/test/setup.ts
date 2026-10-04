@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 
-// jsdom lacks matchMedia; tests run as a desktop viewport.
-if (!window.matchMedia) {
+// jsdom lacks matchMedia; tests run as a desktop viewport. (Relay tests run in node.)
+if (typeof window !== 'undefined' && !window.matchMedia) {
   window.matchMedia = (query: string) =>
     ({
       matches: false,
