@@ -1,0 +1,1895 @@
+{
+ "Control": {
+  "Title": "震源・震度に関する情報",
+  "DateTime": "2026-10-01T12:32:01Z",
+  "Status": "通常",
+  "EditorialOffice": "気象庁本庁",
+  "PublishingOffice": "気象庁"
+ },
+ "Head": {
+  "Title": "震源・震度情報",
+  "ReportDateTime": "2026-10-01T21:32:00+09:00",
+  "TargetDateTime": "2026-10-01T21:32:00+09:00",
+  "EventID": "20261001212719",
+  "InfoType": "発表",
+  "Serial": "1",
+  "InfoKind": "地震情報",
+  "InfoKindVersion": "1.0_1",
+  "Headline": {
+   "Text": "１日２１時２７分ころ、地震がありました。",
+   "Information": [
+    {
+     "Item": {
+      "Kind": {
+       "Name": "震度３"
+      },
+      "Areas": {
+       "Area": [
+        {
+         "Name": "茨城県南部",
+         "Code": "301"
+        },
+        {
+         "Name": "千葉県北東部",
+         "Code": "340"
+        },
+        {
+         "Name": "千葉県北西部",
+         "Code": "341"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "Item": {
+      "Kind": {
+       "Name": "震度３"
+      },
+      "Areas": {
+       "Area": [
+        {
+         "Name": "潮来市",
+         "Code": "0822300"
+        },
+        {
+         "Name": "神栖市",
+         "Code": "0823200"
+        },
+        {
+         "Name": "成田市",
+         "Code": "1221100"
+        },
+        {
+         "Name": "千葉佐倉市",
+         "Code": "1221200"
+        },
+        {
+         "Name": "東金市",
+         "Code": "1221300"
+        },
+        {
+         "Name": "旭市",
+         "Code": "1221500"
+        },
+        {
+         "Name": "八街市",
+         "Code": "1223000"
+        },
+        {
+         "Name": "匝瑳市",
+         "Code": "1223500"
+        },
+        {
+         "Name": "香取市",
+         "Code": "1223600"
+        },
+        {
+         "Name": "山武市",
+         "Code": "1223700"
+        },
+        {
+         "Name": "神崎町",
+         "Code": "1234200"
+        },
+        {
+         "Name": "多古町",
+         "Code": "1234700"
+        },
+        {
+         "Name": "九十九里町",
+         "Code": "1240300"
+        },
+        {
+         "Name": "芝山町",
+         "Code": "1240900"
+        },
+        {
+         "Name": "横芝光町",
+         "Code": "1241000"
+        }
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "enTitle": "Earthquake and Seismic Intensity Information"
+ },
+ "Body": {
+  "Earthquake": {
+   "OriginTime": "2026-10-01T21:27:00+09:00",
+   "ArrivalTime": "2026-10-01T21:27:00+09:00",
+   "Hypocenter": {
+    "Area": {
+     "Name": "千葉県北東部",
+     "Code": "340",
+     "Coordinate": "+35.8+140.7-50000/",
+     "enName": "Northeastern Chiba Prefecture"
+    }
+   },
+   "Magnitude": "5.1"
+  },
+  "Intensity": {
+   "Observation": {
+    "MaxInt": "3",
+    "Pref": [
+     {
+      "Name": "茨城県",
+      "Code": "08",
+      "MaxInt": "3",
+      "Area": [
+       {
+        "Name": "茨城県南部",
+        "Code": "301",
+        "MaxInt": "3",
+        "City": [
+         {
+          "Name": "潮来市",
+          "Code": "0822300",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "潮来市堀之内",
+            "Code": "0822300",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.97,
+             "lon": 140.53
+            },
+            "enName": "Itako-shi Horinouchi"
+           },
+           {
+            "Name": "潮来市辻＊",
+            "Code": "0822331",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.95,
+             "lon": 140.56
+            },
+            "enName": "Itako-shi Tsuji*"
+           }
+          ],
+          "enName": "Itako-shi"
+         },
+         {
+          "Name": "神栖市",
+          "Code": "0823200",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "神栖市溝口＊",
+            "Code": "0823230",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.89,
+             "lon": 140.66
+            },
+            "enName": "Kamisu-shi Mizoguchi*"
+           },
+           {
+            "Name": "神栖市波崎＊",
+            "Code": "0823232",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.76,
+             "lon": 140.81
+            },
+            "enName": "Kamisu-shi Hasaki*"
+           }
+          ],
+          "enName": "Kamisu-shi"
+         },
+         {
+          "Name": "土浦市",
+          "Code": "0820300",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "土浦市常名",
+            "Code": "0820301",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.1,
+             "lon": 140.19
+            },
+            "enName": "Tsuchiura-shi Hitana"
+           },
+           {
+            "Name": "土浦市田中＊",
+            "Code": "0820332",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.09,
+             "lon": 140.19
+            },
+            "enName": "Tsuchiura-shi Tanaka*"
+           }
+          ],
+          "enName": "Tsuchiura-shi"
+         }
+        ],
+        "enName": "Ibaraki Ken Nambu"
+       },
+       {
+        "Name": "茨城県北部",
+        "Code": "300",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "水戸市",
+          "Code": "0820100",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "水戸市内原町＊",
+            "Code": "0820132",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.36,
+             "lon": 140.36
+            },
+            "enName": "Mito-shi Uchiharacho*"
+           },
+           {
+            "Name": "水戸市金町",
+            "Code": "0820101",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.38,
+             "lon": 140.47
+            },
+            "enName": "Mito-shi Kanemachi"
+           }
+          ],
+          "enName": "Mito-shi"
+         },
+         {
+          "Name": "日立市",
+          "Code": "0820200",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "日立市助川小学校＊",
+            "Code": "0820220",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.59,
+             "lon": 140.65
+            },
+            "enName": "Hitachi-shi Sukegawa-shogakko*"
+           },
+           {
+            "Name": "日立市役所＊",
+            "Code": "0820232",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.6,
+             "lon": 140.65
+            },
+            "enName": "Hitachi Shiyakusho*"
+           }
+          ],
+          "enName": "Hitachi-shi"
+         },
+         {
+          "Name": "常陸太田市",
+          "Code": "0821200",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "常陸太田市金井町＊",
+            "Code": "0821236",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.54,
+             "lon": 140.53
+            },
+            "enName": "Hitachi-ota-shi Kanaicho*"
+           },
+           {
+            "Name": "常陸太田市町屋町",
+            "Code": "0821200",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.61,
+             "lon": 140.57
+            },
+            "enName": "Hitachi-ota-shi Machiyacho"
+           }
+          ],
+          "enName": "Hitachi-ota-shi"
+         }
+        ],
+        "enName": "Ibaraki Ken Hokubu"
+       }
+      ],
+      "enName": "Ibaraki"
+     },
+     {
+      "Name": "千葉県",
+      "Code": "12",
+      "MaxInt": "3",
+      "Area": [
+       {
+        "Name": "千葉県北東部",
+        "Code": "340",
+        "MaxInt": "3",
+        "City": [
+         {
+          "Name": "東金市",
+          "Code": "1221300",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "東金市東新宿",
+            "Code": "1221300",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.56,
+             "lon": 140.37
+            },
+            "enName": "Togane-shi Higashi-shinjyuku"
+           },
+           {
+            "Name": "東金市日吉台＊",
+            "Code": "1221320",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.57,
+             "lon": 140.34
+            },
+            "enName": "Togane-shi Hiyoshidai*"
+           }
+          ],
+          "enName": "Togane-shi"
+         },
+         {
+          "Name": "旭市",
+          "Code": "1221500",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "旭市南堀之内＊",
+            "Code": "1221531",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.77,
+             "lon": 140.62
+            },
+            "enName": "Asahi-shi Minami-horinouchi*"
+           },
+           {
+            "Name": "旭市高生＊",
+            "Code": "1221532",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.73,
+             "lon": 140.69
+            },
+            "enName": "Asahi-shi Takaoi*"
+           }
+          ],
+          "enName": "Asahi-shi"
+         },
+         {
+          "Name": "匝瑳市",
+          "Code": "1223500",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "匝瑳市八日市場ハ＊",
+            "Code": "1223530",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.71,
+             "lon": 140.56
+            },
+            "enName": "Sosa-shi Yoka-ichiba-ha*"
+           },
+           {
+            "Name": "匝瑳市今泉＊",
+            "Code": "1223532",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.66,
+             "lon": 140.57
+            },
+            "enName": "Sosa-shi Imaizumi*"
+           }
+          ],
+          "enName": "Sosa-shi"
+         }
+        ],
+        "enName": "Chiba Ken Hokutobu"
+       },
+       {
+        "Name": "千葉県北西部",
+        "Code": "341",
+        "MaxInt": "3",
+        "City": [
+         {
+          "Name": "成田市",
+          "Code": "1221100",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "成田国際空港",
+            "Code": "1221101",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.77,
+             "lon": 140.38
+            },
+            "enName": "Narita-kokusai-kuko"
+           },
+           {
+            "Name": "成田市役所＊",
+            "Code": "1221133",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.78,
+             "lon": 140.32
+            },
+            "enName": "Narita Shiyakusho*"
+           }
+          ],
+          "enName": "Narita-shi"
+         },
+         {
+          "Name": "千葉佐倉市",
+          "Code": "1221200",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "千葉佐倉市海隣寺町＊",
+            "Code": "1221231",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.72,
+             "lon": 140.22
+            },
+            "enName": "Chiba Sakura-shi Kairinjimachi*"
+           }
+          ],
+          "enName": "Chiba Sakura-shi"
+         },
+         {
+          "Name": "八街市",
+          "Code": "1223000",
+          "MaxInt": "3",
+          "IntensityStation": [
+           {
+            "Name": "八街市八街＊",
+            "Code": "1223031",
+            "Int": "3",
+            "latlon": {
+             "lat": 35.67,
+             "lon": 140.32
+            },
+            "enName": "Yachimata-shi Yachimata*"
+           }
+          ],
+          "enName": "Yachimata-shi"
+         }
+        ],
+        "enName": "Chiba Ken Hokuseibu"
+       },
+       {
+        "Name": "千葉県南部",
+        "Code": "342",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "館山市",
+          "Code": "1220500",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "館山市北条＊",
+            "Code": "1220531",
+            "Int": "2",
+            "latlon": {
+             "lat": 35,
+             "lon": 139.87
+            },
+            "enName": "Tateyama-shi Hojo*"
+           },
+           {
+            "Name": "館山市長須賀",
+            "Code": "1220501",
+            "Int": "1",
+            "latlon": {
+             "lat": 34.99,
+             "lon": 139.87
+            },
+            "enName": "Tateyama-shi Nagasuka"
+           }
+          ],
+          "enName": "Tateyama-shi"
+         },
+         {
+          "Name": "木更津市",
+          "Code": "1220600",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "木更津市富士見＊",
+            "Code": "1220631",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.38,
+             "lon": 139.92
+            },
+            "enName": "Kisarazu-shi Fujimi*"
+           },
+           {
+            "Name": "木更津市太田",
+            "Code": "1220601",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.38,
+             "lon": 139.94
+            },
+            "enName": "Kisarazu-shi Oda"
+           }
+          ],
+          "enName": "Kisarazu-shi"
+         },
+         {
+          "Name": "君津市",
+          "Code": "1222500",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "君津市久留里市場＊",
+            "Code": "1222520",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.3,
+             "lon": 140.07
+            },
+            "enName": "Kimitsu-shi Kururi-ichiba*"
+           },
+           {
+            "Name": "君津市久保＊",
+            "Code": "1222531",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.33,
+             "lon": 139.9
+            },
+            "enName": "Kimitsu-shi Kubo*"
+           }
+          ],
+          "enName": "Kimitsu-shi"
+         }
+        ],
+        "enName": "Chiba Ken Nambu"
+       }
+      ],
+      "enName": "Chiba"
+     },
+     {
+      "Name": "福島県",
+      "Code": "07",
+      "MaxInt": "2",
+      "Area": [
+       {
+        "Name": "福島県中通り",
+        "Code": "250",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "泉崎村",
+          "Code": "0746400",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "泉崎村泉崎＊",
+            "Code": "0746431",
+            "Int": "2",
+            "latlon": {
+             "lat": 37.15,
+             "lon": 140.3
+            },
+            "enName": "Izumizaki-mura Izumizaki*"
+           }
+          ],
+          "enName": "Izumizaki-mura"
+         },
+         {
+          "Name": "玉川村",
+          "Code": "0750200",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "玉川村小高＊",
+            "Code": "0750230",
+            "Int": "2",
+            "latlon": {
+             "lat": 37.21,
+             "lon": 140.41
+            },
+            "enName": "Tamakawa-mura Otaka*"
+           }
+          ],
+          "enName": "Tamakawa-mura"
+         },
+         {
+          "Name": "福島市",
+          "Code": "0720100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "福島市花園町",
+            "Code": "0720101",
+            "Int": "1",
+            "latlon": {
+             "lat": 37.76,
+             "lon": 140.47
+            },
+            "enName": "Fukushima-shi Hanazonocho"
+           }
+          ],
+          "enName": "Fukushima-shi"
+         }
+        ],
+        "enName": "Fukushima Ken Nakadori"
+       },
+       {
+        "Name": "福島県浜通り",
+        "Code": "251",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "いわき市",
+          "Code": "0720400",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "いわき市小名浜",
+            "Code": "0720400",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.95,
+             "lon": 140.9
+            },
+            "enName": "Iwaki-shi Onahama"
+           },
+           {
+            "Name": "いわき市三和町",
+            "Code": "0720401",
+            "Int": "1",
+            "latlon": {
+             "lat": 37.1,
+             "lon": 140.8
+            },
+            "enName": "Iwaki-shi Miwamachi"
+           }
+          ],
+          "enName": "Iwaki-shi"
+         }
+        ],
+        "enName": "Fukushima Ken Hamadori"
+       }
+      ],
+      "enName": "Fukushima"
+     },
+     {
+      "Name": "栃木県",
+      "Code": "09",
+      "MaxInt": "2",
+      "Area": [
+       {
+        "Name": "栃木県南部",
+        "Code": "311",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "真岡市",
+          "Code": "0920900",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "真岡市石島＊",
+            "Code": "0920933",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.39,
+             "lon": 139.97
+            },
+            "enName": "Mo-oka-shi Aramachi Ishijima*"
+           },
+           {
+            "Name": "真岡市田町＊",
+            "Code": "0920920",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.44,
+             "lon": 140.02
+            },
+            "enName": "Mo-oka-shi Tamachi*"
+           }
+          ],
+          "enName": "Mo-oka-shi"
+         },
+         {
+          "Name": "市貝町",
+          "Code": "0934400",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "市貝町市塙＊",
+            "Code": "0934430",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.54,
+             "lon": 140.1
+            },
+            "enName": "Ichikai-machi Ichihana*"
+           }
+          ],
+          "enName": "Ichikai-machi"
+         },
+         {
+          "Name": "高根沢町",
+          "Code": "0938600",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "高根沢町石末＊",
+            "Code": "0938630",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.63,
+             "lon": 139.99
+            },
+            "enName": "Takanezawa-machi Ishizue*"
+           }
+          ],
+          "enName": "Takanezawa-machi"
+         }
+        ],
+        "enName": "Tochigi Ken Nambu"
+       },
+       {
+        "Name": "栃木県北部",
+        "Code": "310",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "日光市",
+          "Code": "0920600",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "日光市瀬川",
+            "Code": "0920601",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.73,
+             "lon": 139.69
+            },
+            "enName": "Nikko-shi Segawa"
+           },
+           {
+            "Name": "日光市鬼怒川温泉大原＊",
+            "Code": "0920620",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.82,
+             "lon": 139.72
+            },
+            "enName": "Nikko-shi Kinugawa-onsen-ohara*"
+           }
+          ],
+          "enName": "Nikko-shi"
+         },
+         {
+          "Name": "大田原市",
+          "Code": "0921000",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "大田原市湯津上＊",
+            "Code": "0921034",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.82,
+             "lon": 140.1
+            },
+            "enName": "Otawara-shi Yuzukami*"
+           }
+          ],
+          "enName": "Otawara-shi"
+         }
+        ],
+        "enName": "Tochigi Ken Hokubu"
+       }
+      ],
+      "enName": "Tochigi"
+     },
+     {
+      "Name": "群馬県",
+      "Code": "10",
+      "MaxInt": "2",
+      "Area": [
+       {
+        "Name": "群馬県南部",
+        "Code": "321",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "渋川市",
+          "Code": "1020800",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "渋川市赤城町＊",
+            "Code": "1020836",
+            "Int": "2",
+            "latlon": {
+             "lat": 36.53,
+             "lon": 139.04
+            },
+            "enName": "Shibukawa-shi Akagimachi*"
+           },
+           {
+            "Name": "渋川市吹屋＊",
+            "Code": "1020833",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.52,
+             "lon": 139.01
+            },
+            "enName": "Shibukawa-shi Fukiya*"
+           }
+          ],
+          "enName": "Shibukawa-shi"
+         },
+         {
+          "Name": "前橋市",
+          "Code": "1020100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "前橋市堀越町＊",
+            "Code": "1020131",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.42,
+             "lon": 139.16
+            },
+            "enName": "Maebashi-shi Horikoshimachi*"
+           },
+           {
+            "Name": "前橋市粕川町＊",
+            "Code": "1020133",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.41,
+             "lon": 139.21
+            },
+            "enName": "Maebashi-shi Kasukawamachi*"
+           }
+          ],
+          "enName": "Maebashi-shi"
+         },
+         {
+          "Name": "桐生市",
+          "Code": "1020300",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "桐生市元宿町＊",
+            "Code": "1020320",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.41,
+             "lon": 139.33
+            },
+            "enName": "Kiryu-shi Motojukucho*"
+           },
+           {
+            "Name": "桐生市黒保根町＊",
+            "Code": "1020331",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.5,
+             "lon": 139.28
+            },
+            "enName": "Kiryu-shi Kurohonecho*"
+           }
+          ],
+          "enName": "Kiryu-shi"
+         }
+        ],
+        "enName": "Gunma Ken Nambu"
+       },
+       {
+        "Name": "群馬県北部",
+        "Code": "320",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "沼田市",
+          "Code": "1020600",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "沼田市西倉内町",
+            "Code": "1020601",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.65,
+             "lon": 139.04
+            },
+            "enName": "Numata-shi Nishi-kurauchimachi"
+           },
+           {
+            "Name": "沼田市下久屋町＊",
+            "Code": "1020620",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.66,
+             "lon": 139.08
+            },
+            "enName": "Numata-shi Shimokuyamachi*"
+           }
+          ],
+          "enName": "Numata-shi"
+         }
+        ],
+        "enName": "Gunma Ken Hokubu"
+       }
+      ],
+      "enName": "Gunma"
+     },
+     {
+      "Name": "埼玉県",
+      "Code": "11",
+      "MaxInt": "2",
+      "Area": [
+       {
+        "Name": "埼玉県南部",
+        "Code": "331",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "さいたま緑区",
+          "Code": "1110900",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "さいたま緑区中尾＊",
+            "Code": "1110930",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.87,
+             "lon": 139.68
+            },
+            "enName": "Saitama Midori-ku Nakao*"
+           }
+          ],
+          "enName": "Saitama Midori-ku"
+         },
+         {
+          "Name": "春日部市",
+          "Code": "1121400",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "春日部市粕壁＊",
+            "Code": "1121421",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.98,
+             "lon": 139.75
+            },
+            "enName": "Kasukabe-shi Kasukabe*"
+           },
+           {
+            "Name": "春日部市谷原新田＊",
+            "Code": "1121440",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.96,
+             "lon": 139.74
+            },
+            "enName": "Kasukabe-shi Yahara-shinden*"
+           }
+          ],
+          "enName": "Kasukabe-shi"
+         },
+         {
+          "Name": "吉川市",
+          "Code": "1124300",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "吉川市きよみ野＊",
+            "Code": "1124331",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.9,
+             "lon": 139.86
+            },
+            "enName": "Yoshikawa-shi Kiyomino*"
+           }
+          ],
+          "enName": "Yoshikawa-shi"
+         }
+        ],
+        "enName": "Saitama Ken Nambu"
+       },
+       {
+        "Name": "埼玉県北部",
+        "Code": "330",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "熊谷市",
+          "Code": "1120200",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "熊谷市大里＊",
+            "Code": "1120230",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.1,
+             "lon": 139.41
+            },
+            "enName": "Kumagaya-shi Osato*"
+           }
+          ],
+          "enName": "Kumagaya-shi"
+         },
+         {
+          "Name": "行田市",
+          "Code": "1120600",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "行田市本丸＊",
+            "Code": "1120630",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.14,
+             "lon": 139.46
+            },
+            "enName": "Gyoda-shi Hommaru*"
+           },
+           {
+            "Name": "行田市南河原＊",
+            "Code": "1120631",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.18,
+             "lon": 139.44
+            },
+            "enName": "Gyoda-shi Minami-kawara*"
+           }
+          ],
+          "enName": "Gyoda-shi"
+         },
+         {
+          "Name": "加須市",
+          "Code": "1121000",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "加須市三俣＊",
+            "Code": "1121030",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.13,
+             "lon": 139.6
+            },
+            "enName": "Kazo-shi mitsumata*"
+           },
+           {
+            "Name": "加須市騎西＊",
+            "Code": "1121031",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.1,
+             "lon": 139.57
+            },
+            "enName": "Kazo-shi Kisai*"
+           }
+          ],
+          "enName": "Kazo-shi"
+         }
+        ],
+        "enName": "Saitama Ken Hokubu"
+       }
+      ],
+      "enName": "Saitama"
+     },
+     {
+      "Name": "東京都",
+      "Code": "13",
+      "MaxInt": "2",
+      "Area": [
+       {
+        "Name": "東京都２３区",
+        "Code": "350",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "東京千代田区",
+          "Code": "1310100",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "東京千代田区大手町",
+            "Code": "1310100",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.69,
+             "lon": 139.76
+            },
+            "enName": "Tokyo Chiyoda-ku Otemachi"
+           },
+           {
+            "Name": "東京千代田区富士見＊",
+            "Code": "1310134",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.7,
+             "lon": 139.75
+            },
+            "enName": "Tokyo Chiyoda-ku Fujimi*"
+           }
+          ],
+          "enName": "Tokyo Chiyoda-ku"
+         },
+         {
+          "Name": "東京墨田区",
+          "Code": "1310700",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "東京墨田区東向島＊",
+            "Code": "1310750",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.72,
+             "lon": 139.82
+            },
+            "enName": "Tokyo Sumida-ku Higashi-mukojima*"
+           },
+           {
+            "Name": "東京墨田区横川",
+            "Code": "1310700",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.7,
+             "lon": 139.82
+            },
+            "enName": "Tokyo Sumida-ku Yokokawa"
+           }
+          ],
+          "enName": "Tokyo Sumida-ku"
+         },
+         {
+          "Name": "東京江東区",
+          "Code": "1310800",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "東京江東区越中島＊",
+            "Code": "1310820",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.67,
+             "lon": 139.79
+            },
+            "enName": "Tokyo Koto-ku Echujima*"
+           },
+           {
+            "Name": "東京江東区亀戸＊",
+            "Code": "1310852",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.7,
+             "lon": 139.83
+            },
+            "enName": "Tokyo Koto-ku Kameido*"
+           }
+          ],
+          "enName": "Tokyo Koto-ku"
+         }
+        ],
+        "enName": "Tokyo To Nijusan Ku"
+       },
+       {
+        "Name": "東京都多摩東部",
+        "Code": "351",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "町田市",
+          "Code": "1320900",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "町田市本町田＊",
+            "Code": "1320952",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.56,
+             "lon": 139.44
+            },
+            "enName": "Machida-shi Hommachida*"
+           },
+           {
+            "Name": "町田市忠生＊",
+            "Code": "1320921",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.58,
+             "lon": 139.41
+            },
+            "enName": "Machida-shi Tadao*"
+           }
+          ],
+          "enName": "Machida-shi"
+         },
+         {
+          "Name": "小平市",
+          "Code": "1321100",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "小平市小川町＊",
+            "Code": "1321131",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.73,
+             "lon": 139.48
+            },
+            "enName": "Kodaira-shi Ogawacho*"
+           }
+          ],
+          "enName": "Kodaira-shi"
+         },
+         {
+          "Name": "八王子市",
+          "Code": "1320100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "八王子市堀之内＊",
+            "Code": "1320120",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.63,
+             "lon": 139.4
+            },
+            "enName": "Hachioji-shi Horinouchi*"
+           },
+           {
+            "Name": "八王子市石川町＊",
+            "Code": "1320150",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.67,
+             "lon": 139.36
+            },
+            "enName": "Hachioji-shi Ishikawamachi*"
+           }
+          ],
+          "enName": "Hachioji-shi"
+         }
+        ],
+        "enName": "Tokyo To Tama Tobu"
+       }
+      ],
+      "enName": "Tokyo"
+     },
+     {
+      "Name": "神奈川県",
+      "Code": "14",
+      "MaxInt": "2",
+      "Area": [
+       {
+        "Name": "神奈川県東部",
+        "Code": "360",
+        "MaxInt": "2",
+        "City": [
+         {
+          "Name": "横浜神奈川区",
+          "Code": "1410200",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "横浜神奈川区神大寺＊",
+            "Code": "1410240",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.49,
+             "lon": 139.61
+            },
+            "enName": "Yokohama Kanagawa-ku Kandaiji*"
+           },
+           {
+            "Name": "横浜神奈川区広台太田町＊",
+            "Code": "1410242",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.48,
+             "lon": 139.63
+            },
+            "enName": "Yokohama Kanagawa-ku Hirodai-otamachi*"
+           }
+          ],
+          "enName": "Yokohama Kanagawa-ku"
+         },
+         {
+          "Name": "横浜中区",
+          "Code": "1410400",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "横浜中区山下町＊",
+            "Code": "1410440",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.44,
+             "lon": 139.64
+            },
+            "enName": "Yokohama Naka-ku Yamashitacho*"
+           },
+           {
+            "Name": "横浜中区山手町",
+            "Code": "1410400",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.44,
+             "lon": 139.65
+            },
+            "enName": "Yokohama Naka-ku Yamatecho"
+           }
+          ],
+          "enName": "Yokohama Naka-ku"
+         },
+         {
+          "Name": "横浜保土ケ谷区",
+          "Code": "1410600",
+          "MaxInt": "2",
+          "IntensityStation": [
+           {
+            "Name": "横浜保土ケ谷区上菅田町＊",
+            "Code": "1410641",
+            "Int": "2",
+            "latlon": {
+             "lat": 35.49,
+             "lon": 139.57
+            },
+            "enName": "Yokohama Hodogaya-ku Kamisugedacho*"
+           }
+          ],
+          "enName": "Yokohama Hodogaya-ku"
+         }
+        ],
+        "enName": "Kanagawa Ken Tobu"
+       },
+       {
+        "Name": "神奈川県西部",
+        "Code": "361",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "相模原緑区",
+          "Code": "1415100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "相模原緑区中野＊",
+            "Code": "1415130",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.59,
+             "lon": 139.26
+            },
+            "enName": "Sagamihara Midori-ku Nakano*"
+           },
+           {
+            "Name": "相模原緑区橋本＊",
+            "Code": "1415142",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.6,
+             "lon": 139.35
+            },
+            "enName": "Sagamihara Midori-ku Hashimoto*"
+           }
+          ],
+          "enName": "Sagamihara Midori-ku"
+         },
+         {
+          "Name": "相模原南区",
+          "Code": "1415300",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "相模原南区磯部＊",
+            "Code": "1415341",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.5,
+             "lon": 139.38
+            },
+            "enName": "Sagamihara Minami-ku Isobe*"
+           },
+           {
+            "Name": "相模原南区相模大野＊",
+            "Code": "1415342",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.53,
+             "lon": 139.43
+            },
+            "enName": "Sagamihara Minami-ku Sagami-ono*"
+           }
+          ],
+          "enName": "Sagamihara Minami-ku"
+         },
+         {
+          "Name": "秦野市",
+          "Code": "1421100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "秦野市曽屋",
+            "Code": "1421100",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.38,
+             "lon": 139.21
+            },
+            "enName": "Hadano-shi Soya"
+           }
+          ],
+          "enName": "Hadano-shi"
+         }
+        ],
+        "enName": "Kanagawa Ken Seibu"
+       }
+      ],
+      "enName": "Kanagawa"
+     },
+     {
+      "Name": "宮城県",
+      "Code": "04",
+      "MaxInt": "1",
+      "Area": [
+       {
+        "Name": "宮城県南部",
+        "Code": "221",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "角田市",
+          "Code": "0420800",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "角田市角田＊",
+            "Code": "0420820",
+            "Int": "1",
+            "latlon": {
+             "lat": 37.98,
+             "lon": 140.78
+            },
+            "enName": "Kakuda-shi Kakuda*"
+           }
+          ],
+          "enName": "Kakuda-shi"
+         },
+         {
+          "Name": "岩沼市",
+          "Code": "0421100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "岩沼市桜＊",
+            "Code": "0421120",
+            "Int": "1",
+            "latlon": {
+             "lat": 38.1,
+             "lon": 140.87
+            },
+            "enName": "Iwanuma-shi Sakura*"
+           }
+          ],
+          "enName": "Iwanuma-shi"
+         },
+         {
+          "Name": "丸森町",
+          "Code": "0434100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "丸森町鳥屋＊",
+            "Code": "0434130",
+            "Int": "1",
+            "latlon": {
+             "lat": 37.91,
+             "lon": 140.77
+            },
+            "enName": "Marumori-machi Toriya*"
+           }
+          ],
+          "enName": "Marumori-machi"
+         }
+        ],
+        "enName": "Miyagi Ken Nambu"
+       }
+      ],
+      "enName": "Miyagi"
+     },
+     {
+      "Name": "新潟県",
+      "Code": "15",
+      "MaxInt": "1",
+      "Area": [
+       {
+        "Name": "新潟県中越",
+        "Code": "371",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "南魚沼市",
+          "Code": "1522600",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "南魚沼市六日町",
+            "Code": "1522600",
+            "Int": "1",
+            "latlon": {
+             "lat": 37.07,
+             "lon": 138.88
+            },
+            "enName": "Minami-uonuma-shi Muikamachi"
+           }
+          ],
+          "enName": "Minami-uonuma-shi"
+         }
+        ],
+        "enName": "Niigata Ken Chuetsu"
+       }
+      ],
+      "enName": "Niigata"
+     },
+     {
+      "Name": "山梨県",
+      "Code": "19",
+      "MaxInt": "1",
+      "Area": [
+       {
+        "Name": "山梨県中・西部",
+        "Code": "411",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "笛吹市",
+          "Code": "1921100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "笛吹市境川町藤垈＊",
+            "Code": "1921135",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.59,
+             "lon": 138.62
+            },
+            "enName": "Fuefuki-shi Sakaigawacho-fujinuta*"
+           }
+          ],
+          "enName": "Fuefuki-shi"
+         },
+         {
+          "Name": "富士川町",
+          "Code": "1936800",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "富士川町鰍沢＊",
+            "Code": "1936832",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.54,
+             "lon": 138.46
+            },
+            "enName": "Fujikawa-cho Kajikazawa*"
+           }
+          ],
+          "enName": "Fujikawa-cho"
+         }
+        ],
+        "enName": "Yamanashi Ken Chuseibu"
+       },
+       {
+        "Name": "山梨県東部・富士五湖",
+        "Code": "412",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "忍野村",
+          "Code": "1942400",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "忍野村忍草＊",
+            "Code": "1942432",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.46,
+             "lon": 138.85
+            },
+            "enName": "Oshino-mura Shibokusa*"
+           }
+          ],
+          "enName": "Oshino-mura"
+         },
+         {
+          "Name": "富士河口湖町",
+          "Code": "1943000",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "富士河口湖町長浜＊",
+            "Code": "1943037",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.51,
+             "lon": 138.71
+            },
+            "enName": "Fuji-kawaguchiko-machi Nagahama*"
+           }
+          ],
+          "enName": "Fuji-kawaguchiko-machi"
+         }
+        ],
+        "enName": "Yamanashi Ken Tobu-Fujigoko"
+       }
+      ],
+      "enName": "Yamanashi"
+     },
+     {
+      "Name": "長野県",
+      "Code": "20",
+      "MaxInt": "1",
+      "Area": [
+       {
+        "Name": "長野県中部",
+        "Code": "421",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "茅野市",
+          "Code": "2021400",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "茅野市葛井公園＊",
+            "Code": "2021432",
+            "Int": "1",
+            "latlon": {
+             "lat": 36,
+             "lon": 138.14
+            },
+            "enName": "Chino-shi Kuzui-koen*"
+           }
+          ],
+          "enName": "Chino-shi"
+         },
+         {
+          "Name": "長野南牧村",
+          "Code": "2030500",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "長野南牧村海ノ口＊",
+            "Code": "2030530",
+            "Int": "1",
+            "latlon": {
+             "lat": 36.02,
+             "lon": 138.49
+            },
+            "enName": "Nagano Minamimaki-mura Uminokuchi*"
+           }
+          ],
+          "enName": "Nagano Minamimaki-mura"
+         }
+        ],
+        "enName": "Nagano Ken Chubu"
+       }
+      ],
+      "enName": "Nagano"
+     },
+     {
+      "Name": "静岡県",
+      "Code": "22",
+      "MaxInt": "1",
+      "Area": [
+       {
+        "Name": "静岡県伊豆",
+        "Code": "440",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "伊豆市",
+          "Code": "2222200",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "伊豆市中伊豆グラウンド",
+            "Code": "2222200",
+            "Int": "1",
+            "latlon": {
+             "lat": 34.96,
+             "lon": 139.01
+            },
+            "enName": "Izu-shi Nakaizu-ground"
+           }
+          ],
+          "enName": "Izu-shi"
+         },
+         {
+          "Name": "伊豆の国市",
+          "Code": "2222500",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "伊豆の国市長岡＊",
+            "Code": "2222533",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.03,
+             "lon": 138.93
+            },
+            "enName": "Izunokuni-shi Nagaoka*"
+           }
+          ],
+          "enName": "Izunokuni-shi"
+         },
+         {
+          "Name": "東伊豆町",
+          "Code": "2230100",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "東伊豆町奈良本＊",
+            "Code": "2230120",
+            "Int": "1",
+            "latlon": {
+             "lat": 34.82,
+             "lon": 139.05
+            },
+            "enName": "Higashi-izu-cho Naramoto*"
+           }
+          ],
+          "enName": "Higashi-izu-cho"
+         }
+        ],
+        "enName": "Shizuoka Ken Izu"
+       },
+       {
+        "Name": "静岡県東部",
+        "Code": "441",
+        "MaxInt": "1",
+        "City": [
+         {
+          "Name": "沼津市",
+          "Code": "2220300",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "沼津市戸田＊",
+            "Code": "2220334",
+            "Int": "1",
+            "latlon": {
+             "lat": 34.97,
+             "lon": 138.79
+            },
+            "enName": "Numazu-shi Heda*"
+           }
+          ],
+          "enName": "Numazu-shi"
+         },
+         {
+          "Name": "富士宮市",
+          "Code": "2220700",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "富士宮市弓沢町",
+            "Code": "2220701",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.22,
+             "lon": 138.62
+            },
+            "enName": "Fujinomiya-shi Yumizawacho"
+           },
+           {
+            "Name": "富士宮市野中＊",
+            "Code": "2220721",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.21,
+             "lon": 138.6
+            },
+            "enName": "Fujinomiya-shi Nonaka*"
+           }
+          ],
+          "enName": "Fujinomiya-shi"
+         },
+         {
+          "Name": "富士市",
+          "Code": "2221000",
+          "MaxInt": "1",
+          "IntensityStation": [
+           {
+            "Name": "富士市吉永＊",
+            "Code": "2221035",
+            "Int": "1",
+            "latlon": {
+             "lat": 35.16,
+             "lon": 138.72
+            },
+            "enName": "Fuji-shi Yoshinaga*"
+           }
+          ],
+          "enName": "Fuji-shi"
+         }
+        ],
+        "enName": "Shizuoka Ken Tobu"
+       }
+      ],
+      "enName": "Shizuoka"
+     }
+    ]
+   }
+  },
+  "Comments": {
+   "ForecastComment": {
+    "Text": "この地震による津波の心配はありません。",
+    "Code": "0215",
+    "enText": "This earthquake poses no tsunami risk.\n"
+   },
+   "VarComment": {
+    "Text": "＊印は気象庁以外の震度観測点についての情報です。",
+    "Code": "0262",
+    "enText": "* mark: Local Governments' or NIED's station\n"
+   }
+  }
+ }
+}
