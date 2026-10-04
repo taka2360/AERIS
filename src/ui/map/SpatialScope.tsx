@@ -23,7 +23,7 @@ import { useNowcastFrames, useResolvedLocation, useStations, useWindField } from
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
-import type { MapLayers } from './MapView'
+import type { MapLayers, MapRange, MapScene } from './MapView'
 import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
 import { legendColor, RADAR_PALETTE } from './style'
 import s from './SpatialScope.module.css'
@@ -32,12 +32,27 @@ const MapView = lazy(() => import('./MapView'))
 
 type Mode = 'map' | 'scope'
 const MODE_KEY = 'aeris.scopeMode'
+const RANGE_KEY = 'aeris.mapRange'
+const RANGES: Array<{ id: MapRange; label: string; caption: string }> = [
+  { id: 'local', label: 'LOCAL', caption: `RNG ${RANGE_KM}KM · WEB MERCATOR` },
+  { id: 'region', label: 'REGION', caption: 'RNG JAPAN · WEB MERCATOR' },
+  { id: 'globe', label: 'GLOBE', caption: 'RNG EARTH · GLOBE' },
+]
 
-function loadMode(): Mode {
+function load<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
-    return window.localStorage.getItem(MODE_KEY) === 'scope' ? 'scope' : 'map'
+    const v = window.localStorage.getItem(key) as T | null
+    return v && allowed.includes(v) ? v : fallback
   } catch {
-    return 'map'
+    return fallback
+  }
+}
+
+function save(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    /* ignore */
   }
 }
 
@@ -122,7 +137,10 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const mapStatus = useMapStatus()
   const now = useMinuteClock()
 
-  const [mode, setMode] = useState<Mode>(loadMode)
+  const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
+  const [range, setRange] = useState<MapRange>(() =>
+    load(RANGE_KEY, ['local', 'region', 'globe'], 'local'),
+  )
   const [mapFailed, setMapFailed] = useState(false)
   const [layers, setLayers] = useState<MapLayers>({ stn: true, wind: true, echo: true, grid: true })
   const [focus, setFocus] = useState<string | null>(null)
@@ -171,14 +189,27 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const obsTime = stationList[0]?.observedAt
   const radarUrl = frames[frameIndex]?.tileUrlTemplate ?? null
 
+  const scene = useMemo<MapScene>(
+    () => ({
+      center,
+      rangeKm: RANGE_KM,
+      rings: RINGS,
+      stations: stationList,
+      wind: windSamples,
+      radarTileUrl: radarUrl,
+      focusId: focused?.id ?? null,
+    }),
+    [center, stationList, windSamples, radarUrl, focused?.id],
+  )
+
   const changeMode = (m: Mode) => {
     setMode(m)
     if (m === 'map') setMapFailed(false)
-    try {
-      window.localStorage.setItem(MODE_KEY, m)
-    } catch {
-      /* ignore */
-    }
+    save(MODE_KEY, m)
+  }
+  const changeRange = (r: MapRange) => {
+    setRange(r)
+    save(RANGE_KEY, r)
   }
   const onMapFailure = (msg: string) => {
     setMapFailed(true)
@@ -216,6 +247,22 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
               </button>
             ))}
           </div>
+          {mode === 'map' && (
+            <div className={s.toggles} role="group" aria-label="表示範囲">
+              {RANGES.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={s.toggle}
+                  data-mode
+                  aria-pressed={range === r.id}
+                  onClick={() => changeRange(r.id)}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className={s.toggles} role="group" aria-label="表示レイヤー">
             {(Object.keys(layerLabel) as Array<keyof MapLayers>).map((id) => (
               <button
@@ -240,14 +287,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
                 fallback={<div className={s.mapLoading}>◐ LOADING CARTOGRAPHIC ENGINE…</div>}
               >
                 <MapView
-                  center={center}
-                  rangeKm={RANGE_KM}
-                  rings={RINGS}
-                  stations={stationList}
-                  wind={windSamples}
-                  radarTileUrl={radarUrl}
+                  scene={scene}
                   layers={layers}
-                  focusId={focused?.id ?? null}
+                  range={range}
                   onFocus={setFocus}
                   onFailure={onMapFailure}
                   recenterToken={recenter}
@@ -268,7 +310,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           <div className={s.overlayTL} aria-hidden="true">
             <div>CTR {formatCoord(location.lat, location.lon)}</div>
             <div>
-              RNG {RANGE_KM}KM · {showMap ? 'WEB MERCATOR' : 'AZIMUTHAL'}
+              {showMap
+                ? RANGES.find((r) => r.id === range)!.caption
+                : `RNG ${RANGE_KM}KM · AZIMUTHAL`}
             </div>
             {mapFailed && mode === 'map' && (
               <div className={s.warn}>▲ BASEMAP UNAVAILABLE — VECTOR SCOPE</div>

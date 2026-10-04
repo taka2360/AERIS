@@ -1,0 +1,16 @@
+/**
+ * Draw order of all map overlays (first = bottom):
+ * raster fields → areas → lines/tracks → points → labels.
+ */
+import { radarLayer, ringsLayer, stationsLayer, windLayer } from './base-layers'
+import type { MapLayerDef } from './types'
+
+export const MAP_LAYERS: MapLayerDef[] = [radarLayer, ringsLayer, windLayer, stationsLayer]
+
+/** Source ids whose tile errors are data gaps rather than basemap failure. */
+export const OVERLAY_SOURCES = new Set(MAP_LAYERS.flatMap((l) => l.overlaySources ?? []))
+
+export function depsChanged(prev: unknown[] | undefined, next: unknown[]): boolean {
+  if (!prev || prev.length !== next.length) return true
+  return next.some((v, i) => !Object.is(v, prev[i]))
+}
