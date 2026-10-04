@@ -234,9 +234,10 @@
   text-anchor: middle;
 }
 
-.echo {
-  opacity: 0.32;
-  filter: blur(1.2px);
+.precipTrack {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 0.15;
 }
 
 .wind line {

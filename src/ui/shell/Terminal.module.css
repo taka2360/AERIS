@@ -72,7 +72,9 @@
 /* ── Large displays (WQHD and up): spread width across all columns ── */
 @media (min-width: 1920px) {
   .grid {
-    grid-template-columns: minmax(400px, 1fr) minmax(0, 1.55fr) minmax(380px, 0.95fr);
+    /* Give the spatial scope the extra room: wider centre, taller top row. */
+    grid-template-columns: minmax(400px, 0.9fr) minmax(0, 2.1fr) minmax(380px, 0.85fr);
+    grid-template-rows: minmax(max(520px, 58vh), 1fr) auto auto;
   }
 }
 

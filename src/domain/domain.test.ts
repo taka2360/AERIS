@@ -118,4 +118,14 @@ describe('health', () => {
     const deadModel: SourceHealth = { ...base, connectivity: 'offline', freshness: 'none' }
     expect(aggregateStatus([deadModel, warn], ['openmeteo'])).toBe('offline')
   })
+  it('ignores auxiliary channels that are still loading', () => {
+    const map: SourceHealth = {
+      ...base,
+      source: 'basemap',
+      connectivity: 'unknown',
+      freshness: 'none',
+      fetching: true,
+    }
+    expect(aggregateStatus([base, map], ['openmeteo'])).toBe('online')
+  })
 })

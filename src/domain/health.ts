@@ -56,6 +56,7 @@ export function aggregateStatus(healths: SourceHealth[], critical: SourceId[]): 
   if (crit.some((x) => x.s === 'stale')) return 'stale'
   if (statuses.some((x) => x.s === 'offline' || x.s === 'degraded' || x.s === 'stale'))
     return 'degraded'
-  if (statuses.some((x) => x.s === 'syncing')) return 'syncing'
+  // Auxiliary channels (e.g. basemap) loading do not make the whole system 'syncing'.
+  if (crit.some((x) => x.s === 'syncing')) return 'syncing'
   return 'online'
 }

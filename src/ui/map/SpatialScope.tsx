@@ -189,7 +189,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   }
 
   const layerLabel: Record<keyof MapLayers, string> = {
-    echo: showMap ? 'RADAR' : 'ECHO',
+    echo: showMap ? 'RADAR' : 'PRECIP',
     stn: 'STN',
     wind: 'WIND',
     grid: showMap ? 'RINGS' : 'GRID',
@@ -278,7 +278,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
             <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
             <div>
               STN {String(stationList.length).padStart(2, '0')} ·{' '}
-              {showMap ? 'ECHO SRC: JMA NOWCAST' : 'ECHO SRC: AMeDAS 1H'}
+              {showMap ? 'ECHO SRC: JMA NOWCAST' : 'PRECIP: AMeDAS 1H GAUGE'}
             </div>
           </div>
           {showMap ? (

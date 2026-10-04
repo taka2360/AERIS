@@ -5,7 +5,10 @@ import { SourceFailure } from '@/domain/result'
 
 /** Bump when persisted data shapes change; old caches are discarded. */
 export const CACHE_SCHEMA_VERSION = 1
-export const CACHE_STORAGE_KEY = 'aeris.cache'
+const CACHE_STORAGE_PREFIX = 'aeris.cache'
+
+/** One cache per data provider — simulated data must never be restored as live (or vice versa). */
+export const cacheStorageKey = (providerId: string) => `${CACHE_STORAGE_PREFIX}.${providerId}`
 export const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 export function createQueryClient(): QueryClient {
@@ -38,10 +41,11 @@ function safeStorage(): Storage | undefined {
 
 export function createPersistOptions(
   client: QueryClient,
+  providerId: string,
 ): Omit<PersistQueryClientOptions, 'queryClient'> & { queryClient: QueryClient } {
   const persister = createSyncStoragePersister({
     storage: safeStorage(),
-    key: CACHE_STORAGE_KEY,
+    key: cacheStorageKey(providerId),
     throttleTime: 2_000,
   })
   return {
@@ -59,7 +63,12 @@ export function createPersistOptions(
 export function clearPersistedCache(client: QueryClient): void {
   client.clear()
   try {
-    window.localStorage.removeItem(CACHE_STORAGE_KEY)
+    // Every provider's cache, plus the pre-split legacy key.
+    for (const k of Object.keys(window.localStorage)) {
+      if (k === CACHE_STORAGE_PREFIX || k.startsWith(`${CACHE_STORAGE_PREFIX}.`)) {
+        window.localStorage.removeItem(k)
+      }
+    }
   } catch {
     /* storage unavailable */
   }

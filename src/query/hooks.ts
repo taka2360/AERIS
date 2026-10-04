@@ -278,7 +278,12 @@ export function useSystemHealth() {
       {
         id: 'model',
         label: 'FORECAST MODEL',
-        health: healthFromSnapshot('openmeteo', snapshot(forecast), opts('openmeteo')),
+        health: healthFromSnapshot(
+          'openmeteo',
+          // Model "current" time — freshness is judged on data time, not fetch time.
+          snapshot(forecast, forecast.data?.data.hourly.provenance.validFrom),
+          opts('openmeteo'),
+        ),
       },
       {
         id: 'amedas',
@@ -292,7 +297,12 @@ export function useSystemHealth() {
       {
         id: 'warning',
         label: 'JMA WARNING',
-        health: healthFromSnapshot('jma-warning', snapshot(alerts), opts('jma-warning')),
+        health: healthFromSnapshot(
+          'jma-warning',
+          // Bulletins can be days old while still current; judge on when we last checked.
+          snapshot(alerts, alerts.data?.provenance.retrievedAt),
+          opts('jma-warning'),
+        ),
       },
       {
         id: 'official',

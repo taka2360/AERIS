@@ -94,20 +94,20 @@ export const ScopeView = memo(function ScopeView({
         ))}
       </g>
       {layers.echo && (
+        // Precipitation as a per-station gauge bar (left of the marker): a point
+        // measurement shown as a point, not as a blurred area it never observed.
         <g>
           {stations
-            .filter((st) => (st.precipitation1h ?? 0) > 0.2)
+            .filter((st) => (st.precipitation1h ?? 0) > 0)
             .map((st) => {
               const p = proj(st.lat, st.lon)
+              const mm = st.precipitation1h ?? 0
+              const h = Math.min(9, 0.8 + Math.sqrt(mm) * 2.2)
               return (
-                <circle
-                  key={st.id}
-                  cx={p.x}
-                  cy={p.y}
-                  r={3 + Math.sqrt(st.precipitation1h ?? 0) * 3}
-                  fill={echoColor(st.precipitation1h ?? 0)}
-                  className={s.echo}
-                />
+                <g key={st.id} transform={`translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`}>
+                  <rect x="-2.9" y={1.1 - 9} width="1.1" height="9" className={s.precipTrack} />
+                  <rect x="-2.9" y={1.1 - h} width="1.1" height={h} fill={echoColor(mm)} />
+                </g>
               )
             })}
         </g>

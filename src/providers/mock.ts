@@ -77,7 +77,8 @@ export function createMockProvider(opts: MockOptions = {}): WeatherProvider {
         error: { kind: 'network', message: 'Injected failure (mock)', retryable: true },
       }
     }
-    const prov: Provenance = { source, kind, label, retrievedAt: toInstant(Date.now()) }
+    // Use the (possibly pinned) provider clock so all times stay on one timeline.
+    const prov: Provenance = { source, kind, label, retrievedAt: now() }
     return { ok: true, data: make(prov), provenance: prov }
   }
 

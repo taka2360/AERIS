@@ -8,7 +8,7 @@ import { Terminal } from '@/ui/shell/Terminal'
 
 export function App({ provider }: { provider: WeatherProvider }) {
   const [client] = useState(createQueryClient)
-  const [persistOptions] = useState(() => createPersistOptions(client))
+  const [persistOptions] = useState(() => createPersistOptions(client, provider.id))
   return (
     <PersistQueryClientProvider client={client} persistOptions={persistOptions}>
       <WeatherProviderScope provider={provider}>
