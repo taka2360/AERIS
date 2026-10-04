@@ -23,3 +23,12 @@ test('degraded state layout', async ({ page }) => {
     mask: [page.getByTestId('last-update')],
   })
 })
+
+test('tsunami scenario layout', async ({ page }) => {
+  await page.goto(mockUrl('&scenario=tsunami'))
+  await expect(page.getByRole('alert')).toContainText('TSUNAMI')
+  await page.evaluate(() => document.fonts.ready)
+  await expect(page).toHaveScreenshot('terminal-tsunami.png', {
+    mask: [page.getByTestId('last-update')],
+  })
+})

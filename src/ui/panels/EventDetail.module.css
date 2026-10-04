@@ -156,3 +156,37 @@
   color: var(--text-dim);
   font-size: 0.625rem;
 }
+.stations thead th {
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}
+.stations tr[data-local] th,
+.stations tr[data-local] td {
+  background: rgba(255, 85, 54, 0.08);
+}
+.localTag {
+  margin-left: 6px;
+  padding: 0 3px;
+  font-size: 0.5625rem;
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+.tsuClass {
+  font-weight: 700;
+}
+.tsuClass[data-rank='4'] {
+  color: var(--purple);
+}
+.tsuClass[data-rank='3'] {
+  color: var(--red);
+}
+.tsuClass[data-rank='2'] {
+  color: var(--yellow);
+}
+.tsuClass[data-rank='1'] {
+  color: var(--cyan);
+}
+.tsuClass[data-rank='0'] {
+  color: var(--text-faint);
+  font-weight: 400;
+}

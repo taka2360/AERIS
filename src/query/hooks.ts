@@ -23,7 +23,7 @@ import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
 import { useMapStatus, type MapStatus } from './map-status'
-import { useJmaQuakes, useUsgsQuakes } from './earth-hooks'
+import { useJmaQuakes, useTsunamiReports, useUsgsQuakes } from './earth-hooks'
 import { useWeatherProvider } from './provider-context'
 
 const MIN = 60_000
@@ -282,6 +282,7 @@ export function useSystemHealth() {
   const now = useMinuteClock()
   const jmaQuakes = useJmaQuakes()
   const usgsQuakes = useUsgsQuakes()
+  const tsunami = useTsunamiReports()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -342,6 +343,15 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'jma-tsunami',
+        'JMA TSUNAMI',
+        healthFromSnapshot(
+          'jma-tsunami',
+          snapshot(tsunami, tsunami.data?.provenance.retrievedAt),
+          opts('jma-tsunami'),
+        ),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -361,7 +371,19 @@ export function useSystemHealth() {
       .sort()
       .at(-1)
     return { channels, overall, lastUpdate, online }
-  }, [forecast, stations, alerts, official, nowcast, mapStatus, online, now, jmaQuakes, usgsQuakes])
+  }, [
+    forecast,
+    stations,
+    alerts,
+    official,
+    nowcast,
+    mapStatus,
+    online,
+    now,
+    jmaQuakes,
+    usgsQuakes,
+    tsunami,
+  ])
 }
 
 // ─── System controls ───────────────────────────────────────────────────────

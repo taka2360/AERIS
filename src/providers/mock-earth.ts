@@ -6,7 +6,7 @@ import type { Provenance, SourceId } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import type { Instant } from '@/domain/time'
 import type { EarthProvider } from '@/services/earth/provider'
-import { synthQuakes } from '@/sources/mock/earth'
+import { synthQuakes, synthTsunami, synthTsunamiAreas } from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
 export type MockRunner = <T>(
@@ -36,6 +36,11 @@ export function createMockEarthProvider(
         ),
       // Mock observations already carry their station intensities.
       jmaDetail: (obs, signal) => run('jma-quake', 'official', 'MOCK JMA', signal, () => obs),
+    },
+    tsunami: {
+      reports: (signal) =>
+        run('jma-tsunami', 'official', 'MOCK JMA', signal, () => synthTsunami(now(), scenario)),
+      areas: (signal) => run('jma-tsunami', 'official', 'MOCK JMA', signal, synthTsunamiAreas),
     },
   }
 }

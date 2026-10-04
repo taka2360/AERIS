@@ -28,10 +28,12 @@ export type MapScene = {
   selectedEventId: string | null
   /** JMA intensity stations of the selected earthquake (rank = intensity class ordinal) */
   intensityStations: Array<{ lat: number; lon: number; rank: number; label: string }>
+  /** Tsunami forecast areas in force at the cursor time (rank = JMA class 1–4) */
+  tsunamiCoasts: Array<{ code: string; rank: number; lines: [number, number][][] }>
 }
 
 /** User-facing toggle keys. Several definitions may share one toggle. */
-export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid' | 'quake'
+export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid' | 'quake' | 'tsunami'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 

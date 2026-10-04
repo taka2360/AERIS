@@ -7,12 +7,20 @@ import { useQuery, type Query } from '@tanstack/react-query'
 import type { SourceObservation } from '@/domain/earth/common'
 import { intensityRank } from '@/domain/earth/derive'
 import type { EarthquakeEvent, NaturalEvent } from '@/domain/earth/events'
-import type { QuakeSolution } from '@/domain/earth/reports'
+import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import { unwrap } from '@/domain/result'
 import { minutesBetween, type Instant } from '@/domain/time'
-import { seismicStatus, type SystemReading } from '@/domain/earth/status'
+import {
+  nearbyAreaCodes,
+  seismicStatus,
+  tsunamiStatus,
+  type SystemReading,
+} from '@/domain/earth/status'
+import { tsunamiKindRank } from '@/sources/jma-tsunami'
+import { useResolvedLocation } from './hooks'
 import type { Provenance, SourceId } from '@/domain/model'
 import { fuseQuakes } from '@/services/fusion/earthquake'
+import { fuseTsunami } from '@/services/fusion/tsunami'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
 import { sourceSpec } from '@/sources/registry'
 import { useMinuteClock } from './clock'
@@ -24,6 +32,18 @@ export const earthKeys = {
   jmaQuakes: () => ['earth', 'jma-quake'] as const,
   usgsQuakes: () => ['earth', 'usgs-quake'] as const,
   quakeDetail: (id: string) => ['earth', 'jma-quake-detail', id] as const,
+  tsunami: () => ['earth', 'jma-tsunami'] as const,
+  tsunamiAreas: () => ['earth', 'jma-tsunami-areas'] as const,
+}
+
+/** Signals from tsunami bulletins: the highest class currently stated. */
+export function tsunamiSignals(
+  reports: SourceObservation<TsunamiReport>[] | undefined,
+): EarthSignals {
+  const ranks = (reports ?? [])
+    .filter((r) => !r.data.cancelled)
+    .flatMap((r) => r.data.forecasts.map((f) => tsunamiKindRank(f.kindCode)))
+  return { tsunamiMaxRank: Math.max(0, ...ranks) }
 }
 
 /** Signals from seismic data: the latest felt quake and its intensity. */
@@ -100,16 +120,57 @@ export function useQuakeDetail(event: EarthquakeEvent | null) {
   })
 }
 
+export function useTsunamiReports() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.tsunami(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.tsunami.reports(signal)),
+    staleTime: 20_000,
+    refetchInterval: adaptive<Unwrapped<SourceObservation<TsunamiReport>[]>>(
+      'jma-tsunami',
+      (d) => tsunamiSignals(d?.data),
+      provider.now,
+    ),
+    meta: { persist: true },
+  })
+}
+
+export function useTsunamiAreas() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.tsunamiAreas(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.tsunami.areas(signal)).data,
+    staleTime: Infinity,
+  })
+}
+
+/** Tsunami events + per-area assessments, and the coasts near the monitoring location. */
+export function useTsunami() {
+  const reports = useTsunamiReports()
+  const areas = useTsunamiAreas()
+  const { events: quakes } = useQuakeEvents()
+  const { location } = useResolvedLocation()
+  const fused = useMemo(() => fuseTsunami(reports.data?.data ?? [], quakes), [reports.data, quakes])
+  const localCodes = useMemo(
+    () => (areas.data ? nearbyAreaCodes(areas.data, location) : []),
+    [areas.data, location],
+  )
+  return { ...fused, reports, areas, localCodes }
+}
+
 /** Every canonical natural event known to the terminal, newest first. */
 export function useNaturalEvents(): { events: NaturalEvent[]; now: Instant } {
   const { events: quakes } = useQuakeEvents()
+  const { events: tsunamis } = useTsunami()
   const now = useMinuteClock()
   const events = useMemo<NaturalEvent[]>(
     () =>
-      [...quakes].sort(
-        (a, b) => Date.parse(b.time.startedAt ?? '') - Date.parse(a.time.startedAt ?? ''),
+      [...tsunamis, ...quakes].sort(
+        (a, b) =>
+          Date.parse(b.time.startedAt ?? b.time.issuedAt ?? '') -
+          Date.parse(a.time.startedAt ?? a.time.issuedAt ?? ''),
       ),
-    [quakes],
+    [quakes, tsunamis],
   )
   return { events, now }
 }
@@ -148,26 +209,40 @@ export function feedState(queries: Q[], staleAfterMin: number, now: Instant): Fe
   return failing.length > 0 ? 'partial' : 'ok'
 }
 
+const latestCheck = (qs: Q[]) =>
+  qs
+    .map((q) => q.data?.provenance.retrievedAt)
+    .filter((t): t is string => !!t)
+    .sort()
+    .at(-1)
+
 export function useEarthSystems(): SystemRow[] {
   const quakes = useQuakeEvents()
+  const tsunami = useTsunami()
   const now = useMinuteClock()
   return useMemo(() => {
     const qs = [quakes.jma, quakes.usgs]
     const feed = feedState(qs, sourceSpec('jma-quake')!.freshness.staleAfterMin, now)
     const hasData = qs.some((q) => q.data)
+    const ts = [tsunami.reports]
     return [
+      // Tsunami first: when it is not nominal it is the most urgent line.
+      {
+        id: 'tsunami',
+        label: 'TSUNAMI',
+        reading: tsunamiStatus(tsunami.assessments, now, !!tsunami.reports.data),
+        checkedAt: latestCheck(ts),
+        feed: feedState(ts, sourceSpec('jma-tsunami')!.freshness.staleAfterMin, now),
+        sources: ['JMA'],
+      },
       {
         id: 'seismic',
         label: 'SEISMIC',
         reading: seismicStatus(quakes.events, now, hasData),
-        checkedAt: qs
-          .map((q) => q.data?.provenance.retrievedAt)
-          .filter((t): t is string => !!t)
-          .sort()
-          .at(-1),
+        checkedAt: latestCheck(qs),
         feed,
         sources: ['JMA', 'USGS'],
       },
     ]
-  }, [quakes.events, quakes.jma, quakes.usgs, now])
+  }, [quakes.events, quakes.jma, quakes.usgs, tsunami.assessments, tsunami.reports, now])
 }

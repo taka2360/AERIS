@@ -5,7 +5,7 @@
  * grows without bound.
  */
 import type { SourceObservation } from '@/domain/earth/common'
-import type { QuakeSolution } from '@/domain/earth/reports'
+import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
 
 export type { Scenario } from '@/sources/mock/scenario'
@@ -24,6 +24,14 @@ export interface SeismicProvider {
   ): Promise<SourceResult<Obs<QuakeSolution>>>
 }
 
+export interface TsunamiProvider {
+  /** Bulletins of recent tsunami events (one report per event) */
+  reports(signal?: AbortSignal): Promise<SourceResult<Obs<TsunamiReport>[]>>
+  /** Forecast-area coastlines: area code → polylines [lon, lat] */
+  areas(signal?: AbortSignal): Promise<SourceResult<Record<string, [number, number][][]>>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
+  tsunami: TsunamiProvider
 }

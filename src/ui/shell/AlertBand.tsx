@@ -1,8 +1,13 @@
 import { memo, useMemo } from 'react'
 import { intensityLabel } from '@/domain/earth/derive'
-import { quakeHeadline, quakeRelevance } from '@/domain/earth/status'
+import {
+  activeTsunami,
+  quakeHeadline,
+  quakeRelevance,
+  tsunamiRelevance,
+} from '@/domain/earth/status'
 import { formatTime, minutesBetween } from '@/domain/time'
-import { useQuakeEvents } from '@/query/earth-hooks'
+import { useQuakeEvents, useTsunami } from '@/query/earth-hooks'
 import { useAlerts, useResolvedLocation } from '@/query/hooks'
 import { useSelection } from '@/query/selection'
 import { useTimeCursor } from '@/query/time-cursor'
@@ -71,10 +76,57 @@ function QuakeBand() {
   )
 }
 
+const TSUNAMI_EN: Record<number, string> = {
+  4: 'MAJOR TSUNAMI WARNING',
+  3: 'TSUNAMI WARNING',
+  2: 'TSUNAMI ADVISORY',
+}
+
+/**
+ * Tsunami outranks every other band. Shown for advisories or warnings on the
+ * coasts near the monitoring location, and for a major tsunami warning anywhere.
+ */
+function TsunamiBand() {
+  const { assessments, localCodes } = useTsunami()
+  const { now } = useTimeCursor()
+  const { select } = useSelection()
+  const rel = useMemo(
+    () => tsunamiRelevance(activeTsunami(assessments, now), localCodes),
+    [assessments, localCodes, now],
+  )
+  const local = rel.local.filter((a) => a.rank >= 2)
+  const shown = local.length > 0 ? local : rel.national
+  const top = shown[0]
+  if (!top) return null
+  const h =
+    top.values?.maxHeightCondition ?? (top.values?.maxHeight ? `${top.values.maxHeight}m` : '')
+  return (
+    <div className={`${s.band} ${s.tsunami}`} data-rank={top.rank} role="alert">
+      <span className={s.tag}>{TSUNAMI_EN[top.rank] ?? 'TSUNAMI'}</span>
+      <span className={s.glyph} aria-hidden="true">
+        ▲
+      </span>
+      <button
+        type="button"
+        className={`${s.list} ${s.link} ja`}
+        onClick={() => top.eventRef && select(top.eventRef)}
+      >
+        {top.level.label} · {shown.map((a) => a.area.name).join('・')}
+        {h && ` · 予想 ${h}`}
+        {local.length > 0 ? ' · 監視地点の沿岸' : ' · 全国'}
+      </button>
+      {top.time.issuedAt && (
+        <span className={s.time}>{formatTime(top.time.issuedAt, false)} 発表 · 気象庁</span>
+      )}
+    </div>
+  )
+}
+
 /** Thin strips under the top bar for official alerts that concern the location. */
 export const AlertBand = memo(function AlertBand() {
   return (
     <>
+      <TsunamiBand />
       <QuakeBand />
       <JmaBand />
     </>

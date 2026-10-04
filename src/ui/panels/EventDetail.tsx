@@ -6,10 +6,11 @@
 import { memo, useMemo } from 'react'
 import { haversineKm } from '@/domain/derive'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
-import type { EarthquakeEvent, NaturalEvent } from '@/domain/earth/events'
+import type { EarthquakeEvent, NaturalEvent, TsunamiEvent } from '@/domain/earth/events'
 import { quakeRelevance } from '@/domain/earth/status'
 import { formatDate, formatTime } from '@/domain/time'
 import {
+  useTsunami,
   useEarthSystems,
   useNaturalEvents,
   useQuakeDetail,
@@ -163,6 +164,80 @@ function QuakeDetail({ e }: { e: EarthquakeEvent }) {
   )
 }
 
+function TsunamiDetail({ e }: { e: TsunamiEvent }) {
+  const { assessments, localCodes } = useTsunami()
+  const { select } = useSelection()
+  const mine = assessments
+    .filter((a) => a.eventRef === e.id)
+    .sort((a, b) => b.rank - a.rank || (a.area.code ?? '').localeCompare(b.area.code ?? ''))
+  const origin = e.detail.originEventRef
+  return (
+    <>
+      {e.detail.headline && <p className={`${s.comment} ja`}>{e.detail.headline}</p>}
+      <table className={s.stations}>
+        <caption>津波予報区ごとの発表 · 気象庁(予測)</caption>
+        <thead>
+          <tr>
+            <th scope="col">予報区</th>
+            <th scope="col">区分</th>
+            <th scope="col">予想高さ</th>
+            <th scope="col">第1波</th>
+          </tr>
+        </thead>
+        <tbody>
+          {mine.map((a) => (
+            <tr key={a.id} data-local={localCodes.includes(a.area.code ?? '') || undefined}>
+              <th scope="row" className="ja">
+                {a.area.name}
+                {localCodes.includes(a.area.code ?? '') && (
+                  <span className={s.localTag}>監視地点</span>
+                )}
+              </th>
+              <td className={s.tsuClass} data-rank={a.status === 'cancelled' ? 0 : a.rank}>
+                {a.status === 'cancelled' ? `${a.level.label}(解除)` : a.level.label}
+              </td>
+              <td>
+                {a.values?.maxHeightCondition ??
+                  (a.values?.maxHeight ? `${a.values.maxHeight}m` : '--')}
+              </td>
+              <td className={s.dim}>
+                {a.values?.firstArrivalCondition
+                  ? String(a.values.firstArrivalCondition)
+                  : a.values?.firstArrival
+                    ? `${formatTime(String(a.values.firstArrival), false)} 予想`
+                    : '--'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {e.detail.observations.length > 0 && (
+        <table className={s.stations}>
+          <caption>沿岸の観測値 · 気象庁(観測)</caption>
+          <tbody>
+            {e.detail.observations.map((o) => (
+              <tr key={o.station}>
+                <th scope="row" className="ja">
+                  {o.station}
+                </th>
+                <td>{o.maxHeightM != null ? `${o.maxHeightM}m` : '--'}</td>
+                <td className={s.dim}>
+                  {o.arrivalAt ? `${formatTime(o.arrivalAt, false)} 到達` : ''} {o.condition ?? ''}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {origin && (
+        <button type="button" className={s.clear} onClick={() => select(origin)}>
+          → 発生源の地震
+        </button>
+      )}
+    </>
+  )
+}
+
 function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
   const { now } = useNaturalEvents()
   const at = eventTime(e)
@@ -179,6 +254,7 @@ function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
         {e.lifecycle === 'cancelled' && <b className={s.cancel}> · 取消</b>}
       </div>
       {e.category === 'earthquake' && <QuakeDetail e={e} />}
+      {e.category === 'tsunami' && <TsunamiDetail e={e} />}
     </>
   )
 }

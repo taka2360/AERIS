@@ -5,7 +5,9 @@
  */
 import { haversineKm } from '../derive'
 import { minutesBetween, type Instant } from '../time'
+import type { HazardAssessment } from './assessments'
 import type { GeoPoint } from './common'
+import { validAt } from './temporal'
 import { intensityLabel, intensityRank, type SystemStatus } from './derive'
 import type { EarthquakeEvent, NaturalEvent } from './events'
 
@@ -116,6 +118,82 @@ export function quakeRelevance(e: EarthquakeEvent, at: GeoPoint): AlertPriority 
           : 'global',
     distanceKm: Math.round(epi),
     affectsLocation: local,
+    rule: RELEVANCE_RULE,
+  }
+}
+
+// ── Tsunami ─────────────────────────────────────────────────────────────────
+
+const TSUNAMI_RULE = 'aeris:tsunami-status/v1'
+
+/** JMA's tsunami classes mapped onto the monitor's status words. */
+const TSUNAMI_STATUS: SystemStatus[] = ['nominal', 'active', 'elevated', 'warning', 'critical']
+
+/** Tsunami assessments in force at t (cleared ones excluded). */
+export function activeTsunami(assessments: HazardAssessment[], t: Instant): HazardAssessment[] {
+  return validAt(
+    assessments.filter((a) => a.scheme === 'jma-tsunami' && a.status !== 'cancelled' && a.rank > 0),
+    t,
+  ).sort((a, b) => b.rank - a.rank)
+}
+
+/** Expected height as JMA states it: a qualitative word first, else metres. */
+function heightText(a: HazardAssessment): string {
+  const c = a.values?.maxHeightCondition
+  const h = a.values?.maxHeight
+  return c ? String(c) : h != null ? `${h}m` : ''
+}
+
+/**
+ * TSUNAMI status: the highest JMA class in force anywhere
+ * (大津波警報 → CRITICAL, 警報 → WARNING, 注意報 → ELEVATED, 予報 → ACTIVE).
+ */
+export function tsunamiStatus(
+  assessments: HazardAssessment[],
+  t: Instant,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: TSUNAMI_RULE }
+  const active = activeTsunami(assessments, t)
+  const top = active[0]
+  if (!top) return { status: 'nominal', headline: '津波の発表なし', rule: TSUNAMI_RULE }
+  const same = active.filter((a) => a.rank === top.rank)
+  const h = heightText(top)
+  return {
+    status: TSUNAMI_STATUS[Math.min(4, top.rank)]!,
+    headline: `${top.level.label} · ${top.area.name}${same.length > 1 ? ` ほか${same.length - 1}区` : ''}${h ? ` · 予想${h}` : ''}`,
+    eventId: top.eventRef,
+    rule: TSUNAMI_RULE,
+  }
+}
+
+/** Forecast-area codes whose coastline lies within `maxKm` of the point. */
+export function nearbyAreaCodes(
+  lines: Record<string, [number, number][][]>,
+  at: GeoPoint,
+  maxKm = 20,
+): string[] {
+  const out: Array<[string, number]> = []
+  for (const [code, parts] of Object.entries(lines)) {
+    let best = Infinity
+    for (const line of parts)
+      for (const [lon, lat] of line) best = Math.min(best, haversineKm(at.lat, at.lon, lat, lon))
+    if (best <= maxKm) out.push([code, best])
+  }
+  return out.sort((a, b) => a[1] - b[1]).map(([c]) => c)
+}
+
+/**
+ * Which tsunami assessments concern the monitoring location: those for its
+ * nearby coasts. A major tsunami warning (大津波警報) anywhere is national.
+ */
+export function tsunamiRelevance(
+  active: HazardAssessment[],
+  localCodes: string[],
+): { local: HazardAssessment[]; national: HazardAssessment[]; rule: string } {
+  return {
+    local: active.filter((a) => a.area.code && localCodes.includes(a.area.code)),
+    national: active.filter((a) => a.rank >= 4),
     rule: RELEVANCE_RULE,
   }
 }

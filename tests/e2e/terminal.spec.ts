@@ -153,3 +153,32 @@ test.describe('earthquake scenario', () => {
     await expect(page.getByRole('region', { name: 'EVENT LOG' })).toContainText('日向灘')
   })
 })
+
+test.describe('tsunami scenario', () => {
+  test('the local coast advisory takes the top band and the monitor reports WARNING', async ({
+    page,
+  }) => {
+    await page.goto(mockUrl('&scenario=tsunami'))
+    await waitForTerminal(page)
+    const band = page.getByRole('alert')
+    await expect(band).toContainText('TSUNAMI ADVISORY')
+    await expect(band).toContainText('東京湾内湾')
+    await expect(band).toContainText('監視地点の沿岸')
+    const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
+    await expect(monitor.getByRole('listitem').first()).toContainText('TSUNAMI')
+    await expect(monitor.getByRole('listitem').first()).toContainText('WARNING')
+    await band.getByRole('button').click()
+    const detail = page.getByRole('region', { name: 'EVENT DETAIL' })
+    await expect(detail).toContainText('千葉県九十九里・外房')
+    await expect(detail).toContainText('沿岸の観測値')
+  })
+
+  test('without bulletins the tsunami line reads NOMINAL', async ({ page }) => {
+    await page.goto(mockUrl('&scenario=quiet'))
+    await waitForTerminal(page)
+    const row = page.getByRole('region', { name: 'EVENT MONITOR' }).getByRole('listitem').first()
+    await expect(row).toContainText('TSUNAMI')
+    await expect(row).toContainText('NOMINAL')
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+})

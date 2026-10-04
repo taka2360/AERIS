@@ -117,12 +117,12 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 津波
 
-### JMA TSUNAMI — `jma-tsunami` (planned)
+### JMA TSUNAMI — `jma-tsunami`
 
 | 項目 | 内容 |
 | --- | --- |
 | 提供元 | 気象庁 |
-| エンドポイント | `https://www.jma.go.jp/bosai/tsunami/data/list.json` |
+| エンドポイント | `https://www.jma.go.jp/bosai/tsunami/data/list.json`<br>`https://www.jma.go.jp/bosai/common/const/geojson/tsunami.json` |
 | ライセンス | 気象庁ホームページ利用規約(政府標準利用規約 第2.0版準拠) |
 | 出典表記 | [出典：気象庁ホームページ](https://www.jma.go.jp/) |
 | 再配布 | 出典明記で複製・加工・再配布可。加工時は加工した旨を明記 |

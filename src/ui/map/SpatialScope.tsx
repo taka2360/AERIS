@@ -19,7 +19,8 @@ import { compass16, formatCoord } from '@/domain/derive'
 import { frameAt, framesToIntervals, latestObserved } from '@/domain/earth/temporal'
 import { addMinutes, formatTime } from '@/domain/time'
 import { useTimeCursor } from '@/query/time-cursor'
-import { useQuakeEvents } from '@/query/earth-hooks'
+import { useQuakeEvents, useTsunami } from '@/query/earth-hooks'
+import { activeTsunami } from '@/domain/earth/status'
 import { useSelection } from '@/query/selection'
 import { activeWindow } from '@/domain/earth/temporal'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
@@ -102,6 +103,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const mapStatus = useMapStatus()
   const cursor = useTimeCursor()
   const { events: quakeEvents } = useQuakeEvents()
+  const tsunami = useTsunami()
   const { selectedId, select } = useSelection()
 
   const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
@@ -235,6 +237,18 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     }))
   }, [quakeEvents, selectedId])
 
+  // Highest class per forecast area among assessments valid at the cursor time.
+  const tsunamiCoasts = useMemo(() => {
+    const lines = tsunami.areas.data
+    if (!lines) return []
+    const byArea = new Map<string, number>()
+    for (const a of activeTsunami(tsunami.assessments, cursor.t))
+      if (a.area.code) byArea.set(a.area.code, Math.max(byArea.get(a.area.code) ?? 0, a.rank))
+    return [...byArea]
+      .filter(([code]) => lines[code])
+      .map(([code, rank]) => ({ code, rank, lines: lines[code]! }))
+  }, [tsunami.areas.data, tsunami.assessments, cursor.t])
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -247,6 +261,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       quakes,
       selectedEventId: selectedId,
       intensityStations,
+      tsunamiCoasts,
     }),
     [
       center,
@@ -257,6 +272,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       quakes,
       selectedId,
       intensityStations,
+      tsunamiCoasts,
     ],
   )
 

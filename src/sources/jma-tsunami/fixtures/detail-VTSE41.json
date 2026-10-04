@@ -1,0 +1,85 @@
+{
+ "Control": {
+  "Title": "津波警報・注意報・予報a",
+  "DateTime": "2026-09-30T05:08:17Z",
+  "Status": "通常",
+  "EditorialOffice": "気象庁本庁",
+  "PublishingOffice": "気象庁"
+ },
+ "Head": {
+  "Title": "津波予報",
+  "ReportDateTime": "2026-09-30T14:08:00+09:00",
+  "TargetDateTime": "2026-09-30T14:08:00+09:00",
+  "ValidDateTime": "2026-09-30T18:00:00+09:00",
+  "EventID": "20260930140037",
+  "InfoType": "発表",
+  "Serial": null,
+  "InfoKind": "津波警報・注意報・予報",
+  "InfoKindVersion": "1.0_1",
+  "Headline": {
+   "Text": "津波予報（若干の海面変動）を発表しました。"
+  },
+  "enTitle": "Tsunami Forecast"
+ },
+ "Body": {
+  "Tsunami": {
+   "Forecast": {
+    "CodeDefine": {
+     "Type": "警報等情報要素／津波警報・注意報・予報"
+    },
+    "Item": [
+     {
+      "Area": {
+       "Name": "宮古島・八重山地方",
+       "Code": "802",
+       "enName": "MIYAKOJIMA AND YAEYAMA AREA"
+      },
+      "Category": {
+       "Kind": {
+        "Name": "津波予報（若干の海面変動）",
+        "Code": "71",
+        "enName": "Tsunami Forecast"
+       },
+       "LastKind": {
+        "Name": "津波なし",
+        "Code": "00",
+        "enName": "No Tsunami risk"
+       }
+      },
+      "MaxHeight": {
+       "TsunamiHeight": "<0.2"
+      }
+     }
+    ]
+   }
+  },
+  "Earthquake": [
+   {
+    "OriginTime": "2026-09-30T14:00:00+09:00",
+    "ArrivalTime": "2026-09-30T14:00:00+09:00",
+    "Hypocenter": {
+     "Area": {
+      "Name": "与那国島近海",
+      "Code": "857",
+      "Coordinate": "+23.8+122.9-10000/",
+      "NameFromMark": "石垣島の西南西１５０ｋｍ付近",
+      "MarkCode": "801",
+      "Direction": "西南西",
+      "Distance": "150",
+      "enName": "Adjacent Sea of Yonagunijima Island"
+     }
+    },
+    "Magnitude": "6.0"
+   }
+  ],
+  "Text": "これらの沿岸では今後２、３時間程度は若干の海面変動が継続する可能性が高いと考えられます。",
+  "Comments": {
+   "WarningComment": {
+    "Text": "＜津波予報（若干の海面変動）＞\n若干の海面変動が予想されますが、被害の心配はありません。",
+    "Code": "0124",
+    "enText": "[Tsunami Forecast] Slight sea-level changes may be observed in coastal regions, but no tsunami damage is expected.\n"
+   },
+   "FreeFormComment": "［予想される津波の高さの解説］\n予想される津波が高いほど、より甚大な被害が生じま"
+  }
+ }
+}

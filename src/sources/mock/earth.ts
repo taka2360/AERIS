@@ -5,9 +5,11 @@
  */
 import type { SourceObservation } from '@/domain/earth/common'
 import type { IntensityObservation } from '@/domain/earth/events'
-import type { QuakeSolution } from '@/domain/earth/reports'
+import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { Provenance } from '@/domain/model'
 import { addMinutes, epoch, type Instant } from '@/domain/time'
+import { adaptAreas, areasSchema, reportObservation, type TsunamiAreaLines } from '../jma-tsunami'
+import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
 import type { Scenario } from './scenario'
 
 type Obs = SourceObservation<QuakeSolution>
@@ -264,9 +266,128 @@ function strongQuake(now: Instant): { jma: Obs[]; usgs: Obs[] } {
   return { jma, usgs }
 }
 
+/** An offshore great earthquake that triggers tsunami warnings for Kanto coasts. */
+function offshoreQuake(now: Instant): { jma: Obs[]; usgs: Obs[] } {
+  const main = addMinutes(now, -14)
+  return {
+    jma: [
+      jmaObs(
+        'm-j-tsu',
+        main,
+        {
+          lat: 35.0,
+          lon: 141.8,
+          depthKm: 20,
+          magnitude: { value: 7.6, type: 'Mj' },
+          areaName: '房総半島東方沖',
+          maxIntensity: '5-',
+          stations: [
+            { code: '1220500', name: '銚子市川口町', lat: 35.73, lon: 140.83, intensity: '5-' },
+            { code: '1310100', name: '千代田区大手町', lat: 35.69, lon: 139.76, intensity: '3' },
+          ],
+          comments: ['津波警報等(大津波警報・津波警報あるいは津波注意報)を発表中です。'],
+        },
+        now,
+      ),
+    ],
+    usgs: [
+      usgsObs(
+        'm-u-tsu',
+        addMinutes(main, 0.3),
+        {
+          lat: 34.92,
+          lon: 141.95,
+          depthKm: 25,
+          magnitude: { value: 7.5, type: 'mww' },
+          areaName: 'off the east coast of Honshu, Japan',
+          tsunamiFlag: true,
+        },
+        now,
+      ),
+    ],
+  }
+}
+
 export function synthQuakes(now: Instant, scenario: Scenario): { jma: Obs[]; usgs: Obs[] } {
   const bg = background(now)
-  if (scenario !== 'quake' && scenario !== 'tsunami') return bg
-  const strong = strongQuake(now)
-  return { jma: [...strong.jma, ...bg.jma], usgs: [...strong.usgs, ...bg.usgs] }
+  const extra =
+    scenario === 'quake' ? strongQuake(now) : scenario === 'tsunami' ? offshoreQuake(now) : null
+  return extra ? { jma: [...extra.jma, ...bg.jma], usgs: [...extra.usgs, ...bg.usgs] } : bg
+}
+
+/** Tsunami bulletins: the tsunami scenario's warnings, else nothing recent. */
+export function synthTsunami(now: Instant, scenario: Scenario): SourceObservation<TsunamiReport>[] {
+  if (scenario !== 'tsunami') return []
+  const origin = toMinute(addMinutes(now, -14))
+  const issued = addMinutes(origin, 3)
+  const report: TsunamiReport = {
+    eventId: 'm-j-tsu',
+    issuedAt: issued,
+    title: '津波警報・注意報・予報a',
+    headline: '津波警報を発表しました。',
+    cancelled: false,
+    forecasts: [
+      {
+        areaCode: '310',
+        areaName: '千葉県九十九里・外房',
+        kindCode: '51',
+        kindName: '津波警報',
+        maxHeight: '3',
+        firstArrival: addMinutes(origin, 12),
+        firstArrivalCondition: '第１波の到達を確認',
+      },
+      {
+        areaCode: '300',
+        areaName: '茨城県',
+        kindCode: '51',
+        kindName: '津波警報',
+        maxHeight: '3',
+        firstArrival: addMinutes(origin, 20),
+      },
+      {
+        areaCode: '312',
+        areaName: '東京湾内湾',
+        kindCode: '62',
+        kindName: '津波注意報',
+        maxHeight: '1',
+        firstArrival: addMinutes(origin, 50),
+      },
+      {
+        areaCode: '311',
+        areaName: '千葉県内房',
+        kindCode: '62',
+        kindName: '津波注意報',
+        maxHeight: '1',
+        firstArrival: addMinutes(origin, 30),
+      },
+      {
+        areaCode: '330',
+        areaName: '相模湾・三浦半島',
+        kindCode: '62',
+        kindName: '津波注意報',
+        maxHeight: '1',
+        firstArrival: addMinutes(origin, 35),
+      },
+    ],
+    observations: [
+      {
+        station: '銚子',
+        areaName: '千葉県九十九里・外房',
+        firstArrival: addMinutes(origin, 12),
+        initial: '押し',
+        maxHeight: '0.6',
+        maxHeightAt: addMinutes(origin, 13),
+        condition: '上昇中',
+      },
+    ],
+    origin: { time: origin, areaName: '房総半島東方沖', lat: 35.0, lon: 141.8, magnitude: 7.6 },
+    comments: [
+      '津波による被害が発生します。沿岸部や川沿いにいる人は、ただちに高台や避難ビルなど安全な場所へ避難してください。',
+    ],
+  }
+  return [reportObservation(report, now)]
+}
+
+export function synthTsunamiAreas(): TsunamiAreaLines {
+  return adaptAreas(areasSchema.parse(tsunamiAreasFixture))
 }

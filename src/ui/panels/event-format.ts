@@ -68,13 +68,19 @@ export function eventFigure(e: NaturalEvent): string {
       const i = e.detail.maxIntensity ? ` 震度${intensityLabel(e.detail.maxIntensity)}` : ''
       return `${max != null ? `M${max.toFixed(1)}` : 'M--'}${i}`
     }
+    case 'tsunami':
+      return e.lifecycle === 'ongoing' ? '発表中' : e.lifecycle === 'cancelled' ? '取消' : '解除'
     default:
       return ''
   }
 }
 
 export function sourceTags(e: NaturalEvent): string[] {
-  const names: Record<string, string> = { 'jma-quake': 'JMA', 'usgs-quake': 'USGS' }
+  const names: Record<string, string> = {
+    'jma-quake': 'JMA',
+    'usgs-quake': 'USGS',
+    'jma-tsunami': 'JMA',
+  }
   return [...new Set(e.sources.map((s) => names[s.source] ?? s.source.toUpperCase()))]
 }
 

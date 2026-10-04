@@ -212,8 +212,11 @@ export const SOURCES: SourceSpec[] = [
     label: 'JMA TSUNAMI',
     owner: '気象庁',
     domain: 'tsunami',
-    status: 'planned',
-    endpoints: ['https://www.jma.go.jp/bosai/tsunami/data/list.json'],
+    status: 'active',
+    endpoints: [
+      'https://www.jma.go.jp/bosai/tsunami/data/list.json',
+      'https://www.jma.go.jp/bosai/common/const/geojson/tsunami.json',
+    ],
     license: JMA_LICENSE,
     attribution: JMA_ATTR,
     redistribution: JMA_REDIST,
