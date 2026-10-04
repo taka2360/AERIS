@@ -17,7 +17,8 @@
     "e2e": "playwright test --project=e2e-*",
     "vrt": "playwright test --project=vrt-*",
     "vrt:update": "playwright test --project=vrt-* --update-snapshots",
-    "vrt:linux": "bash scripts/vrt-linux.sh"
+    "vrt:linux": "bash scripts/vrt-linux.sh",
+    "docs:sources": "node scripts/gen-data-sources.ts"
   },
   "packageManager": "pnpm@11.21.0",
   "dependencies": {

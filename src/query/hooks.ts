@@ -11,6 +11,7 @@ import { unwrap } from '@/domain/result'
 import { mergeCurrent, primaryStation } from '@/services/current'
 import { healthFromSnapshot } from '@/services/health'
 import { roundPoint } from '@/services/provider'
+import { nominalPollMs, staleAfterMin } from '@/sources/registry'
 import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
@@ -58,8 +59,8 @@ export function useForecast() {
   return useQuery({
     queryKey: queryKeys.forecast(lat, lon),
     queryFn: async ({ signal }) => unwrap(await provider.forecast({ lat, lon }, signal)),
-    staleTime: 10 * MIN,
-    refetchInterval: 10 * MIN,
+    staleTime: nominalPollMs('openmeteo'),
+    refetchInterval: nominalPollMs('openmeteo'),
     meta: { persist: true },
   })
 }
@@ -70,8 +71,8 @@ export function useStations() {
   return useQuery({
     queryKey: queryKeys.stations(lat, lon),
     queryFn: async ({ signal }) => unwrap(await provider.stations({ lat, lon }, signal)),
-    staleTime: 5 * MIN,
-    refetchInterval: 5 * MIN,
+    staleTime: nominalPollMs('jma-amedas'),
+    refetchInterval: nominalPollMs('jma-amedas'),
     meta: { persist: true },
   })
 }
@@ -95,8 +96,8 @@ export function useAlerts() {
     queryKey: queryKeys.alerts(code ?? 'none'),
     queryFn: async ({ signal }) => unwrap(await provider.alerts(location, signal)),
     enabled: !!code,
-    staleTime: 3 * MIN,
-    refetchInterval: 3 * MIN,
+    staleTime: nominalPollMs('jma-warning'),
+    refetchInterval: nominalPollMs('jma-warning'),
     meta: { persist: true },
   })
 }
@@ -109,8 +110,8 @@ export function useOfficialForecast() {
     queryKey: queryKeys.official(code ?? 'none'),
     queryFn: async ({ signal }) => unwrap(await provider.officialForecast(location, signal)),
     enabled: !!code,
-    staleTime: 30 * MIN,
-    refetchInterval: 30 * MIN,
+    staleTime: nominalPollMs('jma-forecast'),
+    refetchInterval: nominalPollMs('jma-forecast'),
     meta: { persist: true },
   })
 }
@@ -120,8 +121,8 @@ export function useNowcastFrames() {
   return useQuery({
     queryKey: queryKeys.nowcast(),
     queryFn: async ({ signal }) => unwrap(await provider.nowcastFrames(signal)),
-    staleTime: 5 * MIN,
-    refetchInterval: 5 * MIN,
+    staleTime: nominalPollMs('jma-nowcast'),
+    refetchInterval: nominalPollMs('jma-nowcast'),
   })
 }
 
@@ -196,15 +197,6 @@ export function useBrowserOnline(): boolean {
   )
 }
 
-/** Data-time based freshness limits per channel (minutes). */
-const MAX_AGE_MIN: Partial<Record<SourceId, number>> = {
-  openmeteo: 180,
-  'jma-amedas': 40,
-  'jma-warning': 30,
-  'jma-forecast': 24 * 60,
-  'jma-nowcast': 20,
-}
-
 export type Channel = { id: string; label: string; health: SourceHealth }
 
 function snapshot<T>(q: UseQueryResult<T>, dataTime?: string) {
@@ -272,7 +264,7 @@ export function useSystemHealth() {
   const now = useMinuteClock()
 
   return useMemo(() => {
-    const opts = (s: SourceId) => ({ now, maxAgeMin: MAX_AGE_MIN[s] ?? 60, browserOnline: online })
+    const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
     const latestFrame = nowcast.data?.data.filter((f) => f.kind === 'observation').at(-1)?.validTime
     const channels: Channel[] = [
       {
