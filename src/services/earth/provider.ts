@@ -19,6 +19,7 @@ import type {
 import type { GeoPoint } from '@/domain/earth/common'
 import type { Instant } from '@/domain/time'
 import type { CycloneReport } from '@/sources/jma-typhoon'
+import type { VolcanoFeed } from '@/sources/jma-volcano'
 
 export type { Scenario } from '@/sources/mock/scenario'
 
@@ -67,8 +68,14 @@ export interface AtmosphereProvider {
   ): Promise<SourceResult<FieldSample<FieldClass>>>
 }
 
+export interface VolcanoProvider {
+  /** Monitored volcanoes and the latest bulletins of those with one listed */
+  volcanoes(signal?: AbortSignal): Promise<SourceResult<VolcanoFeed>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
   tsunami: TsunamiProvider
   atmosphere: AtmosphereProvider
+  volcano: VolcanoProvider
 }

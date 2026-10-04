@@ -16,6 +16,7 @@ import {
   nearbyAreaCodes,
   summarizeStrokes,
   tornadoStatus,
+  volcanoStatus,
   seismicStatus,
   severeStatus,
   tsunamiStatus,
@@ -27,6 +28,7 @@ import type { Provenance, SourceId } from '@/domain/model'
 import { fuseQuakes } from '@/services/fusion/earthquake'
 import { fuseTsunami } from '@/services/fusion/tsunami'
 import { cycloneEvent } from '@/services/fusion/cyclone'
+import { fuseVolcanoes } from '@/services/fusion/volcano'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
 import { nominalPollMs, sourceSpec } from '@/sources/registry'
@@ -44,6 +46,7 @@ export const earthKeys = {
   cyclones: () => ['earth', 'jma-typhoon'] as const,
   thunder: () => ['earth', 'jma-thunder'] as const,
   information: () => ['earth', 'jma-information'] as const,
+  volcanoes: () => ['earth', 'jma-volcano'] as const,
   strokes: () => ['earth', 'jma-liden'] as const,
   sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
     ['earth', 'sample', kind, frame, lat, lon, r] as const,
@@ -193,6 +196,23 @@ export function useCyclones() {
   return { events, query: q }
 }
 
+export function useVolcanoFeed() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.volcanoes(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.volcano.volcanoes(signal)),
+    staleTime: 60_000,
+    refetchInterval: nominalPollMs('jma-volcano'),
+    meta: { persist: true },
+  })
+}
+
+export function useVolcanoes() {
+  const q = useVolcanoFeed()
+  const fused = useMemo(() => fuseVolcanoes(q.data?.data.reports ?? []), [q.data])
+  return { ...fused, sites: q.data?.data.sites ?? [], query: q }
+}
+
 export function useInformation() {
   const provider = useWeatherProvider()
   return useQuery({
@@ -268,15 +288,16 @@ export function useNaturalEvents(): { events: NaturalEvent[]; now: Instant } {
   const { events: quakes } = useQuakeEvents()
   const { events: tsunamis } = useTsunami()
   const { events: cyclones } = useCyclones()
+  const { events: volcanoes } = useVolcanoes()
   const now = useMinuteClock()
   const events = useMemo<NaturalEvent[]>(
     () =>
-      [...tsunamis, ...cyclones, ...quakes].sort(
+      [...tsunamis, ...cyclones, ...volcanoes, ...quakes].sort(
         (a, b) =>
           Date.parse(b.time.startedAt ?? b.time.observedAt ?? b.time.issuedAt ?? '') -
           Date.parse(a.time.startedAt ?? a.time.observedAt ?? a.time.issuedAt ?? ''),
       ),
-    [quakes, tsunamis, cyclones],
+    [quakes, tsunamis, cyclones, volcanoes],
   )
   return { events, now }
 }
@@ -337,6 +358,7 @@ export function useEarthSystems(): SystemRow[] {
   const strokes = useStrokes()
   const info = useInformation()
   const alerts = useAlerts()
+  const volc = useVolcanoes()
   const ltng = useLocalSample('lightning-activity', thunder.data?.lightning, 3)
   const torn = useLocalSample('tornado-probability', thunder.data?.tornado, 3)
   const { location } = useResolvedLocation()
@@ -373,6 +395,14 @@ export function useEarthSystems(): SystemRow[] {
         reading: cycloneStatus(cyclones.events, location, !!cyclones.query.data),
         checkedAt: latestCheck([cyclones.query]),
         feed: feedState([cyclones.query], sourceSpec('jma-typhoon')!.freshness.staleAfterMin, now),
+        sources: ['JMA'],
+      },
+      {
+        id: 'volcano',
+        label: 'VOLCANO',
+        reading: volcanoStatus(volc.assessments, volc.sites, location, !!volc.query.data),
+        checkedAt: latestCheck([volc.query]),
+        feed: feedState([volc.query], sourceSpec('jma-volcano')!.freshness.staleAfterMin, now),
         sources: ['JMA'],
       },
       {
@@ -421,6 +451,9 @@ export function useEarthSystems(): SystemRow[] {
     strokes,
     info,
     alerts.data,
+    volc.assessments,
+    volc.sites,
+    volc.query,
     ltng.data,
     torn.data,
     thunder.isError,

@@ -14,6 +14,7 @@ import {
 import { cycloneLayer } from './cyclone-layer'
 import { quakeLayer } from './quake-layer'
 import { tsunamiLayer } from './tsunami-layer'
+import { volcanoLayer } from './volcano-layer'
 import type { MapLayerDef } from './types'
 
 export const MAP_LAYERS: MapLayerDef[] = [
@@ -26,6 +27,7 @@ export const MAP_LAYERS: MapLayerDef[] = [
   strokesLayer,
   cycloneLayer,
   tsunamiLayer,
+  volcanoLayer,
   quakeLayer,
 ]
 

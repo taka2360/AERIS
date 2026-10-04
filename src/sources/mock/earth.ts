@@ -21,6 +21,16 @@ import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
 import { buildSeries, FIELD_SPECS, type TargetTime } from '../jma-tile'
 import { PALETTES } from '../jma-tile/palettes'
 import { adaptInformation } from '../jma-information'
+import {
+  adaptSites,
+  adaptWarnings,
+  listSchema as volcanoListSchema,
+  volcanoObservation,
+  warningSchema as volcanoWarningSchema,
+  type VolcanoFeed,
+} from '../jma-volcano'
+import volcanoListFixture from '../jma-volcano/fixtures/volcano_list.json'
+import volcanoWarningFixture from '../jma-volcano/fixtures/warning.json'
 import type { HazardAssessment } from '@/domain/earth/assessments'
 import type { Scenario } from './scenario'
 
@@ -595,4 +605,30 @@ export function synthInformation(now: Instant, scenario: Scenario): HazardAssess
     })),
     now,
   )
+}
+
+/**
+ * Volcanoes: the real catalogue and the bulletins of 2026-10-04 (fixture);
+ * the eruption scenario adds a level-4 warning for Sakurajima issued 20 min ago.
+ */
+export function synthVolcanoes(now: Instant, scenario: Scenario): VolcanoFeed {
+  const sites = adaptSites(volcanoListSchema.parse(volcanoListFixture))
+  const warnings = volcanoWarningSchema.parse(volcanoWarningFixture)
+  let reports = adaptWarnings(warnings, sites)
+  if (scenario === 'eruption') {
+    const sakurajima = sites.find((v) => v.code === '506')!
+    reports = [
+      {
+        site: sakurajima,
+        issuedAt: addMinutes(now, -20),
+        levelCode: '14',
+        levelName: 'レベル４（高齢者等避難）',
+        lastCode: '13',
+        condition: '引上げ',
+        municipalities: ['鹿児島県鹿児島市: 噴火警報（居住地域）：高齢者等避難'],
+      },
+      ...reports.filter((r) => r.site.code !== '506'),
+    ]
+  }
+  return { sites, reports: reports.map((r) => volcanoObservation(r, now)) }
 }

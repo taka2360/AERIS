@@ -26,6 +26,7 @@ import { useMapStatus, type MapStatus } from './map-status'
 import {
   useCycloneReports,
   useInformation,
+  useVolcanoFeed,
   useJmaQuakes,
   useStrokes,
   useTsunamiReports,
@@ -293,6 +294,7 @@ export function useSystemHealth() {
   const cyclones = useCycloneReports()
   const strokes = useStrokes()
   const information = useInformation()
+  const volcanoes = useVolcanoFeed()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -389,6 +391,15 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'jma-volcano',
+        'JMA VOLCANO',
+        healthFromSnapshot(
+          'jma-volcano',
+          snapshot(volcanoes, volcanoes.data?.provenance.retrievedAt),
+          opts('jma-volcano'),
+        ),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -423,6 +434,7 @@ export function useSystemHealth() {
     cyclones,
     strokes,
     information,
+    volcanoes,
   ])
 }
 

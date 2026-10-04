@@ -395,3 +395,47 @@ export function severeStatus(
     ? { status: top.status, headline: top.headline, rule: SEVERE_RULE }
     : { status: 'nominal', headline: '顕著な現象の発表なし', rule: SEVERE_RULE }
 }
+
+// ── Volcanoes ───────────────────────────────────────────────────────────────
+
+const VOLCANO_RULE = 'aeris:volcano-status/v1'
+const VOLCANO_STATUS: SystemStatus[] = [
+  'nominal',
+  'nominal',
+  'active',
+  'elevated',
+  'warning',
+  'critical',
+]
+
+/**
+ * VOLCANO status from JMA eruption warnings in force (AERIS rule):
+ * level 5 → CRITICAL, 4 / residential warning → WARNING, 3 → ELEVATED,
+ * 2 / crater-area or sea-area warning → ACTIVE. A volcano within 50 km of the
+ * monitoring location with level 3+ is named first.
+ */
+export function volcanoStatus(
+  assessments: HazardAssessment[],
+  sites: Array<{ code: string; lat: number; lon: number }>,
+  at: GeoPoint,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: VOLCANO_RULE }
+  const pos = new Map(sites.map((s) => [s.code, s]))
+  const near = (a: HazardAssessment) => {
+    const s = a.area.code ? pos.get(a.area.code) : undefined
+    return !!s && haversineKm(at.lat, at.lon, s.lat, s.lon) <= 50
+  }
+  const ranked = assessments
+    .filter((a) => a.scheme === 'jma-volcano' && a.status !== 'cancelled' && a.rank >= 2)
+    .sort((a, b) => b.rank - a.rank || Number(near(b)) - Number(near(a)))
+  const top = ranked[0]
+  if (!top) return { status: 'nominal', headline: '噴火警報の発表なし', rule: VOLCANO_RULE }
+  const cond = top.values?.condition ? ` ${top.values.condition}` : ''
+  return {
+    status: VOLCANO_STATUS[Math.min(5, top.rank)]!,
+    headline: `${top.area.name} ${top.level.label}${cond}${ranked.length > 1 ? ` ほか${ranked.length - 1}火山` : ''}`,
+    eventId: top.eventRef,
+    rule: VOLCANO_RULE,
+  }
+}

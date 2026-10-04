@@ -35,6 +35,15 @@ export type MapScene = {
   intensityStations: Array<{ lat: number; lon: number; rank: number; label: string }>
   /** Tsunami forecast areas in force at the cursor time (rank = JMA class 1–4) */
   tsunamiCoasts: Array<{ code: string; rank: number; lines: [number, number][][] }>
+  /** Monitored volcanoes; rank > 0 when a JMA bulletin is listed */
+  volcanoes: Array<{
+    selectId: string
+    name: string
+    lat: number
+    lon: number
+    rank: number
+    levelShort: string
+  }>
   /** Tropical cyclones with their stated geometry and the centre at the cursor time */
   cyclones: Array<{
     id: string
@@ -50,7 +59,17 @@ export type MapScene = {
 
 /** User-facing toggle keys. Several definitions may share one toggle. */
 export type LayerToggle =
-  'echo' | 'ltng' | 'torn' | 'strk' | 'stn' | 'wind' | 'grid' | 'quake' | 'tsunami' | 'cyclone'
+  | 'echo'
+  | 'ltng'
+  | 'torn'
+  | 'strk'
+  | 'stn'
+  | 'wind'
+  | 'grid'
+  | 'quake'
+  | 'tsunami'
+  | 'cyclone'
+  | 'volcano'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 

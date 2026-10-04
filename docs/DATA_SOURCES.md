@@ -134,7 +134,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 火山
 
-### JMA VOLCANO — `jma-volcano` (planned)
+### JMA VOLCANO — `jma-volcano`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -147,7 +147,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 役割 / 導出 | warning / measured(既定の時間区分: forecast) |
 | 鮮度 | 想定更新 1h・30min 超で STALE |
 | 取得間隔 | 10min |
-| 注記 | bosai JSON は正式 API ではなく、予告なく構造が変わる可能性がある |
+| 注記 | warning.json に載る火山(警報中または最近変更)のみ発表内容を表示。載らない火山のレベルは推定しない。eruption.json(噴火の観測)は構造未確認のため未対応。鮮度は最終確認時刻で判定。bosai JSON は正式 API ではなく、予告なく構造が変わる可能性がある |
 
 ## 大気現象(雷・台風)
 

@@ -15,6 +15,7 @@ import {
   synthThunder,
   synthTsunami,
   synthTsunamiAreas,
+  synthVolcanoes,
 } from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
@@ -50,6 +51,10 @@ export function createMockEarthProvider(
       reports: (signal) =>
         run('jma-tsunami', 'official', 'MOCK JMA', signal, () => synthTsunami(now(), scenario)),
       areas: (signal) => run('jma-tsunami', 'official', 'MOCK JMA', signal, synthTsunamiAreas),
+    },
+    volcano: {
+      volcanoes: (signal) =>
+        run('jma-volcano', 'official', 'MOCK JMA', signal, () => synthVolcanoes(now(), scenario)),
     },
     atmosphere: {
       cyclones: (signal) =>

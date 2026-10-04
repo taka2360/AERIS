@@ -110,11 +110,21 @@ export interface TsunamiEvent extends BaseEvent {
 export type VolcanoDetail = {
   volcanoCode: string
   nameEn?: string
-  /** Latest eruption-alert level as stated, when the volcano has the system */
-  alertLevel?: string
+  /** JMA warning/forecast code (11-15 = eruption alert level 1-5, others = other forms) */
+  levelCode?: string
+  /** As stated by JMA */
+  levelName?: string
+  /** Eruption alert level number when the volcano uses the level system */
+  alertLevel?: number
+  /** Change from the previous bulletin, as stated */
+  condition?: string
   plumeHeightM?: number
+  /** Municipalities and their prescribed response */
   notes: string[]
 }
+
+/** A monitored volcano (catalogue entry), whether or not anything is in force. */
+export type VolcanoSite = { code: string; name: string; nameEn?: string; lat: number; lon: number }
 
 export interface VolcanoEvent extends BaseEvent {
   category: 'volcano'

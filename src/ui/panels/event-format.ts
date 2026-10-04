@@ -73,6 +73,8 @@ export function eventFigure(e: NaturalEvent): string {
       const w = measures(e, 'cyclone.max_wind')[0]
       return [p && `${p.value}hPa`, w && `${w.value}m/s`].filter(Boolean).join(' ')
     }
+    case 'volcano':
+      return e.detail.levelName ?? ''
     case 'tsunami':
       return e.lifecycle === 'ongoing' ? '発表中' : e.lifecycle === 'cancelled' ? '取消' : '解除'
     default:
@@ -86,6 +88,7 @@ export function sourceTags(e: NaturalEvent): string[] {
     'usgs-quake': 'USGS',
     'jma-tsunami': 'JMA',
     'jma-typhoon': 'JMA',
+    'jma-volcano': 'JMA',
   }
   return [...new Set(e.sources.map((s) => names[s.source] ?? s.source.toUpperCase()))]
 }

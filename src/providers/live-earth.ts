@@ -5,6 +5,7 @@ import type { EarthProvider, SeismicProvider } from '@/services/earth/provider'
 import { fetchJmaQuakeDetail, fetchJmaQuakes } from '@/sources/jma-quake'
 import { fetchTsunamiAreas, fetchTsunamiReports } from '@/sources/jma-tsunami'
 import { fetchCyclones } from '@/sources/jma-typhoon'
+import { fetchVolcanoes } from '@/sources/jma-volcano'
 import { fetchInformation } from '@/sources/jma-information'
 import { fetchLightningStrokes, fetchThunderSeries, type TileFieldKind } from '@/sources/jma-tile'
 import { sampleFrame } from '@/sources/jma-tile/image'
@@ -26,6 +27,7 @@ export function createLiveEarthProvider(): EarthProvider {
       reports: (signal) => fetchTsunamiReports(signal),
       areas: (signal) => fetchTsunamiAreas(signal),
     },
+    volcano: { volcanoes: (signal) => fetchVolcanoes(signal) },
     atmosphere: {
       cyclones: (signal) => fetchCyclones(signal),
       information: (signal) => fetchInformation(signal),

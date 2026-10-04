@@ -11,11 +11,14 @@ import type {
   EarthquakeEvent,
   NaturalEvent,
   TsunamiEvent,
+  VolcanoEvent,
+  VolcanoSite,
 } from '@/domain/earth/events'
 import { cycloneProximity, quakeRelevance } from '@/domain/earth/status'
 import { formatDate, formatTime } from '@/domain/time'
 import {
   useTsunami,
+  useVolcanoes,
   useEarthSystems,
   useNaturalEvents,
   useQuakeDetail,
@@ -334,6 +337,71 @@ function CycloneDetail({ e }: { e: CycloneEvent }) {
   )
 }
 
+/** JMA's volcano activity page for a volcano code. */
+const jmaVolcanoUrl = (code: string) =>
+  `https://www.data.jma.go.jp/vois/data/tokyo/STOCK/activity_info/${code}.html`
+
+function VolcanoDetail({ e }: { e: VolcanoEvent }) {
+  const d = e.detail
+  return (
+    <>
+      <dl className={s.grid}>
+        <dt>BULLETIN</dt>
+        <dd className="ja">
+          <b className={s.tsuClass} data-rank={Math.min(4, d.alertLevel ?? 2)}>
+            {d.levelName}
+          </b>
+          {d.condition && <span className={s.src}>{d.condition}</span>}
+          <span className={s.src}>気象庁 噴火警報・予報</span>
+        </dd>
+        <dt>ISSUED</dt>
+        <dd>
+          {e.time.issuedAt
+            ? `${formatDate(e.time.issuedAt)} ${formatTime(e.time.issuedAt, false)} JST`
+            : '--'}
+        </dd>
+        <dt>ALERT LEVEL</dt>
+        <dd>
+          {d.alertLevel != null ? `噴火警戒レベル ${d.alertLevel}` : 'レベル制の対象外の発表'}
+        </dd>
+      </dl>
+      {d.notes.length > 0 && (
+        <ul className={`${s.notes} ja`}>
+          {d.notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      )}
+      <a className={s.ext} href={jmaVolcanoUrl(d.volcanoCode)} target="_blank" rel="noreferrer">
+        気象庁 火山の活動状況 ↗
+      </a>
+    </>
+  )
+}
+
+function VolcanoSiteDetail({ site }: { site: VolcanoSite }) {
+  const { query } = useVolcanoes()
+  return (
+    <>
+      <div className={s.head}>
+        <span className={s.tag}>VOLC</span>
+        <h3 className={`${s.title} ja`}>{site.name}</h3>
+      </div>
+      <div className={s.when}>
+        {site.lat.toFixed(2)}°N {site.lon.toFixed(2)}°E · {site.nameEn}
+      </div>
+      <p className={`${s.comment} ja`}>
+        {query.data
+          ? '気象庁の噴火警報・予報の一覧に、この火山の発表は載っていません。'
+          : '◐ 発表状況を確認中…'}
+      </p>
+      <a className={s.ext} href={jmaVolcanoUrl(site.code)} target="_blank" rel="noreferrer">
+        気象庁 火山の活動状況 ↗
+      </a>
+    </>
+  )
+}
+
 function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
   const { now } = useNaturalEvents()
   const at = eventTime(e)
@@ -352,6 +420,7 @@ function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
       {e.category === 'earthquake' && <QuakeDetail e={e} />}
       {e.category === 'tsunami' && <TsunamiDetail e={e} />}
       {e.category === 'tropical-cyclone' && <CycloneDetail e={e} />}
+      {e.category === 'volcano' && <VolcanoDetail e={e} />}
     </>
   )
 }
@@ -362,7 +431,11 @@ export const EventDetail = memo(function EventDetail() {
   const systems = useEarthSystems()
   // Nothing picked: show the event behind the most severe domain headline.
   const autoId = systems.find((r) => r.reading.eventId)?.reading.eventId
+  const { sites } = useVolcanoes()
   const picked = events.find((e) => e.id === selectedId)
+  const site = selectedId?.startsWith('volcano-site:')
+    ? sites.find((v) => `volcano-site:${v.code}` === selectedId)
+    : undefined
   const shown = picked ?? events.find((e) => e.id === autoId)
 
   return (
@@ -371,14 +444,20 @@ export const EventDetail = memo(function EventDetail() {
       title="EVENT DETAIL"
       bodyClassName={s.body}
       meta={
-        picked ? (
+        picked || site ? (
           <button type="button" className={s.clear} onClick={() => select(null)}>
             ✕ CLEAR
           </button>
         ) : undefined
       }
     >
-      {shown ? <Body e={shown} auto={!picked} /> : <div className={s.dim}>○ NO EVENT SELECTED</div>}
+      {site ? (
+        <VolcanoSiteDetail site={site} />
+      ) : shown ? (
+        <Body e={shown} auto={!picked} />
+      ) : (
+        <div className={s.dim}>○ NO EVENT SELECTED</div>
+      )}
     </Panel>
   )
 })

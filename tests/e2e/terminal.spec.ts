@@ -223,3 +223,19 @@ test('storm scenario: weather information for the prefecture raises SEVERE WX', 
     .filter({ hasText: 'SEVERE WX' })
   await expect(row).toContainText('東京都気象解説情報（大雨・落雷・突風）')
 })
+
+test('eruption scenario: a level-4 warning reaches the monitor and the detail', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=eruption'))
+  await waitForTerminal(page)
+  const row = page
+    .getByRole('region', { name: 'EVENT MONITOR' })
+    .getByRole('listitem')
+    .filter({ hasText: 'VOLCANO' })
+  await expect(row).toContainText('WARNING')
+  await row.getByRole('button').click()
+  const detail = page.getByRole('region', { name: 'EVENT DETAIL' })
+  await expect(detail).toContainText('レベル４（高齢者等避難）')
+  await expect(detail).toContainText('噴火警戒レベル 4')
+})

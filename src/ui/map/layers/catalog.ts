@@ -31,6 +31,7 @@ export const LAYER_CATALOG: LayerEntry[] = [
   { id: 'grid', label: 'RINGS', group: 'OBS', desc: '距離リング' },
   { id: 'quake', label: 'QUAKE', group: 'GEO', desc: '地震(気象庁・USGS)' },
   { id: 'tsunami', label: 'TSUNAMI', group: 'GEO', desc: '津波警報・注意報・予報(気象庁)' },
+  { id: 'volcano', label: 'VOLCANO', group: 'GEO', desc: '活火山・噴火警報(気象庁)' },
 ]
 
 export const DEFAULT_LAYERS: LayerVisibility = {
@@ -44,6 +45,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   quake: true,
   tsunami: true,
   cyclone: true,
+  volcano: true,
 }
 
 /** Toggle a layer; switching a raster field on switches the other rasters off. */

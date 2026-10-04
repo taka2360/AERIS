@@ -238,7 +238,7 @@ export const SOURCES: SourceSpec[] = [
     label: 'JMA VOLCANO',
     owner: '気象庁',
     domain: 'volcano',
-    status: 'planned',
+    status: 'active',
     endpoints: [
       'https://www.jma.go.jp/bosai/volcano/const/volcano_list.json',
       'https://www.jma.go.jp/bosai/volcano/data/warning.json',
@@ -253,7 +253,7 @@ export const SOURCES: SourceSpec[] = [
     derivation: 'measured',
     freshness: { expectedIntervalMin: 60, staleAfterMin: 30 },
     poll: { nominalMs: 10 * MIN },
-    notes: JMA_BOSAI_NOTE,
+    notes: `warning.json に載る火山(警報中または最近変更)のみ発表内容を表示。載らない火山のレベルは推定しない。eruption.json(噴火の観測)は構造未確認のため未対応。鮮度は最終確認時刻で判定。${JMA_BOSAI_NOTE}`,
   },
 
   // ── Atmosphere ─────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ import {
   useStrokes,
   useThunder,
   useTsunami,
+  useVolcanoes,
 } from '@/query/earth-hooks'
 import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
@@ -138,6 +139,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const { events: quakeEvents } = useQuakeEvents()
   const tsunami = useTsunami()
   const { events: cycloneEvents } = useCyclones()
+  const volc = useVolcanoes()
   const { selectedId, select } = useSelection()
 
   const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
@@ -325,6 +327,25 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     [cycloneEvents, cursor.mode, cursor.t],
   )
 
+  // Every monitored volcano; listed bulletins colour it. Quiet volcanoes select
+  // their catalogue entry ('volcano-site:<code>').
+  const volcanoes = useMemo(() => {
+    const byCode = new Map(volc.events.map((e) => [e.detail.volcanoCode, e]))
+    const rank = new Map(volc.assessments.map((a) => [a.area.code, a.rank]))
+    return volc.sites.map((v) => {
+      const e = byCode.get(v.code)
+      const name = e?.detail.levelName ?? ''
+      return {
+        selectId: e?.id ?? `volcano-site:${v.code}`,
+        name: v.name,
+        lat: v.lat,
+        lon: v.lon,
+        rank: rank.get(v.code) ?? 0,
+        levelShort: name.replace(/（.*）/, ''),
+      }
+    })
+  }, [volc.events, volc.assessments, volc.sites])
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -342,6 +363,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       intensityStations,
       tsunamiCoasts,
       cyclones,
+      volcanoes,
     }),
     [
       center,
@@ -357,6 +379,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       intensityStations,
       tsunamiCoasts,
       cyclones,
+      volcanoes,
     ],
   )
 
