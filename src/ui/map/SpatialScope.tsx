@@ -387,7 +387,12 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   // their catalogue entry ('volcano-site:<code>').
   const volcanoes = useMemo(() => {
     const byCode = new Map(volc.events.map((e) => [e.detail.volcanoCode, e]))
-    const rank = new Map(volc.assessments.map((a) => [a.area.code, a.rank]))
+    // Only bulletins already issued at the cursor time colour a volcano.
+    const rank = new Map(
+      volc.assessments
+        .filter((a) => !a.time.issuedAt || a.time.issuedAt <= cursor.t)
+        .map((a) => [a.area.code, a.rank]),
+    )
     return volc.sites.map((v) => {
       const e = byCode.get(v.code)
       const name = e?.detail.levelName ?? ''
@@ -400,7 +405,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
         levelShort: name.replace(/（.*）/, ''),
       }
     })
-  }, [volc.events, volc.assessments, volc.sites])
+  }, [volc.events, volc.assessments, volc.sites, cursor.t])
 
   // The wave grid is a single model analysis: shown only near its own time.
   const marineGrid = useMarineGrid(layers.wave)

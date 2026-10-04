@@ -314,3 +314,16 @@ test('global events: EONET, GDACS and FIRMS clusters appear with their roles', a
     'クラスタ化した派生イベント',
   )
 })
+
+test('the 24h timeline can pin the whole terminal to an hour', async ({ page }) => {
+  await page.goto(mockUrl())
+  await waitForTerminal(page)
+  const slider = page.getByRole('slider', { name: /時刻カーソル\(/ })
+  await slider.focus()
+  await page.keyboard.press('Home')
+  await page.keyboard.press('Enter')
+  const band = page.getByRole('status').filter({ hasText: 'SCRUB' })
+  await expect(band).toContainText('T−06:')
+  await band.getByRole('button', { name: 'LIVE へ戻る' }).click()
+  await expect(band).toHaveCount(0)
+})
