@@ -241,7 +241,8 @@ export const Timeline = memo(function Timeline() {
         >
           <div className={s.axis} aria-hidden="true">
             {model.points.map((p, i) =>
-              i % 3 === 0 ? (
+              // Every 3h; skip the label hidden under the NOW tag.
+              i % 3 === 0 && Math.abs(i - model.nowIndex) > 0.9 ? (
                 <span key={p.time} className={s.axisTick} style={{ left: pct(i, n) }}>
                   {formatHour(p.time)}
                 </span>

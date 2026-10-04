@@ -38,7 +38,9 @@ export const SystemPanel = memo(function SystemPanel() {
         <span className={s.label}>DATA STATUS</span>
         <StatusLamp status={overall} />
         <span className={s.label}>LAST SUCCESSFUL UPDATE</span>
-        <span className={s.value}>{lastUpdate ? `${formatTime(lastUpdate)} JST` : '--:--:--'}</span>
+        <span className={s.value} data-testid="last-update">
+          {lastUpdate ? `${formatTime(lastUpdate)} JST` : '--:--:--'}
+        </span>
         {!online && <span className={s.offline}>■ BROWSER OFFLINE — SHOWING CACHED DATA</span>}
       </div>
       <table className={s.channels}>

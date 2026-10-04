@@ -14,7 +14,10 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test --project=e2e-*",
+    "vrt": "playwright test --project=vrt-*",
+    "vrt:update": "playwright test --project=vrt-* --update-snapshots",
+    "vrt:linux": "bash scripts/vrt-linux.sh"
   },
   "packageManager": "pnpm@11.21.0",
   "dependencies": {

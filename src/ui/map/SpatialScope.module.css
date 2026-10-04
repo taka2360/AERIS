@@ -290,6 +290,7 @@
 .overlayBL {
   left: 0;
   bottom: 0;
+  max-width: calc(100% - 96px);
 }
 .legend {
   position: absolute;

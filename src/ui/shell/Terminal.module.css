@@ -81,16 +81,18 @@
 /* ── Tablet ─────────────────────────────────────── */
 @media (max-width: 1279px) {
   .grid {
-    grid-template-columns: minmax(340px, 1fr) minmax(0, 1.3fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto;
+    /* Status pair on top, the scope at full width, then the time views. */
     grid-template-areas:
-      'left center'
+      'left right'
+      'center center'
       'tl tl'
-      'right daily'
+      'daily daily'
       'sys sys';
   }
   .center {
-    min-height: 460px;
+    min-height: 480px;
   }
 }
 

@@ -49,4 +49,9 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Playwright fixtures call `use()`, which is not a React hook.
+    files: ['tests/**/*.ts'],
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
+  },
 )

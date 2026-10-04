@@ -22,6 +22,17 @@ pnpm build        # dist/ を静的ホスティング(Cloudflare Pages 等)へ
 | `?mock&clock=2026-10-04T16:24:00%2B09:00` | 時計を固定                                  |
 | `?mock&nolatency`                         | 擬似遅延なし                                |
 
+### E2E / ビジュアルリグレッション
+
+```sh
+pnpm e2e          # Playwright E2E(モックデータ・固定時計・外部 API なし)
+pnpm vrt          # 390 / 768 / 1280 / 1440 / 1920px のスクリーンショット比較
+pnpm vrt:update   # ローカル(OS 別)ベースライン更新
+pnpm vrt:linux    # CI 用 Linux ベースラインを Playwright 公式 Docker イメージで生成(Docker 要起動)
+```
+
+ベースラインはフォント描画が OS で異なるため `*-win32.png` / `*-linux.png` を分けて保持する。
+
 ## アーキテクチャ
 
 ```

@@ -309,7 +309,7 @@ export function useSystemHealth() {
         label: 'JMA FORECAST',
         health: healthFromSnapshot(
           'jma-forecast',
-          snapshot(official, official.data?.provenance.issuedAt),
+          snapshot(official, official.data?.data.provenance.issuedAt),
           opts('jma-forecast'),
         ),
       },

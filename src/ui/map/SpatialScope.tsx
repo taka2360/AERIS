@@ -278,7 +278,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
             <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
             <div>
               STN {String(stationList.length).padStart(2, '0')} ·{' '}
-              {showMap ? 'ECHO SRC: JMA NOWCAST' : 'PRECIP: AMeDAS 1H GAUGE'}
+              {showMap ? 'ECHO SRC: JMA NOWCAST' : 'PRECIP AMeDAS 1H'}
             </div>
           </div>
           {showMap ? (
