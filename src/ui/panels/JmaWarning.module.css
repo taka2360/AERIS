@@ -1,0 +1,112 @@
+.pending {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+.summaryGlyph {
+  font-size: var(--fs-data);
+}
+.summaryWord {
+  font-family: var(--font-ja);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+.summaryCount {
+  margin-left: auto;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  color: var(--text-dim);
+}
+.summary[data-level='none'] {
+  color: var(--green);
+}
+.summary[data-level='advisory'] {
+  color: var(--yellow);
+}
+.summary[data-level='warning'] {
+  color: var(--red);
+}
+.summary[data-level='danger'] {
+  color: var(--purple);
+}
+.summary[data-level='emergency'] {
+  color: var(--text);
+}
+
+.list {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--s3);
+  font-size: var(--fs-body);
+}
+.badge {
+  padding: 0 6px;
+  font-family: var(--font-ja);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  line-height: 18px;
+  border: 1px solid currentColor;
+}
+.item[data-severity='advisory'] .badge {
+  color: var(--yellow);
+}
+.item[data-severity='warning'] .badge {
+  color: #000;
+  background: var(--red);
+  border-color: var(--red);
+}
+.item[data-severity='danger'] .badge {
+  color: #000;
+  background: var(--purple);
+  border-color: var(--purple);
+}
+.item[data-severity='emergency'] .badge {
+  color: var(--text);
+  background: #000;
+  border: 2px double var(--text);
+}
+.name {
+  color: var(--text);
+}
+.level {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  border: 1px solid var(--rule-strong);
+  padding: 0 4px;
+}
+.status {
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+}
+
+.headline {
+  margin: var(--s3) 0 0;
+  font-size: var(--fs-label);
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.foot {
+  margin-top: var(--s3);
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+}

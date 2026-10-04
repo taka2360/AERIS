@@ -1,0 +1,139 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--s4);
+  align-items: end;
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.heroTemp {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto auto;
+  column-gap: 4px;
+  align-items: start;
+}
+.heroLabel {
+  grid-column: 1 / -1;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  color: var(--text-dim);
+}
+.heroValue {
+  font-size: var(--fs-hero);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--amber);
+  text-shadow: 0 0 18px var(--amber-glow);
+}
+.heroUnit {
+  padding-top: 6px;
+  font-size: var(--fs-lg);
+  color: var(--amber-dim);
+}
+.heroTemp > :last-child {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.heroSide {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-bottom: 2px;
+}
+.cond {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  font-size: var(--fs-data);
+}
+.condCode {
+  padding: 0 5px;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track);
+}
+.subline {
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+  letter-spacing: var(--track);
+}
+.subline {
+  white-space: nowrap;
+}
+.subline span {
+  display: inline-block;
+  min-width: 3.4em;
+}
+.subline b {
+  color: var(--text);
+  font-weight: 500;
+}
+.sep {
+  margin: 0 6px;
+  color: var(--text-faint);
+}
+.station {
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rows {
+  margin: 0;
+}
+
+.trend[data-trend='falling'] {
+  color: var(--yellow);
+}
+.trend[data-trend='rising'] {
+  color: var(--green);
+}
+
+.dial {
+  width: 64px;
+  height: 64px;
+  overflow: visible;
+}
+.dialRing {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 0.6;
+}
+.dialTick {
+  stroke: var(--amber-dim);
+  stroke-width: 0.6;
+}
+.dialN {
+  fill: var(--text-dim);
+  font-size: 5px;
+  text-anchor: middle;
+  font-family: var(--font-mono);
+}
+.dialNeedle {
+  stroke: var(--amber);
+  stroke-width: 1;
+}
+.dialHead {
+  fill: var(--amber);
+}
+.dialHub {
+  fill: var(--bg);
+  stroke: var(--amber);
+  stroke-width: 0.6;
+}

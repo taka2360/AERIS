@@ -1,0 +1,115 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  transition: opacity 260ms var(--ease);
+}
+.overlay[data-closing] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.box {
+  width: min(560px, calc(100vw - 32px));
+  font-size: var(--fs-body);
+}
+.title {
+  color: var(--amber);
+  letter-spacing: var(--track-wide);
+  text-shadow: 0 0 10px var(--amber-glow);
+}
+.ver {
+  margin: 2px 0 var(--s5);
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.steps li {
+  display: grid;
+  grid-template-columns: auto 1fr auto 9em;
+  gap: var(--s3);
+  align-items: baseline;
+  padding: 1px 0;
+  opacity: 0;
+  animation: line-in 160ms var(--ease) forwards;
+}
+@keyframes line-in {
+  to {
+    opacity: 1;
+  }
+}
+.label {
+  color: var(--text);
+  letter-spacing: var(--track);
+}
+.dots {
+  border-bottom: 1px dotted var(--rule-strong);
+  transform: translateY(-3px);
+}
+.state {
+  min-width: 3em;
+  text-align: right;
+  letter-spacing: var(--track-wide);
+}
+.steps li[data-state='ok'] .state {
+  color: var(--green);
+}
+.steps li[data-state='fail'] .state {
+  color: var(--red);
+}
+.steps li[data-state='wait'] .state {
+  color: var(--cyan);
+}
+.info {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}
+
+.online {
+  margin-top: var(--s5);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.2em;
+  color: var(--cyan);
+}
+.online[data-ready] {
+  color: var(--green);
+}
+.cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  margin-left: 6px;
+  vertical-align: -2px;
+  background: currentColor;
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.hint {
+  margin-top: var(--s5);
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steps li {
+    opacity: 1;
+    animation: none;
+  }
+  .cursor {
+    animation: none;
+  }
+}

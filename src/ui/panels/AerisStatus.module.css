@@ -1,0 +1,94 @@
+.level {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+.glyph {
+  font-size: var(--fs-data);
+}
+.word {
+  font-size: var(--fs-xl);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+.count {
+  margin-left: auto;
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  letter-spacing: var(--track-wide);
+}
+.level[data-level='nominal'] {
+  color: var(--green);
+}
+.level[data-level='nominal'] .word {
+  text-shadow: 0 0 14px rgba(94, 240, 138, 0.3);
+}
+.level[data-level='caution'] {
+  color: var(--yellow);
+}
+.level[data-level='alert'] {
+  color: var(--red);
+}
+
+.reasons {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.reasons li {
+  display: grid;
+  grid-template-columns: 1em 6.5em minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s2);
+  font-size: var(--fs-label);
+}
+.reasons li[data-level='caution'] .rGlyph,
+.reasons li[data-level='caution'] .rCode {
+  color: var(--yellow);
+}
+.reasons li[data-level='alert'] .rGlyph,
+.reasons li[data-level='alert'] .rCode {
+  color: var(--red);
+}
+.rCode {
+  letter-spacing: var(--track);
+}
+.rJa {
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rVal {
+  color: var(--text);
+  white-space: nowrap;
+}
+.rVal small {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+}
+.rThr {
+  margin-left: 2px;
+}
+
+.nominal {
+  margin: var(--s3) 0 0;
+  font-family: var(--font-ja);
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+}
+.note {
+  margin: var(--s3) 0 0;
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+}
+
+.limited {
+  color: var(--yellow);
+}

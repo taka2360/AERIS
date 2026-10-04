@@ -1,0 +1,55 @@
+.band {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 3px var(--s5);
+  font-size: var(--fs-label);
+  border-bottom: 1px solid currentColor;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 225, 74, 0.08) 0 8px,
+    transparent 8px 16px
+  );
+  --band: var(--yellow);
+  color: var(--band);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.band[data-severity='warning'] {
+  --band: var(--red);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 85, 54, 0.12) 0 8px,
+    transparent 8px 16px
+  );
+}
+.band[data-severity='danger'],
+.band[data-severity='emergency'] {
+  --band: var(--purple);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(193, 139, 255, 0.14) 0 8px,
+    transparent 8px 16px
+  );
+}
+.tag {
+  padding: 0 5px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: #000;
+  background: var(--band);
+}
+.list {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.area {
+  color: var(--text-dim);
+  font-size: var(--fs-micro);
+}
+.time {
+  margin-left: auto;
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}

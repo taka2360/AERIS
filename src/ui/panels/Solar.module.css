@@ -1,0 +1,89 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s4);
+  align-items: end;
+}
+.arc {
+  width: 100%;
+  max-height: 64px;
+  overflow: visible;
+}
+.horizon {
+  stroke: var(--rule-strong);
+  stroke-width: 0.5;
+}
+.track {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 0.6;
+  stroke-dasharray: 1.5 1.5;
+}
+.trackDone {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 0.8;
+}
+.sun {
+  fill: var(--amber);
+  filter: drop-shadow(0 0 2px var(--amber));
+}
+.sunDown {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 0.6;
+}
+.times {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.times div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  font-size: var(--fs-label);
+}
+.times dt {
+  color: var(--text-dim);
+  letter-spacing: var(--track);
+}
+.times dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.uv {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  margin: var(--s3) 0 6px;
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule-faint);
+}
+.uvLabel {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  letter-spacing: var(--track-wide);
+}
+.uvValue {
+  font-size: var(--fs-data);
+  color: var(--text);
+}
+.uvCat {
+  margin-left: auto;
+  font-size: var(--fs-label);
+}
+.uvCat[data-tone='green'] {
+  color: var(--green);
+}
+.uvCat[data-tone='yellow'] {
+  color: var(--yellow);
+}
+.uvCat[data-tone='amber'] {
+  color: var(--amber);
+}
+.uvCat[data-tone='red'] {
+  color: var(--red);
+}

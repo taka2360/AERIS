@@ -1,0 +1,226 @@
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(236px, 26%, 340px);
+  gap: var(--s4);
+  padding: var(--s3) var(--s4);
+}
+
+.toggles {
+  display: flex;
+  gap: 2px;
+}
+.toggle {
+  height: 18px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text-faint);
+  font-size: 0.625rem;
+  letter-spacing: var(--track);
+}
+.toggle[aria-pressed='true'] {
+  color: #000;
+  background: var(--amber-dim);
+  border-color: var(--amber-dim);
+}
+
+/*
+ * The scope is sized by the panel (row height), never by its own width:
+ * the SVG is taken out of flow and letterboxed via preserveAspectRatio=meet.
+ * Otherwise a wide column would make a square SVG grow the whole row.
+ */
+.scopeWrap {
+  position: relative;
+  min-width: 0;
+  min-height: 360px;
+}
+.scope {
+  position: absolute;
+  inset: 30px 0;
+  width: 100%;
+  height: calc(100% - 60px);
+  overflow: visible;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 767px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .scopeWrap {
+    min-height: min(100vw, 460px);
+  }
+  .side {
+    border-left: 0 !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s3);
+  }
+}
+
+.grid line {
+  stroke: var(--grid);
+  stroke-width: 0.15;
+}
+.rings circle {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.6 0.8;
+}
+.rings .outer {
+  stroke: var(--amber-dim);
+  stroke-width: 0.3;
+  stroke-dasharray: none;
+}
+.bezel {
+  stroke: var(--amber-dim);
+  stroke-width: 0.25;
+}
+.ringLabel {
+  font-size: 1.8px;
+  fill: var(--text-faint);
+}
+.cardinal {
+  font-size: 2.6px;
+  fill: var(--amber);
+  text-anchor: middle;
+}
+
+.echo {
+  opacity: 0.32;
+  filter: blur(1.2px);
+}
+
+.wind line {
+  stroke: var(--cyan);
+  stroke-width: 0.25;
+  opacity: 0.5;
+}
+.wind path {
+  fill: var(--cyan);
+  opacity: 0.5;
+}
+
+.station rect {
+  fill: var(--bg);
+  stroke: var(--amber);
+  stroke-width: 0.3;
+}
+.station[data-active] rect {
+  fill: var(--amber);
+}
+.stnTemp {
+  font-size: 2.2px;
+  fill: var(--text);
+}
+.station[data-active] .stnTemp {
+  fill: var(--amber-hi);
+}
+
+.cross line {
+  stroke: var(--amber-hi);
+  stroke-width: 0.35;
+}
+.cross circle {
+  fill: var(--amber-hi);
+}
+
+.overlayTL,
+.overlayBL {
+  position: absolute;
+  font-size: 0.625rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+  letter-spacing: var(--track);
+  pointer-events: none;
+}
+.overlayTL {
+  left: 0;
+  top: 0;
+}
+.overlayBL {
+  left: 0;
+  bottom: 0;
+}
+.legend {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.625rem;
+  color: var(--text-dim);
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.legend i {
+  display: inline-block;
+  width: 10px;
+  height: 6px;
+  opacity: 0.8;
+}
+
+/* ── Station table ─────────────────────────────── */
+.side {
+  min-width: 0;
+  border-left: 1px solid var(--rule);
+  padding-left: var(--s4);
+  overflow: hidden;
+}
+.sideHead {
+  font-size: var(--fs-micro);
+  color: var(--amber);
+  letter-spacing: var(--track-wide);
+  margin-bottom: 4px;
+}
+.stnTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-label);
+}
+.stnTable th,
+.stnTable td {
+  padding: 2px 3px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px dotted var(--rule-faint);
+}
+.stnTable thead th {
+  font-size: 0.625rem;
+  font-weight: 400;
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+}
+.stnTable th:first-child {
+  text-align: left;
+  font-weight: 400;
+  max-width: 6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stnTable small {
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}
+.stnTable tbody tr {
+  cursor: default;
+}
+.stnTable tbody tr[data-active] {
+  background: rgba(255, 176, 0, 0.1);
+}
+.stnTable tbody tr[data-active] th {
+  color: var(--amber);
+}
+.stnTable td[data-wet] {
+  color: var(--cyan);
+}
+.err {
+  margin-top: var(--s3);
+  font-size: var(--fs-micro);
+  color: var(--red);
+}

@@ -1,0 +1,106 @@
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+}
+
+.head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: 26px;
+  padding: 0 var(--s4) 0 0;
+  border-bottom: 1px solid var(--rule);
+  background: linear-gradient(to right, rgba(255, 176, 0, 0.07), transparent 55%);
+}
+
+.code {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s3);
+  background: var(--amber);
+  color: #000;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--track);
+  white-space: nowrap;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  color: var(--amber);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  letter-spacing: var(--track);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .meta {
+    max-width: 55%;
+    overflow: hidden;
+  }
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: var(--s4);
+}
+
+/* Corner ticks on the body — instrument-bezel feel, purely decorative. */
+.body::before,
+.body::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: var(--rule-strong);
+  border-style: solid;
+  pointer-events: none;
+}
+.body::before {
+  right: 3px;
+  top: 3px;
+  border-width: 1px 1px 0 0;
+}
+.body::after {
+  left: 3px;
+  bottom: 3px;
+  border-width: 0 0 1px 1px;
+}
+
+.panel[data-tone='alert'] .code {
+  background: var(--red);
+}
+.panel[data-tone='alert'] .head {
+  background: linear-gradient(to right, rgba(255, 85, 54, 0.18), transparent 60%);
+}
+.panel[data-tone='alert'] .title {
+  color: var(--red);
+}
+.panel[data-tone='caution'] .code {
+  background: var(--yellow);
+}
+.panel[data-tone='caution'] .title {
+  color: var(--yellow);
+}

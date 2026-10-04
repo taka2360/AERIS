@@ -1,0 +1,105 @@
+.body {
+  padding: var(--s2) var(--s4) var(--s3);
+  overflow-x: auto;
+}
+.pending {
+  color: var(--text-dim);
+  letter-spacing: var(--track-wide);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-label);
+  white-space: nowrap;
+}
+.table th,
+.table td {
+  padding: 3px 8px;
+  text-align: right;
+  border-bottom: 1px dotted var(--rule-faint);
+}
+.table thead th {
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  color: var(--text-dim);
+  letter-spacing: var(--track-wide);
+  border-bottom: 1px solid var(--rule);
+}
+.table th:first-child,
+.table td:nth-child(2) {
+  text-align: left;
+}
+.table th:first-child {
+  padding-left: 0;
+}
+.table tbody th {
+  font-weight: 400;
+}
+.table small {
+  margin-left: 2px;
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+}
+.table tbody tr[data-today] {
+  background: linear-gradient(to right, rgba(255, 176, 0, 0.08), transparent);
+}
+.table tbody tr[data-today] .wd {
+  color: var(--amber);
+}
+.table tbody tr:hover {
+  background: rgba(255, 176, 0, 0.05);
+}
+.date {
+  color: var(--text);
+}
+.wd {
+  display: inline-block;
+  min-width: 4.5em;
+  margin-left: 6px;
+  color: var(--text-dim);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track);
+}
+.wd[data-weekend] {
+  color: var(--cyan);
+}
+.code {
+  display: inline-block;
+  min-width: 3.2em;
+  color: var(--amber);
+}
+.ja {
+  color: var(--text-dim);
+}
+.rangeHead {
+  text-align: center !important;
+}
+.rangeCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 200px;
+}
+.min {
+  color: var(--cyan);
+  min-width: 3em;
+}
+.max {
+  color: var(--amber);
+  min-width: 3em;
+}
+.range {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background: var(--rule-faint);
+}
+.rangeFill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(to right, var(--cyan), var(--amber));
+}
+.table td[data-hot] {
+  color: var(--cyan);
+}

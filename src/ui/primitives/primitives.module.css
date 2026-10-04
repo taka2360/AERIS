@@ -1,0 +1,168 @@
+/* ── Provenance tag ─────────────────────────────── */
+.prov {
+  display: inline-block;
+  min-width: 3.4em;
+  padding: 0 4px;
+  font-size: var(--fs-micro);
+  line-height: 15px;
+  letter-spacing: var(--track);
+  text-align: center;
+  border: 1px solid currentColor;
+  cursor: help;
+}
+.prov[data-kind='OBS'] {
+  color: #000;
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 700;
+}
+.prov[data-kind='MDL'],
+.prov[data-kind='FCST'] {
+  color: var(--cyan);
+}
+.prov[data-kind='JMA'] {
+  color: var(--text);
+}
+.prov[data-kind='NONE'] {
+  color: var(--text-faint);
+  border-style: dashed;
+}
+
+/* ── Status lamp ────────────────────────────────── */
+.lamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  white-space: nowrap;
+}
+.lampGlyph {
+  font-size: 0.8em;
+  line-height: 1;
+}
+.lamp[data-status='online'] {
+  color: var(--green);
+}
+.lamp[data-status='online'] .lampGlyph {
+  text-shadow: 0 0 6px var(--green);
+}
+.lamp[data-status='syncing'] {
+  color: var(--cyan);
+}
+.lamp[data-status='degraded'] {
+  color: var(--yellow);
+}
+.lamp[data-status='stale'] {
+  color: var(--amber);
+}
+.lamp[data-status='offline'] {
+  color: var(--red);
+}
+.lamp[data-status='standby'] {
+  color: var(--text-faint);
+}
+
+/* ── Data row ───────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 6.8em minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: var(--s3);
+  padding: 3px 0;
+  border-bottom: 1px dotted var(--rule-faint);
+}
+.row dd {
+  margin: 0;
+}
+.rowLabel {
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+  color: var(--text-dim);
+}
+.rowValue {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+.rowNum {
+  font-size: var(--fs-data);
+  font-weight: 500;
+  color: var(--text);
+}
+.row[data-emphasis] .rowNum {
+  color: var(--amber);
+}
+.rowUnit {
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+}
+.rowExtra {
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.rowProv {
+  justify-self: end;
+}
+
+/* ── Segment bar ────────────────────────────────── */
+.bar {
+  display: inline-flex;
+  gap: 2px;
+  height: 8px;
+  vertical-align: middle;
+}
+.seg {
+  width: 4px;
+  height: 100%;
+  background: var(--rule);
+}
+.bar[data-tone='amber'] .seg[data-lit] {
+  background: var(--amber);
+}
+.bar[data-tone='cyan'] .seg[data-lit] {
+  background: var(--cyan);
+}
+.bar[data-tone='green'] .seg[data-lit] {
+  background: var(--green);
+}
+.bar[data-tone='yellow'] .seg[data-lit] {
+  background: var(--yellow);
+}
+.bar[data-tone='red'] .seg[data-lit] {
+  background: var(--red);
+}
+
+/* ── Key button ─────────────────────────────────── */
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--amber);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+.key:hover {
+  background: var(--amber);
+  color: #000;
+}
+.key:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+.kbd {
+  font-family: inherit;
+  font-size: 0.625rem;
+  padding: 0 3px;
+  border: 1px solid currentColor;
+  opacity: 0.7;
+}

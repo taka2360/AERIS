@@ -1,0 +1,79 @@
+/*
+ * AERIS design tokens.
+ * Colour carries fixed meaning:
+ *   amber  = observed / primary data
+ *   cyan   = model / forecast
+ *   green  = nominal
+ *   yellow = caution (AERIS)
+ *   red    = alert / official warning
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #050607;
+  --surface: #0a0c0d;
+  --surface-2: #0e1112;
+  --surface-raise: #13171a;
+
+  /* Rules (the housing lines between sections) */
+  --rule: #2a2416;
+  --rule-strong: #4a3c1c;
+  --rule-faint: #1a1710;
+  --grid: rgba(255, 176, 0, 0.06);
+
+  /* Text */
+  --text: #ece0c3;
+  --text-dim: #a89a78;
+  --text-faint: #7a6f55;
+
+  /* Signal colours */
+  --amber: #ffb000;
+  --amber-hi: #ffc94d;
+  --amber-dim: #a8780c;
+  --amber-glow: rgba(255, 176, 0, 0.35);
+  --cyan: #45e0e8;
+  --cyan-dim: #2a8c92;
+  --cyan-glow: rgba(69, 224, 232, 0.3);
+  --green: #5ef08a;
+  --green-dim: #2f8a4c;
+  --yellow: #ffe14a;
+  --red: #ff5536;
+  --red-dim: #8f2a18;
+  --purple: #c18bff;
+
+  /* Type */
+  --font-mono: 'JetBrains Mono', 'BIZ UDGothic', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --font-ja: 'BIZ UDGothic', 'JetBrains Mono', system-ui, sans-serif;
+
+  --fs-micro: 0.6875rem; /* 11px — codes, never body text */
+  --fs-label: 0.75rem; /* 12px */
+  --fs-body: 0.8125rem; /* 13px */
+  --fs-data: 0.9375rem; /* 15px */
+  --fs-lg: 1.25rem;
+  --fs-xl: 2rem;
+  --fs-hero: 4.25rem;
+
+  --track-wide: 0.12em;
+  --track: 0.06em;
+
+  /* Spacing */
+  --s1: 2px;
+  --s2: 4px;
+  --s3: 8px;
+  --s4: 12px;
+  --s5: 16px;
+  --s6: 24px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur: 240ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}

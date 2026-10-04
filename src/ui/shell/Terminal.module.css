@@ -1,0 +1,147 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Faint background grid visible through the 1px gaps' surroundings */
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--bg);
+}
+
+/* The housing. 1px gaps over a rule-coloured background = shared hairlines. */
+.grid {
+  flex: 1;
+  display: grid;
+  gap: 1px;
+  margin: var(--s3);
+  background: var(--rule);
+  border: 1px solid var(--rule-strong);
+  grid-template-columns: minmax(360px, 410px) minmax(0, 1fr) minmax(320px, 370px);
+  grid-template-rows: minmax(470px, 1fr) auto auto;
+  grid-template-areas:
+    'left center right'
+    'tl tl tl'
+    'daily daily sys';
+}
+
+.area {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  min-height: 0;
+}
+.area > * {
+  flex: 0 0 auto;
+}
+.area > :first-child {
+  flex: 1 1 auto;
+}
+
+.left {
+  grid-area: left;
+}
+.center {
+  grid-area: center;
+}
+.right {
+  grid-area: right;
+}
+.right > :first-child {
+  flex: 0 0 auto;
+}
+.right > :last-child {
+  flex: 1 1 auto;
+}
+.timeline {
+  grid-area: tl;
+}
+.daily {
+  grid-area: daily;
+}
+.sys {
+  grid-area: sys;
+}
+
+.mobileNav {
+  display: none;
+}
+
+/* ── Large displays (WQHD and up): spread width across all columns ── */
+@media (min-width: 1920px) {
+  .grid {
+    grid-template-columns: minmax(400px, 1fr) minmax(0, 1.55fr) minmax(380px, 0.95fr);
+  }
+}
+
+/* ── Tablet ─────────────────────────────────────── */
+@media (max-width: 1279px) {
+  .grid {
+    grid-template-columns: minmax(340px, 1fr) minmax(0, 1.3fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'left center'
+      'tl tl'
+      'right daily'
+      'sys sys';
+  }
+  .center {
+    min-height: 460px;
+  }
+}
+
+/* ── Mobile: handheld mode, one view at a time ─── */
+@media (max-width: 767px) {
+  .grid {
+    margin: 0 0 56px;
+    border-left: 0;
+    border-right: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: none;
+  }
+  .area {
+    grid-area: auto;
+  }
+  .root[data-view='status'] [data-view-group]:not([data-view-group='status']),
+  .root[data-view='timeline'] [data-view-group]:not([data-view-group='timeline']),
+  .root[data-view='map'] [data-view-group]:not([data-view-group='map']),
+  .root[data-view='forecast'] [data-view-group]:not([data-view-group='forecast']),
+  .root[data-view='sys'] [data-view-group]:not([data-view-group='sys']) {
+    display: none;
+  }
+  .center {
+    min-height: auto;
+  }
+
+  .mobileNav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: calc(52px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--rule-strong);
+  }
+  .navBtn {
+    background: transparent;
+    border: 0;
+    border-right: 1px solid var(--rule);
+    color: var(--text-dim);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--track);
+  }
+  .navBtn:last-child {
+    border-right: 0;
+  }
+  .navBtn[aria-current='page'] {
+    color: #000;
+    background: var(--amber);
+    font-weight: 700;
+  }
+}
