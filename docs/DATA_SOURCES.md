@@ -166,6 +166,21 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 5min |
 | 注記 | 雷活動度(1km 格子・4段階)は雷監視システムからの解析値。個別落雷位置ではない |
 
+### JMA INFORMATION — `jma-information`
+
+| 項目 | 内容 |
+| --- | --- |
+| 提供元 | 気象庁 |
+| エンドポイント | `https://www.jma.go.jp/bosai/information/data/r8/information.json` |
+| ライセンス | 気象庁ホームページ利用規約(政府標準利用規約 第2.0版準拠) |
+| 出典表記 | [出典：気象庁ホームページ](https://www.jma.go.jp/) |
+| 再配布 | 出典明記で複製・加工・再配布可。加工時は加工した旨を明記 |
+| アクセス | ブラウザ直接(CORS 可) |
+| 役割 / 導出 | warning / measured(既定の時間区分: forecast) |
+| 鮮度 | 想定更新 1h・30min 超で STALE |
+| 取得間隔 | 5min |
+| 注記 | 気象解説情報・顕著な大雨に関する情報など。見出しの現象名で分類(分類はAERIS)。鮮度は最終確認時刻で判定。bosai JSON は正式 API ではなく、予告なく構造が変わる可能性がある |
+
 ### JMA TYPHOON — `jma-typhoon`
 
 | 項目 | 内容 |

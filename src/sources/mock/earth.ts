@@ -20,6 +20,8 @@ import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
 import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
 import { buildSeries, FIELD_SPECS, type TargetTime } from '../jma-tile'
 import { PALETTES } from '../jma-tile/palettes'
+import { adaptInformation } from '../jma-information'
+import type { HazardAssessment } from '@/domain/earth/assessments'
 import type { Scenario } from './scenario'
 
 type Obs = SourceObservation<QuakeSolution>
@@ -558,4 +560,39 @@ export function synthSample(
     decode: 'decoded',
     provenance: { ...series.provenance, decode: 'decoded' },
   }
+}
+
+/** Weather information: storm scenario issues 大雨 information for Tokyo. */
+export function synthInformation(now: Instant, scenario: Scenario): HazardAssessment[] {
+  const issued = addMinutes(now, -40)
+  const rows = [
+    {
+      code: '010900',
+      office: '福岡管区気象台',
+      title: '少雨に関する九州北部地方（山口県を含む）気象情報',
+      type: 'centers',
+    },
+  ]
+  if (scenario === 'storm')
+    rows.push({
+      code: '130000',
+      office: '気象庁',
+      title: '東京都気象解説情報（大雨・落雷・突風）',
+      type: 'offices',
+    })
+  return adaptInformation(
+    rows.map((r, i) => ({
+      controlTitle: '府県気象解説情報',
+      headTitle: r.title,
+      publishingOffice: r.office,
+      reportDatetime: issued,
+      validDatetime: addMinutes(now, 12 * 60),
+      eventId: `mock-info-${i}`,
+      infoType: '発表',
+      areaType: r.type,
+      areaCode: r.code,
+      jsonName: `mock-info-${i}`,
+    })),
+    now,
+  )
 }

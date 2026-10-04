@@ -8,6 +8,7 @@ import type { SourceObservation } from '@/domain/earth/common'
 import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
 import type { LightningStroke } from '@/domain/earth/events'
+import type { HazardAssessment } from '@/domain/earth/assessments'
 import type {
   FieldClass,
   FieldSample,
@@ -45,6 +46,8 @@ export interface TsunamiProvider {
 export interface AtmosphereProvider {
   /** Tropical cyclones tracked by JMA (one report per cyclone, latest issuance) */
   cyclones(signal?: AbortSignal): Promise<SourceResult<Obs<CycloneReport>[]>>
+  /** JMA weather information bulletins (気象解説情報 / 線状降水帯 …) as assessments */
+  information(signal?: AbortSignal): Promise<SourceResult<HazardAssessment[]>>
   /** 雷活動度 and 竜巻発生確度 nowcast series (analysis + 1 h nowcast) */
   thunder(
     signal?: AbortSignal,

@@ -11,6 +11,7 @@ export type AssessmentScheme =
   | 'jma-tsunami' // 大津波警報 / 津波警報 / 津波注意報 / 津波予報
   | 'jma-volcano' // 噴火警戒レベル 1–5
   | 'jma-warning' // 気象警報・注意報
+  | 'jma-information' // 気象情報(気象解説情報・顕著な大雨に関する情報 等)
   | 'jma-kikikuru' // キキクル (危険度分布)
   | 'jma-typhoon' // 台風の強さ・大きさ階級
   | 'gdacs' // Green / Orange / Red

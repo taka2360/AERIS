@@ -211,3 +211,15 @@ test('storm scenario: lightning and tornado lines rise for the monitoring locati
     'ELEVATED',
   )
 })
+
+test('storm scenario: weather information for the prefecture raises SEVERE WX', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=storm'))
+  await waitForTerminal(page)
+  const row = page
+    .getByRole('region', { name: 'EVENT MONITOR' })
+    .getByRole('listitem')
+    .filter({ hasText: 'SEVERE WX' })
+  await expect(row).toContainText('東京都気象解説情報（大雨・落雷・突風）')
+})

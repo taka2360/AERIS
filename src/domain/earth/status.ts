@@ -4,6 +4,7 @@
  * their `rule`; native agency levels are shown separately.
  */
 import { haversineKm } from '../derive'
+import type { AlertBulletin, AlertSeverity } from '../model'
 import { minutesBetween, type Instant } from '../time'
 import type { HazardAssessment } from './assessments'
 import type { GeoPoint } from './common'
@@ -338,4 +339,59 @@ export function tornadoStatus(localProbability: number | null, hasData: boolean)
     headline: p > 0 ? `監視地点 竜巻発生確度${p}` : '監視地点 発生確度なし',
     rule: TORNADO_RULE,
   }
+}
+
+// ── Severe weather ──────────────────────────────────────────────────────────
+
+const SEVERE_RULE = 'aeris:severe-weather/v1'
+
+const ALERT_STATUS: Record<AlertSeverity, SystemStatus> = {
+  emergency: 'critical',
+  danger: 'warning',
+  warning: 'elevated',
+  advisory: 'active',
+}
+
+/**
+ * SEVERE WX from JMA statements (AERIS rule): the location's own warnings
+ * (特別警報 → CRITICAL, 危険警報 → WARNING, 警報 → ELEVATED), weather
+ * information issued for the location's prefecture (線状降水帯 → WARNING,
+ * 大雨/台風/暴風… → ELEVATED), and nationwide 線状降水帯 information (ELEVATED).
+ */
+export function severeStatus(
+  alerts: AlertBulletin | undefined,
+  info: HazardAssessment[],
+  office: string | undefined,
+  t: Instant,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: SEVERE_RULE }
+  const candidates: Array<{ status: SystemStatus; headline: string }> = []
+  for (const a of alerts?.alerts ?? [])
+    if (a.status !== 'cancelled')
+      candidates.push({
+        status: ALERT_STATUS[a.severity],
+        headline: `${alerts!.areaName} ${a.name}`,
+      })
+  for (const i of validAt(
+    info.filter((x) => x.scheme === 'jma-information' && x.status !== 'cancelled'),
+    t,
+  )) {
+    const local = !!office && i.area.code === office
+    const status: SystemStatus =
+      local && i.rank >= 3
+        ? 'warning'
+        : (local && i.rank >= 2) || i.rank >= 3
+          ? 'elevated'
+          : i.rank >= 2
+            ? 'active'
+            : 'nominal'
+    if (status !== 'nominal') candidates.push({ status, headline: i.level.label })
+  }
+  const top = candidates.sort(
+    (a, b) => SYSTEM_STATUS_RANK[b.status] - SYSTEM_STATUS_RANK[a.status],
+  )[0]
+  return top
+    ? { status: top.status, headline: top.headline, rule: SEVERE_RULE }
+    : { status: 'nominal', headline: '顕著な現象の発表なし', rule: SEVERE_RULE }
 }

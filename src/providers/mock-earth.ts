@@ -8,6 +8,7 @@ import type { Instant } from '@/domain/time'
 import type { EarthProvider } from '@/services/earth/provider'
 import {
   synthCyclones,
+  synthInformation,
   synthQuakes,
   synthSample,
   synthStrokes,
@@ -53,6 +54,10 @@ export function createMockEarthProvider(
     atmosphere: {
       cyclones: (signal) =>
         run('jma-typhoon', 'official', 'MOCK JMA', signal, () => synthCyclones(now(), scenario)),
+      information: (signal) =>
+        run('jma-information', 'official', 'MOCK JMA', signal, () =>
+          synthInformation(now(), scenario),
+        ),
       thunder: (signal) =>
         run('jma-thunder', 'official', 'MOCK JMA', signal, () => synthThunder(now())),
       strokes: (signal) =>

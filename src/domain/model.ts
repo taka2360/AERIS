@@ -33,6 +33,7 @@ export type SourceId =
   | 'jma-thunder'
   | 'jma-risk'
   | 'jma-snow'
+  | 'jma-information'
   | 'swpc'
   | 'eonet'
   | 'gdacs'

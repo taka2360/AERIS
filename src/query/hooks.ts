@@ -25,6 +25,7 @@ import { useLocationControl } from './location'
 import { useMapStatus, type MapStatus } from './map-status'
 import {
   useCycloneReports,
+  useInformation,
   useJmaQuakes,
   useStrokes,
   useTsunamiReports,
@@ -291,6 +292,7 @@ export function useSystemHealth() {
   const tsunami = useTsunamiReports()
   const cyclones = useCycloneReports()
   const strokes = useStrokes()
+  const information = useInformation()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -378,6 +380,15 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'jma-information',
+        'JMA INFORMATION',
+        healthFromSnapshot(
+          'jma-information',
+          snapshot(information, information.data?.provenance.retrievedAt),
+          opts('jma-information'),
+        ),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -411,6 +422,7 @@ export function useSystemHealth() {
     tsunami,
     cyclones,
     strokes,
+    information,
   ])
 }
 

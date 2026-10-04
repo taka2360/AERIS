@@ -17,11 +17,12 @@ import {
   summarizeStrokes,
   tornadoStatus,
   seismicStatus,
+  severeStatus,
   tsunamiStatus,
   type SystemReading,
 } from '@/domain/earth/status'
 import { tsunamiKindRank } from '@/sources/jma-tsunami'
-import { useResolvedLocation } from './hooks'
+import { useAlerts, useResolvedLocation } from './hooks'
 import type { Provenance, SourceId } from '@/domain/model'
 import { fuseQuakes } from '@/services/fusion/earthquake'
 import { fuseTsunami } from '@/services/fusion/tsunami'
@@ -42,6 +43,7 @@ export const earthKeys = {
   tsunami: () => ['earth', 'jma-tsunami'] as const,
   cyclones: () => ['earth', 'jma-typhoon'] as const,
   thunder: () => ['earth', 'jma-thunder'] as const,
+  information: () => ['earth', 'jma-information'] as const,
   strokes: () => ['earth', 'jma-liden'] as const,
   sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
     ['earth', 'sample', kind, frame, lat, lon, r] as const,
@@ -191,6 +193,17 @@ export function useCyclones() {
   return { events, query: q }
 }
 
+export function useInformation() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.information(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.atmosphere.information(signal)),
+    staleTime: 60_000,
+    refetchInterval: nominalPollMs('jma-information'),
+    meta: { persist: true },
+  })
+}
+
 export function useThunder() {
   const provider = useWeatherProvider()
   return useQuery({
@@ -322,6 +335,8 @@ export function useEarthSystems(): SystemRow[] {
   const cyclones = useCyclones()
   const thunder = useThunder()
   const strokes = useStrokes()
+  const info = useInformation()
+  const alerts = useAlerts()
   const ltng = useLocalSample('lightning-activity', thunder.data?.lightning, 3)
   const torn = useLocalSample('tornado-probability', thunder.data?.tornado, 3)
   const { location } = useResolvedLocation()
@@ -361,6 +376,20 @@ export function useEarthSystems(): SystemRow[] {
         sources: ['JMA'],
       },
       {
+        id: 'severe',
+        label: 'SEVERE WX',
+        reading: severeStatus(
+          alerts.data?.data,
+          info.data?.data ?? [],
+          location.jma?.office,
+          now,
+          !!info.data || !!alerts.data,
+        ),
+        checkedAt: latestCheck([info]),
+        feed: feedState([info], sourceSpec('jma-information')!.freshness.staleAfterMin, now),
+        sources: ['JMA'],
+      },
+      {
         id: 'lightning',
         label: 'LIGHTNING',
         reading: lightningStatus(strokeSum, ltng.data?.value?.value ?? null, !!strokes.data),
@@ -390,6 +419,8 @@ export function useEarthSystems(): SystemRow[] {
     cyclones.events,
     cyclones.query,
     strokes,
+    info,
+    alerts.data,
     ltng.data,
     torn.data,
     thunder.isError,
