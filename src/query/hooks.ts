@@ -11,7 +11,14 @@ import { unwrap } from '@/domain/result'
 import { mergeCurrent, primaryStation } from '@/services/current'
 import { healthFromSnapshot } from '@/services/health'
 import { roundPoint } from '@/services/provider'
-import { nominalPollMs, staleAfterMin } from '@/sources/registry'
+import {
+  nominalPollMs,
+  SOURCES,
+  sourceSpec,
+  staleAfterMin,
+  type SourceDomain,
+  type SourceSpec,
+} from '@/sources/registry'
 import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
@@ -197,7 +204,17 @@ export function useBrowserOnline(): boolean {
   )
 }
 
-export type Channel = { id: string; label: string; health: SourceHealth }
+export type Channel = { id: string; label: string; domain: SourceDomain; health: SourceHealth }
+
+/** Attach the registry domain of the channel's source. */
+function channel(id: string, label: string, health: SourceHealth): Channel {
+  return { id, label, domain: sourceSpec(health.source)?.domain ?? 'internal', health }
+}
+
+/** Data-source contracts (licence, attribution …) for display. */
+export function useSourceContracts(): SourceSpec[] {
+  return SOURCES
+}
 
 function snapshot<T>(q: UseQueryResult<T>, dataTime?: string) {
   return {
@@ -267,54 +284,50 @@ export function useSystemHealth() {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
     const latestFrame = nowcast.data?.data.filter((f) => f.kind === 'observation').at(-1)?.validTime
     const channels: Channel[] = [
-      {
-        id: 'model',
-        label: 'FORECAST MODEL',
-        health: healthFromSnapshot(
+      channel(
+        'model',
+        'FORECAST MODEL',
+        healthFromSnapshot(
           'openmeteo',
           // Model "current" time — freshness is judged on data time, not fetch time.
           snapshot(forecast, forecast.data?.data.hourly.provenance.validFrom),
           opts('openmeteo'),
         ),
-      },
-      {
-        id: 'amedas',
-        label: 'AMeDAS OBS',
-        health: healthFromSnapshot(
+      ),
+      channel(
+        'amedas',
+        'AMeDAS OBS',
+        healthFromSnapshot(
           'jma-amedas',
           snapshot(stations, stations.data?.data[0]?.observedAt),
           opts('jma-amedas'),
         ),
-      },
-      {
-        id: 'warning',
-        label: 'JMA WARNING',
-        health: healthFromSnapshot(
+      ),
+      channel(
+        'warning',
+        'JMA WARNING',
+        healthFromSnapshot(
           'jma-warning',
           // Bulletins can be days old while still current; judge on when we last checked.
           snapshot(alerts, alerts.data?.provenance.retrievedAt),
           opts('jma-warning'),
         ),
-      },
-      {
-        id: 'official',
-        label: 'JMA FORECAST',
-        health: healthFromSnapshot(
+      ),
+      channel(
+        'official',
+        'JMA FORECAST',
+        healthFromSnapshot(
           'jma-forecast',
           snapshot(official, official.data?.data.provenance.issuedAt),
           opts('jma-forecast'),
         ),
-      },
-      {
-        id: 'nowcast',
-        label: 'RADAR NOWCAST',
-        health: healthFromSnapshot(
-          'jma-nowcast',
-          snapshot(nowcast, latestFrame),
-          opts('jma-nowcast'),
-        ),
-      },
-      { id: 'basemap', label: 'BASEMAP', health: basemapHealth(mapStatus) },
+      ),
+      channel(
+        'nowcast',
+        'RADAR NOWCAST',
+        healthFromSnapshot('jma-nowcast', snapshot(nowcast, latestFrame), opts('jma-nowcast')),
+      ),
+      channel('basemap', 'BASEMAP', basemapHealth(mapStatus)),
     ]
     const overall = aggregateStatus(
       channels.map((c) => c.health),

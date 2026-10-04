@@ -82,3 +82,12 @@
   color: var(--text);
   font-weight: 400;
 }
+.group th {
+  padding-top: 5px;
+  font-size: 0.625rem;
+  color: var(--amber-dim);
+  letter-spacing: var(--track-wide);
+}
+.sources a {
+  color: inherit;
+}

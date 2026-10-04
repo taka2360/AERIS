@@ -166,3 +166,53 @@
   border: 1px solid currentColor;
   opacity: 0.7;
 }
+
+/* ── Earth-observation quality badges ───────────── */
+.qtags {
+  display: inline-flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.qtag {
+  padding: 0 3px;
+  font-size: 0.625rem;
+  line-height: 13px;
+  letter-spacing: var(--track);
+  border: 1px solid currentColor;
+  cursor: help;
+  white-space: nowrap;
+}
+.qtag[data-tone='obs'] {
+  color: #000;
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 700;
+}
+.qtag[data-tone='fcst'],
+.qtag[data-tone='model'] {
+  color: var(--cyan);
+}
+.qtag[data-tone='model'] {
+  border-style: dashed;
+}
+.qtag[data-tone='caution'] {
+  color: var(--yellow);
+}
+.qtag[data-tone='faint'] {
+  color: var(--text-dim);
+}
+.dstate {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.dstate[data-state='stale'],
+.dstate[data-state='delayed'],
+.dstate[data-state='partial'] {
+  color: var(--amber);
+}
+.dstate[data-state='connection-lost'],
+.dstate[data-state='unavailable'] {
+  color: var(--red);
+}

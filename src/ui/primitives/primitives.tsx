@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { LinkStatus } from '@/domain/health'
 import type { Provenance } from '@/domain/model'
-import { provDescription, provKind } from '../format'
+import { provDescription, provKind, qualityTags } from '../format'
 import s from './primitives.module.css'
 
 /** Small badge telling where a value came from: OBS / MDL / FCST / JMA. */
@@ -17,6 +17,48 @@ export function ProvTag({ provenance }: { provenance?: Provenance }) {
   return (
     <span className={s.prov} data-kind={kind} title={desc} aria-label={desc}>
       {kind}
+    </span>
+  )
+}
+
+/** Earth-observation badges: OBS / FCST / MODEL / EST / PRELIM / NOT DECODED … */
+export function QualityTags({ provenance }: { provenance?: Provenance }) {
+  if (!provenance) return null
+  return (
+    <span className={s.qtags}>
+      {qualityTags(provenance).map((q) => (
+        <span key={q.tag} className={s.qtag} data-tone={q.tone} title={q.desc}>
+          {q.tag}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** Data state that overrides the value's own meaning: never show stale data as current. */
+export type DataState =
+  | 'unavailable'
+  | 'connection-lost'
+  | 'delayed'
+  | 'stale'
+  | 'partial'
+  | 'not-configured'
+  | 'not-available'
+
+const DATA_STATE_TEXT: Record<DataState, string> = {
+  unavailable: 'DATA UNAVAILABLE',
+  'connection-lost': 'CONNECTION LOST',
+  delayed: 'DELAYED',
+  stale: 'STALE',
+  partial: 'PARTIAL',
+  'not-configured': 'NOT CONFIGURED',
+  'not-available': 'NOT AVAILABLE',
+}
+
+export function DataStateBadge({ state }: { state: DataState }) {
+  return (
+    <span className={s.dstate} data-state={state}>
+      {DATA_STATE_TEXT[state]}
     </span>
   )
 }
