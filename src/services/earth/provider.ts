@@ -24,6 +24,7 @@ import type { VolcanoFeed } from '@/sources/jma-volcano'
 import type { KikikuruSeries, SnowSeries } from '@/sources/jma-tile'
 import type { AirQuality } from '@/sources/openmeteo-air'
 import type { MarineGrid, MarineState } from '@/sources/openmeteo-marine'
+import type { AuroraGrid, SpaceWeather } from '@/sources/swpc'
 import type { DischargeKey } from '@/sources/openmeteo-flood'
 
 export type { Scenario } from '@/sources/mock/scenario'
@@ -96,6 +97,13 @@ export interface EnvironmentProvider {
   marineGrid(signal?: AbortSignal): Promise<SourceResult<MarineGrid>>
 }
 
+export interface SpaceWeatherProvider {
+  /** Solar wind, Kp, X-ray, NOAA scales and alerts (NOAA SWPC) */
+  weather(signal?: AbortSignal): Promise<SourceResult<SpaceWeather>>
+  /** OVATION aurora probability (forecast model) */
+  aurora(signal?: AbortSignal): Promise<SourceResult<AuroraGrid>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
   tsunami: TsunamiProvider
@@ -103,4 +111,5 @@ export interface EarthProvider {
   volcano: VolcanoProvider
   hydrology: HydrologyProvider
   environment: EnvironmentProvider
+  space: SpaceWeatherProvider
 }

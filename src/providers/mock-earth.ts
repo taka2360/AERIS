@@ -22,6 +22,8 @@ import {
   synthMarine,
   synthSnow,
   synthMarineGrid,
+  synthSpaceWeather,
+  synthAurora,
 } from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
@@ -61,6 +63,12 @@ export function createMockEarthProvider(
     volcano: {
       volcanoes: (signal) =>
         run('jma-volcano', 'official', 'MOCK JMA', signal, () => synthVolcanoes(now(), scenario)),
+    },
+    space: {
+      weather: (signal) =>
+        run('swpc', 'observation', 'MOCK SWPC', signal, () => synthSpaceWeather(now(), scenario)),
+      aurora: (signal) =>
+        run('swpc', 'forecast', 'MOCK OVATION', signal, () => synthAurora(now(), scenario)),
     },
     environment: {
       air: (_p, signal) =>

@@ -75,6 +75,8 @@ export function eventFigure(e: NaturalEvent): string {
     }
     case 'volcano':
       return e.detail.levelName ?? ''
+    case 'space-weather':
+      return e.detail.kind.toUpperCase()
     case 'tsunami':
       return e.lifecycle === 'ongoing' ? '発表中' : e.lifecycle === 'cancelled' ? '取消' : '解除'
     default:
@@ -89,6 +91,7 @@ export function sourceTags(e: NaturalEvent): string[] {
     'jma-tsunami': 'JMA',
     'jma-typhoon': 'JMA',
     'jma-volcano': 'JMA',
+    swpc: 'NOAA SWPC',
   }
   return [...new Set(e.sources.map((s) => names[s.source] ?? s.source.toUpperCase()))]
 }

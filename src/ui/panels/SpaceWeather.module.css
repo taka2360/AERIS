@@ -1,0 +1,107 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.status {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+.status b {
+  font-size: var(--fs-lg);
+  letter-spacing: var(--track-wide);
+}
+.status[data-status='nominal'] b {
+  color: var(--green);
+}
+.status[data-status='active'] b {
+  color: var(--cyan);
+}
+.status[data-status='elevated'] b {
+  color: var(--yellow);
+}
+.status[data-status='warning'] b,
+.status[data-status='critical'] b {
+  color: var(--red);
+}
+.label {
+  font-size: 0.625rem;
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 8.4em minmax(0, 1fr);
+  gap: 2px var(--s3);
+  margin: 0;
+  font-size: var(--fs-label);
+}
+.grid dt {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+}
+.grid dd {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.grid b {
+  color: var(--text);
+}
+.grid b[data-south] {
+  color: var(--yellow);
+}
+.grid b[data-geo='STORM'] {
+  color: var(--red);
+}
+.grid b[data-geo='ELEVATED'] {
+  color: var(--yellow);
+}
+.grid b[data-geo='QUIET'] {
+  color: var(--green);
+}
+.tag {
+  font-size: 0.5625rem;
+  padding: 0 3px;
+  border: 1px solid currentColor;
+}
+.tag[data-kind='OBS'] {
+  color: #000;
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.tag[data-kind='EST'] {
+  color: var(--yellow);
+}
+.tag[data-kind='ASSESSMENT'] {
+  color: var(--text-dim);
+}
+.tag[data-kind='FCST'] {
+  color: var(--cyan);
+}
+.dim {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+}
+.spark {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pred {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--s3);
+  align-items: baseline;
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}
+.alert {
+  margin: 0;
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}

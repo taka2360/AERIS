@@ -552,3 +552,43 @@ export function snowStatus(
   if (snowfall3hCm != null) parts.push(`3時間降雪 ${snowfall3hCm}cm+`)
   return { status, headline: `${parts.join(' · ')} (EST)`, rule: SNOW_RULE }
 }
+
+// ── Space weather ───────────────────────────────────────────────────────────
+
+const SPACE_RULE = 'aeris:space-status/v1'
+const SCALE_STATUS: SystemStatus[] = [
+  'nominal',
+  'active',
+  'active',
+  'elevated',
+  'warning',
+  'critical',
+]
+
+/**
+ * SPACE WX from NOAA's current G / S / R scales (their assessment), with the
+ * estimated Kp, solar wind and X-ray class as the headline.
+ */
+export function spaceStatus(
+  sw: {
+    scales: { current: { G: number; S: number; R: number } }
+    kp: { estimated: number | null }
+    solarWind: { speed: number | null; bz: number | null }
+    xray: { current: string | null }
+  } | null,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData || !sw) return { status: 'unknown', rule: SPACE_RULE }
+  const { G, S, R } = sw.scales.current
+  const top = Math.max(G, S, R)
+  let status = SCALE_STATUS[Math.min(5, top)]!
+  // Kp 5+ is a G1 storm even before NOAA's scale product updates.
+  if (status === 'nominal' && (sw.kp.estimated ?? 0) >= 5) status = 'active'
+  const parts: string[] = []
+  if (sw.kp.estimated != null) parts.push(`Kp ${sw.kp.estimated.toFixed(1)} (EST)`)
+  if (top > 0) parts.push(`G${G} S${S} R${R}`)
+  if (sw.solarWind.speed != null) parts.push(`SW ${Math.round(sw.solarWind.speed)}km/s`)
+  if (sw.solarWind.bz != null) parts.push(`Bz ${sw.solarWind.bz}nT`)
+  if (sw.xray.current) parts.push(`X-ray ${sw.xray.current}`)
+  return { status, headline: parts.join(' · '), rule: SPACE_RULE }
+}

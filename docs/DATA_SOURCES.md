@@ -308,12 +308,12 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 宇宙天気
 
-### NOAA SWPC — `swpc` (planned)
+### NOAA SWPC — `swpc`
 
 | 項目 | 内容 |
 | --- | --- |
 | 提供元 | NOAA Space Weather Prediction Center |
-| エンドポイント | `https://services.swpc.noaa.gov/json/`<br>`https://services.swpc.noaa.gov/products/` |
+| エンドポイント | `https://services.swpc.noaa.gov/products/summary/`<br>`https://services.swpc.noaa.gov/products/geospace/propagated-solar-wind-1-hour.json`<br>`https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json`<br>`https://services.swpc.noaa.gov/products/noaa-scales.json`<br>`https://services.swpc.noaa.gov/products/alerts.json`<br>`https://services.swpc.noaa.gov/json/ovation_aurora_latest.json` |
 | ライセンス | Public domain (U.S. Government) |
 | 出典表記 | [NOAA SWPC](https://www.swpc.noaa.gov/) |
 | 再配布 | 制限なし |

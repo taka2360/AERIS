@@ -31,6 +31,7 @@ import {
   useAir,
   useMarine,
   useSnow,
+  useSpaceWeather,
   useVolcanoFeed,
   useJmaQuakes,
   useStrokes,
@@ -305,6 +306,7 @@ export function useSystemHealth() {
   const air = useAir()
   const marine = useMarine()
   const snow = useSnow()
+  const space = useSpaceWeather()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -455,6 +457,15 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'swpc',
+        'NOAA SWPC',
+        healthFromSnapshot(
+          'swpc',
+          snapshot(space, space.data?.data.solarWind.at ?? undefined),
+          opts('swpc'),
+        ),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -495,6 +506,7 @@ export function useSystemHealth() {
     air,
     marine,
     snow,
+    space,
   ])
 }
 

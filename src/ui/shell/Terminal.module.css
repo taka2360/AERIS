@@ -23,7 +23,7 @@
   grid-template-areas:
     'left center right'
     'tl tl tl'
-    'env env env'
+    'env env space'
     'log log detail'
     'daily daily sys';
 }
@@ -75,6 +75,9 @@
 .sys {
   grid-area: sys;
 }
+.space {
+  grid-area: space;
+}
 
 .mobileNav {
   display: none;
@@ -103,7 +106,7 @@
       'log log'
       'detail detail'
       'daily daily'
-      'sys sys';
+      'space sys';
   }
   .center {
     min-height: 480px;

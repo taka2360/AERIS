@@ -25,6 +25,8 @@ export type MapScene = {
   snowDepthTileUrl: string | null
   snowfallTileUrl: string | null
   /** Modeled wave / SST grid cells (MODEL) */
+  /** OVATION aurora probability cells [lon, lat, %] (FORECAST MODEL) */
+  auroraCells: Array<[number, number, number]>
   marineCells: Array<{
     lat: number
     lon: number
@@ -90,6 +92,7 @@ export type LayerToggle =
   | 'snowd'
   | 'snowf'
   | 'wave'
+  | 'aurora'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 

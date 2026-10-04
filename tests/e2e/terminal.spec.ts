@@ -18,14 +18,22 @@ test.describe('boot', () => {
 
   test('respects reduced motion (no line animation)', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.goto(bootUrl)
-    // Read the style in the same frame the line appears: the boot may end right after.
-    const anim = await page.waitForFunction(() => {
-      const li = [...document.querySelectorAll('li')].find((l) =>
-        l.textContent?.includes('WEATHER DATA LINK'),
-      )
-      return li ? getComputedStyle(li).animationName : null
+    // Record the line's animation the moment it is inserted: the boot may end
+    // (and remove it) before any polling assertion gets a chance to run.
+    await page.addInitScript(() => {
+      new MutationObserver(() => {
+        const w = window as unknown as { __bootAnim?: string }
+        if (w.__bootAnim !== undefined) return
+        const li = [...document.querySelectorAll('li')].find((l) =>
+          l.textContent?.includes('WEATHER DATA LINK'),
+        )
+        if (li) w.__bootAnim = getComputedStyle(li).animationName
+      }).observe(document, { childList: true, subtree: true })
     })
+    await page.goto(bootUrl)
+    const anim = await page.waitForFunction(
+      () => (window as unknown as { __bootAnim?: string }).__bootAnim,
+    )
     expect(await anim.jsonValue()).toBe('none')
   })
 })
@@ -271,4 +279,19 @@ test('environment panel: air quality index with references and ocean model value
     .getByRole('listitem')
     .filter({ hasText: 'OCEAN' })
   await expect(row).toContainText('WARNING')
+})
+
+test('geomag scenario: the space weather panel separates observations, estimates and assessments', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=geomag'))
+  await waitForTerminal(page)
+  const panel = page.getByRole('region', { name: 'SPACE WEATHER' })
+  await expect(panel).toContainText('780')
+  await expect(panel).toContainText('STORM')
+  await expect(panel).toContainText('EST')
+  await expect(panel).toContainText('ASSESSMENT')
+  await expect(page.getByRole('region', { name: 'EVENT LOG' })).toContainText(
+    'Geomagnetic K-index of 7',
+  )
 })

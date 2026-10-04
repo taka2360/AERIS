@@ -17,6 +17,7 @@ import { EventMonitor } from '../panels/EventMonitor'
 import { JmaWarning } from '../panels/JmaWarning'
 import { OfficialForecast } from '../panels/OfficialForecast'
 import { Solar } from '../panels/Solar'
+import { SpaceWeather } from '../panels/SpaceWeather'
 import { AlertBand } from './AlertBand'
 import { BootSequence } from './BootSequence'
 import { SystemPanel } from './SystemPanel'
@@ -115,6 +116,9 @@ export function Terminal() {
         </div>
         <div className={`${s.area} ${s.daily}`} data-view-group="forecast">
           <DailyForecast />
+        </div>
+        <div className={`${s.area} ${s.space}`} data-view-group="sys">
+          <SpaceWeather />
         </div>
         <div className={`${s.area} ${s.sys}`} data-view-group="sys">
           <SystemPanel />

@@ -22,6 +22,7 @@ import {
   airStatus,
   oceanStatus,
   snowStatus,
+  spaceStatus,
   seismicStatus,
   severeStatus,
   tsunamiStatus,
@@ -36,7 +37,9 @@ import { fuseQuakes } from '@/services/fusion/earthquake'
 import { fuseTsunami } from '@/services/fusion/tsunami'
 import { cycloneEvent } from '@/services/fusion/cyclone'
 import { fuseVolcanoes } from '@/services/fusion/volcano'
+import { spaceEvents } from '@/services/fusion/space'
 import type { CycloneReport } from '@/sources/jma-typhoon'
+import type { SpaceWeather } from '@/sources/swpc'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
 import { nominalPollMs, sourceSpec } from '@/sources/registry'
 import type {
@@ -65,6 +68,8 @@ export const earthKeys = {
   marine: (lat: number, lon: number) => ['earth', 'marine', lat, lon] as const,
   snow: () => ['earth', 'jma-snow'] as const,
   marineGrid: () => ['earth', 'marine-grid'] as const,
+  space: () => ['earth', 'swpc'] as const,
+  aurora: () => ['earth', 'ovation'] as const,
   strokes: () => ['earth', 'jma-liden'] as const,
   sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
     ['earth', 'sample', kind, frame, lat, lon, r] as const,
@@ -299,6 +304,39 @@ export function useMarineGrid(enabled: boolean) {
   })
 }
 
+export function useSpaceWeather() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.space(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.space.weather(signal)),
+    staleTime: 60_000,
+    refetchInterval: adaptive<Unwrapped<SpaceWeather>>(
+      'swpc',
+      (d) => ({ kp: d?.data.kp.estimated ?? undefined }),
+      provider.now,
+    ),
+    meta: { persist: true },
+  })
+}
+
+/** Space-weather events (significant SWPC alerts). */
+export function useSpaceEvents() {
+  const q = useSpaceWeather()
+  return useMemo(() => (q.data ? spaceEvents(q.data.data, q.data.provenance) : []), [q.data])
+}
+
+/** OVATION aurora forecast; fetched only while the map layer needs it. */
+export function useAurora(enabled: boolean) {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.aurora(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.space.aurora(signal)),
+    enabled,
+    staleTime: 10 * 60_000,
+    refetchInterval: enabled ? 10 * 60_000 : false,
+  })
+}
+
 export function useSnow() {
   const provider = useWeatherProvider()
   return useQuery({
@@ -402,15 +440,16 @@ export function useNaturalEvents(): { events: NaturalEvent[]; now: Instant } {
   const { events: tsunamis } = useTsunami()
   const { events: cyclones } = useCyclones()
   const { events: volcanoes } = useVolcanoes()
+  const space = useSpaceEvents()
   const now = useMinuteClock()
   const events = useMemo<NaturalEvent[]>(
     () =>
-      [...tsunamis, ...cyclones, ...volcanoes, ...quakes].sort(
+      [...tsunamis, ...cyclones, ...volcanoes, ...space, ...quakes].sort(
         (a, b) =>
           Date.parse(b.time.startedAt ?? b.time.observedAt ?? b.time.issuedAt ?? '') -
           Date.parse(a.time.startedAt ?? a.time.observedAt ?? a.time.issuedAt ?? ''),
       ),
-    [quakes, tsunamis, cyclones, volcanoes],
+    [quakes, tsunamis, cyclones, volcanoes, space],
   )
   return { events, now }
 }
@@ -483,6 +522,7 @@ export function useEarthSystems(): SystemRow[] {
   const snow = useSnow()
   const snowDepth = useLocalSample('snow-depth', snow.data?.depth, 1)
   const snowfall = useLocalSample('snowfall-3h', snow.data?.snowfall, 1)
+  const sw = useSpaceWeather()
   const { location } = useResolvedLocation()
   const now = useMinuteClock()
   return useMemo(() => {
@@ -580,6 +620,17 @@ export function useEarthSystems(): SystemRow[] {
         sources: ['JMA'],
       },
       {
+        id: 'space',
+        label: 'SPACE WX',
+        reading: spaceStatus(sw.data?.data ?? null, !!sw.data),
+        checkedAt: sw.data?.data.solarWind.at ?? undefined,
+        feed:
+          sw.data?.provenance.decode === 'partial'
+            ? 'partial'
+            : feedState([sw], sourceSpec('swpc')!.freshness.staleAfterMin, now),
+        sources: ['NOAA SWPC'],
+      },
+      {
         id: 'severe',
         label: 'SEVERE WX',
         reading: severeStatus(
@@ -637,6 +688,7 @@ export function useEarthSystems(): SystemRow[] {
     snowDepth.data,
     snowfall.data,
     snow.isError,
+    sw,
     ltng.data,
     torn.data,
     thunder.isError,

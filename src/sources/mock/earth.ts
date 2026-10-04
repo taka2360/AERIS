@@ -39,6 +39,19 @@ import {
   type MarineState,
 } from '../openmeteo-marine'
 import marineFixture from '../openmeteo-marine/fixtures/marine-tokyo.json'
+import {
+  adaptOvation,
+  adaptSpaceWeather,
+  ovationSchemaParse,
+  type AuroraGrid,
+  type SpaceWeather,
+} from '../swpc'
+import swAlerts from '../swpc/fixtures/alerts.json'
+import swFlares from '../swpc/fixtures/xray-flares-latest.json'
+import swKp from '../swpc/fixtures/noaa-planetary-k-index.json'
+import swKp1m from '../swpc/fixtures/planetary_k_index_1m.json'
+import swPropagated from '../swpc/fixtures/propagated-solar-wind-1-hour.json'
+import ovationFixture from '../swpc/fixtures/ovation-subset.json'
 import { PALETTES } from '../jma-tile/palettes'
 import { adaptInformation } from '../jma-information'
 import {
@@ -786,4 +799,64 @@ export function synthMarineGrid(now: Instant, scenario: Scenario): MarineGrid {
       })
     }
   return { at: now, cells }
+}
+
+/**
+ * Space weather from real SWPC products (fixtures, 2026-10-04: Kp 5, G1 watch);
+ * the geomag scenario turns it into a G3 storm with fast solar wind.
+ */
+export function synthSpaceWeather(now: Instant, scenario: Scenario): SpaceWeather {
+  const sw = adaptSpaceWeather({
+    speed: [{ proton_speed: 520, time_tag: '2026-10-04T13:10:00Z' }],
+    mag: [{ bt: 16, bz_gsm: -2, time_tag: '2026-10-04T13:10:00Z' }],
+    propagated: swPropagated as Array<Array<string | number | null>>,
+    kp: swKp as Array<{ time_tag: string; Kp: number }>,
+    kp1m: swKp1m as Array<{ time_tag: string; estimated_kp: number | null }>,
+    flares: swFlares as Array<{ time_tag: string; current_class: string | null }>,
+    alerts: swAlerts as Array<{ product_id: string; issue_datetime: string; message: string }>,
+  })
+  // Re-time everything so the newest values are a few minutes old.
+  const shift = epoch(now) - epoch(sw.solarWind.at ?? now) - 5 * 60_000
+  const at = (t: Instant | null) => (t ? toInstant(epoch(t) + shift) : null)
+  const base: SpaceWeather = {
+    ...sw,
+    solarWind: { ...sw.solarWind, at: at(sw.solarWind.at) },
+    windSeries: sw.windSeries.map((p) => ({ ...p, t: at(p.t)! })),
+    kp: {
+      estimated: scenario === 'geomag' ? 7.33 : 2.33,
+      estimatedAt: at(sw.kp.estimatedAt),
+      series: sw.kp.series.map((p) => ({ ...p, t: at(p.t)! })),
+    },
+    xray: { ...sw.xray, at: at(sw.xray.at), maxAt: at(sw.xray.maxAt) },
+    scales: { ...sw.scales, at: at(sw.scales.at) },
+    alerts: sw.alerts.map((a) => ({ ...a, issuedAt: at(a.issuedAt)! })),
+  }
+  if (scenario !== 'geomag') return { ...base, alerts: [] }
+  return {
+    ...base,
+    solarWind: { ...base.solarWind, speed: 780, bz: -18, bt: 24 },
+    scales: { ...base.scales, current: { G: 3, S: 1, R: 1 } },
+    alerts: [
+      {
+        id: 'mock-k07a',
+        productId: 'K07A',
+        issuedAt: addMinutes(now, -25),
+        kind: 'ALERT',
+        title: 'Geomagnetic K-index of 7',
+        scale: 'G3',
+      },
+    ],
+  }
+}
+
+export function synthAurora(now: Instant, scenario: Scenario): AuroraGrid {
+  const g = adaptOvation(ovationSchemaParse(ovationFixture))
+  const boost = scenario === 'geomag' ? 2 : 1
+  return {
+    observedAt: addMinutes(now, -10),
+    forecastFor: addMinutes(now, 30),
+    cells: g.cells.map(
+      ([lon, lat, p]) => [lon, lat, Math.min(100, p * boost)] as [number, number, number],
+    ),
+  }
 }

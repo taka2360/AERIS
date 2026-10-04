@@ -10,6 +10,7 @@ import { fetchVolcanoes } from '@/sources/jma-volcano'
 import { fetchRiverDischarge } from '@/sources/openmeteo-flood'
 import { fetchAirQuality } from '@/sources/openmeteo-air'
 import { fetchMarine, fetchMarineGrid } from '@/sources/openmeteo-marine'
+import { fetchAurora, fetchSpaceWeather } from '@/sources/swpc'
 import { fetchInformation } from '@/sources/jma-information'
 import {
   fetchKikikuru,
@@ -38,6 +39,10 @@ export function createLiveEarthProvider(): EarthProvider {
       areas: (signal) => fetchTsunamiAreas(signal),
     },
     volcano: { volcanoes: (signal) => fetchVolcanoes(signal) },
+    space: {
+      weather: (signal) => fetchSpaceWeather(signal),
+      aurora: (signal) => fetchAurora(signal),
+    },
     environment: {
       air: (p, signal) => fetchAirQuality(roundPoint(p), signal),
       marine: (p, signal) => fetchMarine(roundPoint(p), signal),

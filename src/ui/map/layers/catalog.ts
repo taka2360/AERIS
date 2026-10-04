@@ -8,7 +8,7 @@ import type { LayerToggle, LayerVisibility } from './types'
 export type LayerEntry = {
   id: LayerToggle
   label: string
-  group: 'ATMOS' | 'HYDRO' | 'ENV' | 'OBS' | 'GEO'
+  group: 'ATMOS' | 'HYDRO' | 'ENV' | 'SPACE' | 'OBS' | 'GEO'
   /** Raster fields are mutually exclusive */
   raster?: boolean
   desc: string
@@ -45,6 +45,7 @@ export const LAYER_CATALOG: LayerEntry[] = [
     desc: '解析降雪量 3時間(気象庁・推定)',
   },
   { id: 'wave', label: 'WAVES', group: 'ENV', desc: '波高・海面水温(モデル)' },
+  { id: 'aurora', label: 'AURORA', group: 'SPACE', desc: 'オーロラ出現確率(NOAA OVATION 予測)' },
   { id: 'stn', label: 'STN', group: 'OBS', desc: 'アメダス観測点' },
   { id: 'grid', label: 'RINGS', group: 'OBS', desc: '距離リング' },
   { id: 'quake', label: 'QUAKE', group: 'GEO', desc: '地震(気象庁・USGS)' },
@@ -70,6 +71,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   snowd: false,
   snowf: false,
   wave: false,
+  aurora: false,
 }
 
 /** Toggle a layer; switching a raster field on switches the other rasters off. */

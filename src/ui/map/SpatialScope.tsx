@@ -30,6 +30,7 @@ import {
   useKikikuru,
   useMarineGrid,
   useSnow,
+  useAurora,
 } from '@/query/earth-hooks'
 import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
@@ -405,6 +406,14 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     return g.cells
   }, [marineGrid.data, cursor.t])
 
+  // OVATION is a short-range forecast: shown only near its valid time.
+  const aurora = useAurora(layers.aurora)
+  const auroraCells = useMemo(() => {
+    const g = aurora.data?.data
+    if (!g || Math.abs(minutesBetween(g.forecastFor, cursor.t)) > 90) return []
+    return g.cells
+  }, [aurora.data, cursor.t])
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -421,6 +430,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       snowDepthTileUrl: snowdShown?.tileUrlTemplate ?? null,
       snowfallTileUrl: snowfShown?.tileUrlTemplate ?? null,
       marineCells,
+      auroraCells,
       strokes,
       focusId: focused?.id ?? null,
       quakes,
@@ -443,6 +453,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       snowdShown?.tileUrlTemplate,
       snowfShown?.tileUrlTemplate,
       marineCells,
+      auroraCells,
       strokes,
       focused?.id,
       quakes,
