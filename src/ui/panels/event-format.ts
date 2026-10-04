@@ -68,6 +68,11 @@ export function eventFigure(e: NaturalEvent): string {
       const i = e.detail.maxIntensity ? ` 震度${intensityLabel(e.detail.maxIntensity)}` : ''
       return `${max != null ? `M${max.toFixed(1)}` : 'M--'}${i}`
     }
+    case 'tropical-cyclone': {
+      const p = measures(e, 'cyclone.central_pressure')[0]
+      const w = measures(e, 'cyclone.max_wind')[0]
+      return [p && `${p.value}hPa`, w && `${w.value}m/s`].filter(Boolean).join(' ')
+    }
     case 'tsunami':
       return e.lifecycle === 'ongoing' ? '発表中' : e.lifecycle === 'cancelled' ? '取消' : '解除'
     default:
@@ -80,6 +85,7 @@ export function sourceTags(e: NaturalEvent): string[] {
     'jma-quake': 'JMA',
     'usgs-quake': 'USGS',
     'jma-tsunami': 'JMA',
+    'jma-typhoon': 'JMA',
   }
   return [...new Set(e.sources.map((s) => names[s.source] ?? s.source.toUpperCase()))]
 }

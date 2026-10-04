@@ -4,6 +4,7 @@
 import type { EarthProvider, SeismicProvider } from '@/services/earth/provider'
 import { fetchJmaQuakeDetail, fetchJmaQuakes } from '@/sources/jma-quake'
 import { fetchTsunamiAreas, fetchTsunamiReports } from '@/sources/jma-tsunami'
+import { fetchCyclones } from '@/sources/jma-typhoon'
 import { fetchUsgsQuakes } from '@/sources/usgs-quake'
 
 function liveSeismic(): SeismicProvider {
@@ -20,6 +21,9 @@ export function createLiveEarthProvider(): EarthProvider {
     tsunami: {
       reports: (signal) => fetchTsunamiReports(signal),
       areas: (signal) => fetchTsunamiAreas(signal),
+    },
+    atmosphere: {
+      cyclones: (signal) => fetchCyclones(signal),
     },
   }
 }

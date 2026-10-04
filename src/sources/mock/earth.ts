@@ -10,6 +10,7 @@ import type { Provenance } from '@/domain/model'
 import { addMinutes, epoch, type Instant } from '@/domain/time'
 import { adaptAreas, areasSchema, reportObservation, type TsunamiAreaLines } from '../jma-tsunami'
 import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
+import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
 import type { Scenario } from './scenario'
 
 type Obs = SourceObservation<QuakeSolution>
@@ -390,4 +391,79 @@ export function synthTsunami(now: Instant, scenario: Scenario): SourceObservatio
 
 export function synthTsunamiAreas(): TsunamiAreaLines {
   return adaptAreas(areasSchema.parse(tsunamiAreasFixture))
+}
+
+/**
+ * Cyclones: in the typhoon scenario a very strong typhoon approaches Kanto
+ * (the monitoring location ends up in its forecast storm-warning area);
+ * otherwise a distant tropical storm east of the Philippines.
+ */
+export function synthCyclones(
+  now: Instant,
+  scenario: Scenario,
+): SourceObservation<CycloneReport>[] {
+  const hour = addMinutes(now, -((epoch(now) / 60000) % 60))
+  const issued = addMinutes(hour, -15)
+  const analysis = addMinutes(hour, -60)
+  const near = scenario === 'typhoon'
+  const pts: Array<[number, number, number, number, number, number]> = near
+    ? // [hours, lat, lon, hPa, wind m/s, circle km]
+      [
+        [0, 30.2, 136.4, 940, 45, 0],
+        [12, 33.1, 138.2, 950, 40, 70],
+        [24, 36.0, 140.6, 965, 35, 110],
+        [48, 41.5, 146.0, 980, 30, 200],
+      ]
+    : [
+        [0, 13.5, 131.2, 996, 20, 0],
+        [24, 15.0, 128.4, 990, 23, 120],
+        [48, 17.2, 125.9, 985, 25, 200],
+      ]
+  const points = pts.map(([h, lat, lon, hpa, w, c]) => ({
+    validAt: addMinutes(analysis, h * 60),
+    lat,
+    lon,
+    pressureHpa: hpa,
+    maxWindMs: w,
+    circleKm: c || undefined,
+    stormAreaKm: near ? 190 + h * 3 : undefined,
+    role: h === 0 ? ('analysis' as const) : ('forecast' as const),
+  }))
+  const report: CycloneReport = {
+    id: near ? 'TC-MOCK-21' : 'TC-MOCK-22',
+    number: near ? '2621' : '2622',
+    name: near ? 'モックタイフーン' : 'モックストーム',
+    issuedAt: issued,
+    category: near ? 'TY' : 'TS',
+    categoryLabel: near ? '台風' : '台風',
+    intensityClass: near ? '非常に強い' : undefined,
+    sizeClass: near ? '大型' : undefined,
+    location: near ? '四国沖' : 'フィリピンの東',
+    maxGustMs: near ? 60 : 30,
+    detail: {
+      name: near ? 'モックタイフーン' : 'モックストーム',
+      number: near ? '2621' : '2622',
+      category: near ? 'TY' : 'TS',
+      categoryLabel: '台風',
+      intensityClass: near ? '非常に強い' : undefined,
+      sizeClass: near ? '大型' : undefined,
+      observedPosition: points[0],
+      observedTrack: [],
+      observedPath: near
+        ? [
+            [131.5, 24.0],
+            [133.6, 26.8],
+            [135.2, 28.9],
+            [136.4, 30.2],
+          ]
+        : [
+            [134.0, 12.2],
+            [131.2, 13.5],
+          ],
+      forecasts: [{ issuedAt: issued, points }],
+      galeArea: near ? { lat: 30.2, lon: 136.4, radiusKm: 650 } : undefined,
+      movement: { directionText: near ? '北東' : '西北西', speedKmh: near ? 30 : 15 },
+    },
+  }
+  return [cycloneObservation(report, now)]
 }

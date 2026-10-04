@@ -141,11 +141,25 @@ export type ForecastIssue = { issuedAt: Instant; points: TrackPoint[] }
 export type CycloneDetail = {
   name?: string
   number?: string
+  /** Agency category code, e.g. JMA TY / STS / TS / TD / LOW, NHC HU / TS */
   category?: string
+  categoryLabel?: string
+  /** JMA 強さ / 大きさ classes as stated ('非常に強い', '大型') */
+  intensityClass?: string
+  sizeClass?: string
   observedPosition?: TrackPoint
+  /** Timed past positions (when the agency provides times) */
   observedTrack: TrackPoint[]
+  /** Past path as drawn by the agency, without times: shape only, never interpolated */
+  observedPath?: [number, number][]
   /** Each forecast keeps its own issuance; points are never mixed across issues */
   forecasts: ForecastIssue[]
+  /** Gale area (強風域, 15 m/s+) around the analysed centre */
+  galeArea?: { lat: number; lon: number; radiusKm: number }
+  /** Tangent lines of the probability circles (forecast cone outline), [lon, lat] */
+  coneLines?: [number, number][][]
+  /** Outline of the storm-warning area (暴風警戒域), [lon, lat] */
+  stormLines?: [number, number][][]
   movement?: { directionDeg?: number; directionText?: string; speedKmh?: number }
 }
 

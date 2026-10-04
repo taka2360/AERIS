@@ -8,8 +8,8 @@ import { minutesBetween, type Instant } from '../time'
 import type { HazardAssessment } from './assessments'
 import type { GeoPoint } from './common'
 import { validAt } from './temporal'
-import { intensityLabel, intensityRank, type SystemStatus } from './derive'
-import type { EarthquakeEvent, NaturalEvent } from './events'
+import { intensityLabel, intensityRank, SYSTEM_STATUS_RANK, type SystemStatus } from './derive'
+import type { CycloneEvent, EarthquakeEvent, NaturalEvent } from './events'
 
 export type SystemReading = {
   status: SystemStatus
@@ -196,4 +196,74 @@ export function tsunamiRelevance(
     national: active.filter((a) => a.rank >= 4),
     rule: RELEVANCE_RULE,
   }
+}
+
+// ── Tropical cyclones ───────────────────────────────────────────────────────
+
+const CYCLONE_RULE = 'aeris:cyclone-status/v1'
+
+export type CycloneProximity = {
+  /** Distance from the monitoring location to the analysed centre */
+  distanceKm: number
+  inStormArea: boolean
+  inGaleArea: boolean
+  /** Location falls inside a forecast storm-warning circle (any lead time) */
+  inForecastStormArea: boolean
+}
+
+export function cycloneProximity(e: CycloneEvent, at: GeoPoint): CycloneProximity | null {
+  const p = e.detail.observedPosition
+  if (!p) return null
+  const d = haversineKm(at.lat, at.lon, p.lat, p.lon)
+  const g = e.detail.galeArea
+  const fcst = e.detail.forecasts.at(-1)?.points ?? []
+  return {
+    distanceKm: Math.round(d),
+    inStormArea: p.stormAreaKm != null && d <= p.stormAreaKm,
+    inGaleArea: !!g && haversineKm(at.lat, at.lon, g.lat, g.lon) <= g.radiusKm,
+    inForecastStormArea: fcst.some(
+      (q) =>
+        q.role === 'forecast' &&
+        haversineKm(at.lat, at.lon, q.lat, q.lon) <= (q.stormAreaKm ?? 0) + (q.circleKm ?? 0),
+    ),
+  }
+}
+
+/**
+ * CYCLONE status relative to the monitoring location (AERIS rule):
+ *   critical  inside the storm area (暴風域) now
+ *   warning   inside the gale area (強風域) now, or inside a forecast storm-warning area
+ *   elevated  a cyclone centre within 1,000 km
+ *   active    any cyclone being tracked
+ */
+export function cycloneStatus(
+  events: NaturalEvent[],
+  at: GeoPoint,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: CYCLONE_RULE }
+  const tcs = events.filter((e): e is CycloneEvent => e.category === 'tropical-cyclone')
+  if (tcs.length === 0)
+    return { status: 'nominal', headline: '追跡中の熱帯低気圧なし', rule: CYCLONE_RULE }
+  const ranked = tcs
+    .map((e) => {
+      const px = cycloneProximity(e, at)
+      const status: SystemStatus = !px
+        ? 'active'
+        : px.inStormArea
+          ? 'critical'
+          : px.inGaleArea || px.inForecastStormArea
+            ? 'warning'
+            : px.distanceKm <= 1000
+              ? 'elevated'
+              : 'active'
+      return { e, px, status }
+    })
+    .sort((a, b) => SYSTEM_STATUS_RANK[b.status] - SYSTEM_STATUS_RANK[a.status])
+  const top = ranked[0]!
+  const p = top.e.detail.observedPosition
+  const parts = [top.e.title]
+  if (p?.pressureHpa != null) parts.push(`${p.pressureHpa}hPa`)
+  if (top.px) parts.push(`監視地点まで${top.px.distanceKm.toLocaleString('en-US')}km`)
+  return { status: top.status, headline: parts.join(' · '), eventId: top.e.id, rule: CYCLONE_RULE }
 }

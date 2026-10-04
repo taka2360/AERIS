@@ -182,3 +182,18 @@ test.describe('tsunami scenario', () => {
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 })
+
+test('typhoon scenario: the cyclone line warns and the detail shows the issued forecast', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=typhoon'))
+  await waitForTerminal(page)
+  const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
+  const row = monitor.getByRole('listitem').filter({ hasText: 'CYCLONE' })
+  await expect(row).toContainText('WARNING')
+  await row.getByRole('button').click()
+  const detail = page.getByRole('region', { name: 'EVENT DETAIL' })
+  await expect(detail).toContainText('非常に強い')
+  await expect(detail).toContainText('予報の暴風警戒域にかかる')
+  await expect(detail).toContainText('発表 · 気象庁(予測)')
+})

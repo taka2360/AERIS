@@ -166,7 +166,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 5min |
 | 注記 | 雷活動度(1km 格子・4段階)は雷監視システムからの解析値。個別落雷位置ではない |
 
-### JMA TYPHOON — `jma-typhoon` (planned)
+### JMA TYPHOON — `jma-typhoon`
 
 | 項目 | 内容 |
 | --- | --- |

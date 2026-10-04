@@ -19,7 +19,8 @@ import { compass16, formatCoord } from '@/domain/derive'
 import { frameAt, framesToIntervals, latestObserved } from '@/domain/earth/temporal'
 import { addMinutes, formatTime } from '@/domain/time'
 import { useTimeCursor } from '@/query/time-cursor'
-import { useQuakeEvents, useTsunami } from '@/query/earth-hooks'
+import { useCyclones, useQuakeEvents, useTsunami } from '@/query/earth-hooks'
+import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
 import { useSelection } from '@/query/selection'
 import { activeWindow } from '@/domain/earth/temporal'
@@ -104,6 +105,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const cursor = useTimeCursor()
   const { events: quakeEvents } = useQuakeEvents()
   const tsunami = useTsunami()
+  const { events: cycloneEvents } = useCyclones()
   const { selectedId, select } = useSelection()
 
   const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
@@ -249,6 +251,35 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       .map(([code, rank]) => ({ code, rank, lines: lines[code]! }))
   }, [tsunami.areas.data, tsunami.assessments, cursor.t])
 
+  // Cyclone centres: the analysis in LIVE; when scrubbing, the stated position
+  // at t (forecast interpolated within one issuance), or nothing.
+  const cyclones = useMemo(
+    () =>
+      cycloneEvents.map((e) => {
+        const d = e.detail
+        const pos =
+          cursor.mode === 'live'
+            ? (d.observedPosition ?? null)
+            : cyclonePositionAt(
+                d.observedTrack.concat(d.observedPosition ? [d.observedPosition] : []),
+                d.forecasts,
+                cursor.t,
+              )
+        const hpa = d.observedPosition?.pressureHpa
+        return {
+          id: e.id,
+          label: `${e.title.replace(/^台風/, 'TY ')}${hpa ? ` ${hpa}hPa` : ''}`,
+          path: d.observedPath ?? [],
+          points: d.forecasts.at(-1)?.points ?? [],
+          coneLines: d.coneLines ?? [],
+          stormLines: d.stormLines ?? [],
+          gale: d.galeArea,
+          at: pos ? { lat: pos.lat, lon: pos.lon, role: pos.role } : null,
+        }
+      }),
+    [cycloneEvents, cursor.mode, cursor.t],
+  )
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -262,6 +293,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       selectedEventId: selectedId,
       intensityStations,
       tsunamiCoasts,
+      cyclones,
     }),
     [
       center,
@@ -273,6 +305,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       selectedId,
       intensityStations,
       tsunamiCoasts,
+      cyclones,
     ],
   )
 

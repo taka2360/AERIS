@@ -3,6 +3,7 @@
  * raster fields → areas → lines/tracks → points → labels.
  */
 import { radarLayer, ringsLayer, stationsLayer, windLayer } from './base-layers'
+import { cycloneLayer } from './cyclone-layer'
 import { quakeLayer } from './quake-layer'
 import { tsunamiLayer } from './tsunami-layer'
 import type { MapLayerDef } from './types'
@@ -12,6 +13,7 @@ export const MAP_LAYERS: MapLayerDef[] = [
   ringsLayer,
   windLayer,
   stationsLayer,
+  cycloneLayer,
   tsunamiLayer,
   quakeLayer,
 ]

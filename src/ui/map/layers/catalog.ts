@@ -17,6 +17,7 @@ export type LayerEntry = {
 export const LAYER_CATALOG: LayerEntry[] = [
   { id: 'echo', label: 'RADAR', group: 'ATMOS', raster: true, desc: '降水ナウキャスト(気象庁)' },
   { id: 'wind', label: 'WIND', group: 'ATMOS', desc: '風(数値モデル)' },
+  { id: 'cyclone', label: 'CYCLONE', group: 'ATMOS', desc: '台風・熱帯低気圧(気象庁)' },
   { id: 'stn', label: 'STN', group: 'OBS', desc: 'アメダス観測点' },
   { id: 'grid', label: 'RINGS', group: 'OBS', desc: '距離リング' },
   { id: 'quake', label: 'QUAKE', group: 'GEO', desc: '地震(気象庁・USGS)' },
@@ -30,6 +31,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   grid: true,
   quake: true,
   tsunami: true,
+  cyclone: true,
 }
 
 /** Toggle a layer; switching a raster field on switches the other rasters off. */

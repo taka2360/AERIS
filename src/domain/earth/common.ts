@@ -84,6 +84,7 @@ export const point = (lat: number, lon: number): Geometry => ({
 
 /** Longitude into [-180, 180). Accepts 0–360 inputs (e.g. SWPC OVATION grids). */
 export function normalizeLon(lon: number): number {
+  if (lon >= -180 && lon < 180) return lon // keep exact values (no float drift)
   const x = (((lon + 180) % 360) + 360) % 360
   return x - 180
 }

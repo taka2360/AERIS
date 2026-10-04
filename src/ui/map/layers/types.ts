@@ -5,6 +5,7 @@
  * order of the registry (first = bottom).
  */
 import type { Map as MapLibreMap } from 'maplibre-gl'
+import type { TrackPoint } from '@/domain/earth/events'
 import type { StationObservation, WindSample } from '@/domain/model'
 
 /** Everything the map can draw at one moment. Layers read only what they need. */
@@ -30,10 +31,21 @@ export type MapScene = {
   intensityStations: Array<{ lat: number; lon: number; rank: number; label: string }>
   /** Tsunami forecast areas in force at the cursor time (rank = JMA class 1–4) */
   tsunamiCoasts: Array<{ code: string; rank: number; lines: [number, number][][] }>
+  /** Tropical cyclones with their stated geometry and the centre at the cursor time */
+  cyclones: Array<{
+    id: string
+    label: string
+    path: [number, number][]
+    points: TrackPoint[]
+    coneLines: [number, number][][]
+    stormLines: [number, number][][]
+    gale?: { lat: number; lon: number; radiusKm: number }
+    at: { lat: number; lon: number; role: string } | null
+  }>
 }
 
 /** User-facing toggle keys. Several definitions may share one toggle. */
-export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid' | 'quake' | 'tsunami'
+export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid' | 'quake' | 'tsunami' | 'cyclone'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 

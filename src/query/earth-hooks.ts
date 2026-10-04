@@ -11,6 +11,7 @@ import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import { unwrap } from '@/domain/result'
 import { minutesBetween, type Instant } from '@/domain/time'
 import {
+  cycloneStatus,
   nearbyAreaCodes,
   seismicStatus,
   tsunamiStatus,
@@ -21,6 +22,8 @@ import { useResolvedLocation } from './hooks'
 import type { Provenance, SourceId } from '@/domain/model'
 import { fuseQuakes } from '@/services/fusion/earthquake'
 import { fuseTsunami } from '@/services/fusion/tsunami'
+import { cycloneEvent } from '@/services/fusion/cyclone'
+import type { CycloneReport } from '@/sources/jma-typhoon'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
 import { sourceSpec } from '@/sources/registry'
 import { useMinuteClock } from './clock'
@@ -33,6 +36,7 @@ export const earthKeys = {
   usgsQuakes: () => ['earth', 'usgs-quake'] as const,
   quakeDetail: (id: string) => ['earth', 'jma-quake-detail', id] as const,
   tsunami: () => ['earth', 'jma-tsunami'] as const,
+  cyclones: () => ['earth', 'jma-typhoon'] as const,
   tsunamiAreas: () => ['earth', 'jma-tsunami-areas'] as const,
 }
 
@@ -158,19 +162,41 @@ export function useTsunami() {
   return { ...fused, reports, areas, localCodes }
 }
 
+export function useCycloneReports() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.cyclones(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.atmosphere.cyclones(signal)),
+    staleTime: 60_000,
+    refetchInterval: adaptive<Unwrapped<SourceObservation<CycloneReport>[]>>(
+      'jma-typhoon',
+      (d) => ({ cycloneActive: (d?.data.length ?? 0) > 0 }),
+      provider.now,
+    ),
+    meta: { persist: true },
+  })
+}
+
+export function useCyclones() {
+  const q = useCycloneReports()
+  const events = useMemo(() => (q.data?.data ?? []).map(cycloneEvent), [q.data])
+  return { events, query: q }
+}
+
 /** Every canonical natural event known to the terminal, newest first. */
 export function useNaturalEvents(): { events: NaturalEvent[]; now: Instant } {
   const { events: quakes } = useQuakeEvents()
   const { events: tsunamis } = useTsunami()
+  const { events: cyclones } = useCyclones()
   const now = useMinuteClock()
   const events = useMemo<NaturalEvent[]>(
     () =>
-      [...tsunamis, ...quakes].sort(
+      [...tsunamis, ...cyclones, ...quakes].sort(
         (a, b) =>
-          Date.parse(b.time.startedAt ?? b.time.issuedAt ?? '') -
-          Date.parse(a.time.startedAt ?? a.time.issuedAt ?? ''),
+          Date.parse(b.time.startedAt ?? b.time.observedAt ?? b.time.issuedAt ?? '') -
+          Date.parse(a.time.startedAt ?? a.time.observedAt ?? a.time.issuedAt ?? ''),
       ),
-    [quakes, tsunamis],
+    [quakes, tsunamis, cyclones],
   )
   return { events, now }
 }
@@ -219,6 +245,8 @@ const latestCheck = (qs: Q[]) =>
 export function useEarthSystems(): SystemRow[] {
   const quakes = useQuakeEvents()
   const tsunami = useTsunami()
+  const cyclones = useCyclones()
+  const { location } = useResolvedLocation()
   const now = useMinuteClock()
   return useMemo(() => {
     const qs = [quakes.jma, quakes.usgs]
@@ -243,6 +271,24 @@ export function useEarthSystems(): SystemRow[] {
         feed,
         sources: ['JMA', 'USGS'],
       },
+      {
+        id: 'cyclone',
+        label: 'CYCLONE',
+        reading: cycloneStatus(cyclones.events, location, !!cyclones.query.data),
+        checkedAt: latestCheck([cyclones.query]),
+        feed: feedState([cyclones.query], sourceSpec('jma-typhoon')!.freshness.staleAfterMin, now),
+        sources: ['JMA'],
+      },
     ]
-  }, [quakes.events, quakes.jma, quakes.usgs, tsunami.assessments, tsunami.reports, now])
+  }, [
+    quakes.events,
+    quakes.jma,
+    quakes.usgs,
+    tsunami.assessments,
+    tsunami.reports,
+    cyclones.events,
+    cyclones.query,
+    location,
+    now,
+  ])
 }

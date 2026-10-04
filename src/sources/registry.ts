@@ -281,7 +281,7 @@ export const SOURCES: SourceSpec[] = [
     label: 'JMA TYPHOON',
     owner: '気象庁',
     domain: 'atmosphere',
-    status: 'planned',
+    status: 'active',
     endpoints: ['https://www.jma.go.jp/bosai/typhoon/data/'],
     license: JMA_LICENSE,
     attribution: JMA_ATTR,

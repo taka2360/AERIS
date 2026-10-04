@@ -6,8 +6,13 @@
 import { memo, useMemo } from 'react'
 import { haversineKm } from '@/domain/derive'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
-import type { EarthquakeEvent, NaturalEvent, TsunamiEvent } from '@/domain/earth/events'
-import { quakeRelevance } from '@/domain/earth/status'
+import type {
+  CycloneEvent,
+  EarthquakeEvent,
+  NaturalEvent,
+  TsunamiEvent,
+} from '@/domain/earth/events'
+import { cycloneProximity, quakeRelevance } from '@/domain/earth/status'
 import { formatDate, formatTime } from '@/domain/time'
 import {
   useTsunami,
@@ -238,6 +243,97 @@ function TsunamiDetail({ e }: { e: TsunamiEvent }) {
   )
 }
 
+function CycloneDetail({ e }: { e: CycloneEvent }) {
+  const { location } = useResolvedLocation()
+  const d = e.detail
+  const a = d.observedPosition
+  const px = cycloneProximity(e, location)
+  const issue = d.forecasts.at(-1)
+  const m = (k: string) => e.measures.find((x) => x.kind === k)
+  return (
+    <>
+      <dl className={s.grid}>
+        <dt>CLASS</dt>
+        <dd className="ja">
+          {[d.categoryLabel, d.sizeClass, d.intensityClass].filter(Boolean).join(' · ') || '--'}
+          <span className={s.src}>気象庁 階級</span>
+        </dd>
+        <dt>CENTRE</dt>
+        <dd>
+          {a ? `${a.lat.toFixed(1)}°N ${a.lon.toFixed(1)}°E` : '--'}
+          <span className={`${s.src} ja`}>{e.place}</span>
+          <QualityTags provenance={e.provenance} />
+        </dd>
+        <dt>PRESSURE</dt>
+        <dd>{m('cyclone.central_pressure')?.value ?? '--'} hPa</dd>
+        <dt>MAX WIND</dt>
+        <dd>
+          {m('cyclone.max_wind')?.value ?? '--'} m/s · 最大瞬間{' '}
+          {m('cyclone.max_gust')?.value ?? '--'} m/s
+        </dd>
+        <dt>MOVEMENT</dt>
+        <dd className="ja">
+          {d.movement?.directionText ?? '--'}{' '}
+          {d.movement?.speedKmh != null ? `${d.movement.speedKmh} km/h` : ''}
+        </dd>
+        <dt>AREAS</dt>
+        <dd>
+          暴風域 {a?.stormAreaKm != null ? `${a.stormAreaKm}km` : 'なし'} · 強風域{' '}
+          {d.galeArea ? `${d.galeArea.radiusKm}km` : 'なし'}
+        </dd>
+      </dl>
+      {px && (
+        <div className={s.derived}>
+          <span className={s.derivedTag}>AERIS 判定</span>
+          <span>監視地点まで {px.distanceKm.toLocaleString('en-US')}km</span>
+          <span>
+            {px.inStormArea ? (
+              <b className={s.local}>暴風域内</b>
+            ) : px.inGaleArea ? (
+              <b className={s.local}>強風域内</b>
+            ) : px.inForecastStormArea ? (
+              <b className={s.local}>予報の暴風警戒域にかかる</b>
+            ) : (
+              '暴風・強風域外'
+            )}
+          </span>
+          <span className={s.rule}>aeris:cyclone-status v1</span>
+        </div>
+      )}
+      {issue && (
+        <table className={s.stations}>
+          <caption>予報 · {formatTime(issue.issuedAt, false)} 発表 · 気象庁(予測)</caption>
+          <thead>
+            <tr>
+              <th scope="col">TIME</th>
+              <th scope="col">POSITION</th>
+              <th scope="col">hPa</th>
+              <th scope="col">m/s</th>
+              <th scope="col">予報円</th>
+            </tr>
+          </thead>
+          <tbody>
+            {issue.points.map((p) => (
+              <tr key={p.validAt}>
+                <th scope="row">
+                  {formatTime(p.validAt, false)}{' '}
+                  <small className={s.dim}>{p.role === 'forecast' ? 'FCST' : 'ANL'}</small>
+                </th>
+                <td>
+                  {p.lat.toFixed(1)}N {p.lon.toFixed(1)}E
+                </td>
+                <td>{p.pressureHpa ?? '--'}</td>
+                <td>{p.maxWindMs ?? '--'}</td>
+                <td className={s.dim}>{p.circleKm ? `${p.circleKm}km` : '--'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  )
+}
+
 function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
   const { now } = useNaturalEvents()
   const at = eventTime(e)
@@ -255,6 +351,7 @@ function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
       </div>
       {e.category === 'earthquake' && <QuakeDetail e={e} />}
       {e.category === 'tsunami' && <TsunamiDetail e={e} />}
+      {e.category === 'tropical-cyclone' && <CycloneDetail e={e} />}
     </>
   )
 }

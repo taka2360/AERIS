@@ -7,6 +7,7 @@
 import type { SourceObservation } from '@/domain/earth/common'
 import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
+import type { CycloneReport } from '@/sources/jma-typhoon'
 
 export type { Scenario } from '@/sources/mock/scenario'
 
@@ -31,7 +32,13 @@ export interface TsunamiProvider {
   areas(signal?: AbortSignal): Promise<SourceResult<Record<string, [number, number][][]>>>
 }
 
+export interface AtmosphereProvider {
+  /** Tropical cyclones tracked by JMA (one report per cyclone, latest issuance) */
+  cyclones(signal?: AbortSignal): Promise<SourceResult<Obs<CycloneReport>[]>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
   tsunami: TsunamiProvider
+  atmosphere: AtmosphereProvider
 }
