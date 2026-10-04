@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import type { AlertSeverity } from '@/domain/model'
 import { formatShortDate, formatTime } from '@/domain/time'
-import { useAlerts } from '@/query/hooks'
+import { useAlerts, useResolvedLocation } from '@/query/hooks'
 import { Panel } from '../primitives/Panel'
 import s from './JmaWarning.module.css'
 
@@ -14,6 +14,8 @@ export const SEVERITY_LABEL: Record<AlertSeverity, { ja: string; code: string; r
 
 export const JmaWarning = memo(function JmaWarning() {
   const q = useAlerts()
+  const { location, query: loc } = useResolvedLocation()
+  const noArea = loc.isSuccess && !location.jma
   const bulletin = q.data?.data
   const active = bulletin?.alerts.filter((a) => a.status !== 'cancelled') ?? []
   const top = active.reduce<AlertSeverity | null>(
@@ -39,11 +41,13 @@ export const JmaWarning = memo(function JmaWarning() {
     >
       {!bulletin ? (
         <div className={s.pending}>
-          {q.isError || q.failureCount > 0
-            ? '■ WARNING FEED UNAVAILABLE'
-            : q.fetchStatus === 'idle'
-              ? '○ AWAITING AREA CODE'
-              : '◐ LINKING…'}
+          {noArea
+            ? '○ NO JMA WARNING AREA FOR THIS POINT'
+            : q.isError || q.failureCount > 0
+              ? '■ WARNING FEED UNAVAILABLE'
+              : q.fetchStatus === 'idle'
+                ? '○ AWAITING AREA CODE'
+                : '◐ LINKING…'}
         </div>
       ) : (
         <>

@@ -5,9 +5,9 @@
  */
 import type {
   AlertBulletin,
-  CurrentConditions,
-  DailySeries,
-  HourlySeries,
+  GeoPoint,
+  ModelForecast,
+  PlaceCandidate,
   NowcastFrame,
   OfficialForecast,
   StationObservation,
@@ -17,21 +17,7 @@ import type {
 import type { SourceResult } from '@/domain/result'
 import type { Instant } from '@/domain/time'
 
-export type GeoPoint = { lat: number; lon: number }
-
-/** Output of a numerical model source: model "current" plus hourly/daily series. */
-export type ModelForecast = {
-  current: CurrentConditions
-  hourly: HourlySeries
-  daily: DailySeries
-}
-
-export type PlaceCandidate = {
-  name: string
-  admin?: string
-  lat: number
-  lon: number
-}
+export type { GeoPoint, ModelForecast, PlaceCandidate } from '@/domain/model'
 
 export interface WeatherProvider {
   readonly id: 'mock' | 'live'

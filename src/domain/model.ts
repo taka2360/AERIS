@@ -14,6 +14,7 @@ export type SourceId =
   | 'openmeteo'
   | 'openmeteo-geocoder'
   | 'gsi-geocoder'
+  | 'gsi-search'
   | 'basemap'
   | 'mock'
 
@@ -193,3 +194,19 @@ export type NowcastFrame = {
 
 /** Wind vector sample at a grid point, for map rendering */
 export type WindSample = { lat: number; lon: number; speed: number; direction: number }
+
+export type GeoPoint = { lat: number; lon: number }
+
+/** Output of a numerical model source: model "current" plus hourly/daily series. */
+export type ModelForecast = {
+  current: CurrentConditions
+  hourly: HourlySeries
+  daily: DailySeries
+}
+
+export type PlaceCandidate = {
+  name: string
+  admin?: string
+  lat: number
+  lon: number
+}

@@ -8,8 +8,11 @@ import s from './SystemPanel.module.css'
 
 const SOURCES = [
   { name: '気象庁', detail: 'アメダス・府県予報・警報注意報・ナウキャスト' },
-  { name: 'Open-Meteo', detail: '数値予報 (JMA seamless) · CC BY 4.0' },
-  { name: '国土地理院', detail: '逆ジオコーディング' },
+  {
+    name: 'Open-Meteo',
+    detail: '数値予報 (best match: JMA MSM/GSM 主体) · 地名検索(英字) · CC BY 4.0',
+  },
+  { name: '国土地理院', detail: '逆ジオコーディング・地名検索' },
   { name: 'OpenFreeMap / © OpenStreetMap', detail: '背景地図' },
 ]
 

@@ -17,7 +17,7 @@ export const DailyForecast = memo(function DailyForecast() {
     <Panel
       code="D-01"
       title="7-DAY OUTLOOK"
-      meta={<span>MODEL · JMA SEAMLESS</span>}
+      meta={<span>{q.data?.data.daily.provenance.label ?? 'MODEL'}</span>}
       bodyClassName={s.body}
     >
       {days.length === 0 ? (

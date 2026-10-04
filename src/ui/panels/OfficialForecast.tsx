@@ -1,11 +1,13 @@
 import { memo } from 'react'
 import { formatShortDate, formatTime } from '@/domain/time'
-import { useOfficialForecast } from '@/query/hooks'
+import { useOfficialForecast, useResolvedLocation } from '@/query/hooks'
 import { Panel } from '../primitives/Panel'
 import s from './OfficialForecast.module.css'
 
 export const OfficialForecast = memo(function OfficialForecast() {
   const q = useOfficialForecast()
+  const { location, query: loc } = useResolvedLocation()
+  const noArea = loc.isSuccess && !location.jma
   const f = q.data?.data
   const issued = f?.provenance.issuedAt
   return (
@@ -45,7 +47,11 @@ export const OfficialForecast = memo(function OfficialForecast() {
         </dl>
       ) : (
         <div className={s.pending}>
-          {q.isError || q.failureCount > 0 ? '■ FORECAST TEXT UNAVAILABLE' : '◐ LINKING…'}
+          {noArea
+            ? '○ NO JMA FORECAST AREA FOR THIS POINT'
+            : q.isError || q.failureCount > 0
+              ? '■ FORECAST TEXT UNAVAILABLE'
+              : '◐ LINKING…'}
         </div>
       )}
     </Panel>
