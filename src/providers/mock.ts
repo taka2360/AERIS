@@ -17,6 +17,8 @@ import {
   synthStations,
   synthWindField,
 } from '@/sources/mock/generator'
+import { SCENARIOS, type Scenario } from '@/sources/mock/scenario'
+import { createMockEarthProvider } from './mock-earth'
 
 export type MockOptions = {
   /** Fixed clock (ISO). When omitted, the real clock is used. */
@@ -25,6 +27,8 @@ export type MockOptions = {
   latency?: [number, number]
   /** Sources that should fail */
   fail?: SourceId[]
+  /** Earth-observation situation to simulate (default: quiet) */
+  scenario?: Scenario
 }
 
 const PLACES: PlaceCandidate[] = [
@@ -85,6 +89,7 @@ export function createMockProvider(opts: MockOptions = {}): WeatherProvider {
   return {
     id: 'mock',
     now,
+    earth: createMockEarthProvider(run, now, opts.scenario ?? 'quiet'),
     forecast: (_p, signal) =>
       run('openmeteo', 'model', 'MOCK MODEL', signal, (prov) => {
         const t = now()
@@ -140,5 +145,7 @@ export function mockOptionsFromUrl(search: string): MockOptions {
   const clock = q.get('clock') ?? undefined
   const fail = q.get('fail')?.split(',').filter(Boolean) as SourceId[] | undefined
   const latency = q.has('nolatency') ? ([0, 0] as [number, number]) : undefined
-  return { clock, fail, latency }
+  const s = q.get('scenario') as Scenario | null
+  const scenario = s && SCENARIOS.includes(s) ? s : undefined
+  return { clock, fail, latency, scenario }
 }

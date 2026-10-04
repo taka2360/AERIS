@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SourceObservation } from '@/domain/earth/common'
 import { normalizeLon, splitAtAntimeridian } from '@/domain/earth/common'
-import { quakeSeverity } from '@/domain/earth/derive'
+import { intensityRank, quakeSeverity } from '@/domain/earth/derive'
 import type { QuakeSolution } from '@/domain/earth/reports'
 import { toInstant } from '@/domain/time'
 import {
@@ -20,6 +20,7 @@ import jmaList from '@/sources/jma-quake/fixtures/list.json'
 import jmaDetail from '@/sources/jma-quake/fixtures/detail-VXSE5k.json'
 import { adaptFeed, feedSchema } from '@/sources/usgs-quake'
 import usgsFeed from '@/sources/usgs-quake/fixtures/4.5_week.json'
+import { synthQuakes } from '@/sources/mock/earth'
 import { fuseQuakes, scoreQuakes } from './earthquake'
 
 const retrievedAt = '2026-10-04T17:30:00+09:00'
@@ -234,5 +235,26 @@ describe('longitude handling', () => {
         [175, 12],
       ]),
     ).toHaveLength(1)
+  })
+})
+
+describe('mock scenarios', () => {
+  const now = '2026-10-04T16:24:00+09:00'
+
+  it('quiet: only background seismicity, Hyuganada matched across agencies', () => {
+    const { jma, usgs } = synthQuakes(now, 'quiet')
+    const { events } = fuseQuakes(jma, usgs)
+    const hyuga = events.find((e) => e.title === '日向灘')!
+    expect(hyuga.sources).toHaveLength(2)
+    expect(Math.max(...events.map((e) => intensityRank(e.detail.maxIntensity)))).toBeLessThan(3)
+  })
+
+  it('quake: a strong Kanto quake merges JMA and USGS and keeps both magnitudes', () => {
+    const { jma, usgs } = synthQuakes(now, 'quake')
+    const { events } = fuseQuakes(jma, usgs)
+    const main = events.find((e) => e.detail.maxIntensity === '5+')!
+    expect(main.sources.map((s) => s.source).sort()).toEqual(['jma-quake', 'usgs-quake'])
+    expect(main.detail.stations.length).toBeGreaterThan(3)
+    expect(quakeSeverity(main).value).toBe('severe')
   })
 })
