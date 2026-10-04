@@ -413,3 +413,66 @@
   font-weight: 700;
   letter-spacing: var(--track);
 }
+
+/* ── Layer menu ───────────────────────────────────── */
+.layerMenu {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  min-width: 250px;
+  max-height: calc(100% - 12px);
+  overflow: auto;
+  padding: var(--s3);
+  background: rgba(5, 6, 7, 0.94);
+  border: 1px solid var(--rule-strong);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.layerGroup {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.layerGroup legend {
+  padding: 0 0 2px;
+  font-size: 0.625rem;
+  color: var(--amber-dim);
+  letter-spacing: var(--track-wide);
+}
+.layerItem {
+  display: grid;
+  grid-template-columns: auto 4.6em auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-micro);
+  color: var(--text);
+  cursor: pointer;
+}
+.layerItem[data-disabled] {
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+.layerItem input {
+  accent-color: var(--amber);
+  margin: 0;
+}
+.layerName {
+  letter-spacing: var(--track);
+}
+.layerKind {
+  font-size: 0.5625rem;
+  color: var(--cyan);
+  border: 1px solid var(--cyan-dim);
+  padding: 0 2px;
+}
+.layerDesc {
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

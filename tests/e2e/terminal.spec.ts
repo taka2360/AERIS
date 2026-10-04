@@ -125,3 +125,31 @@ test.describe('time cursor', () => {
     await expect(page.getByText('LIVE へ戻る')).toHaveCount(0)
   })
 })
+
+test.describe('earthquake scenario', () => {
+  test('a strong local quake reaches the band, the monitor and the detail panel', async ({
+    page,
+  }) => {
+    await page.goto(mockUrl('&scenario=quake'))
+    await waitForTerminal(page)
+    const band = page.getByRole('status').filter({ hasText: 'EQ' })
+    await expect(band).toContainText('監視地点付近で震度4を観測')
+    const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
+    await expect(monitor).toContainText('WARNING')
+    await expect(monitor).toContainText('AERIS')
+    await band.getByRole('button').click()
+    const detail = page.getByRole('region', { name: 'EVENT DETAIL' })
+    // Both agencies' magnitudes, each with its source.
+    await expect(detail).toContainText('Mj 6.1')
+    await expect(detail).toContainText('Mw 5.9')
+    await expect(detail).toContainText('震度5強')
+    await expect(detail).toContainText('AERIS 判定')
+  })
+
+  test('quiet scenario keeps the band clear of distant quakes', async ({ page }) => {
+    await page.goto(mockUrl('&scenario=quiet'))
+    await waitForTerminal(page)
+    await expect(page.getByRole('status').filter({ hasText: 'EQ' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'EVENT LOG' })).toContainText('日向灘')
+  })
+})

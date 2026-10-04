@@ -53,3 +53,15 @@
   font-size: var(--fs-micro);
   color: var(--text-dim);
 }
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.link:hover,
+.link:focus-visible {
+  text-decoration: underline dotted;
+}

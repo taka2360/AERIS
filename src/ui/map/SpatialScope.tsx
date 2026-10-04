@@ -17,13 +17,14 @@ import {
 } from 'react'
 import { compass16, formatCoord } from '@/domain/derive'
 import { frameAt, framesToIntervals, latestObserved } from '@/domain/earth/temporal'
-import { formatTime } from '@/domain/time'
+import { addMinutes, formatTime } from '@/domain/time'
 import { useTimeCursor } from '@/query/time-cursor'
 import { useQuakeEvents } from '@/query/earth-hooks'
 import { useSelection } from '@/query/selection'
 import { activeWindow } from '@/domain/earth/temporal'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
-import { DEFAULT_LAYERS } from './layers/catalog'
+import { DEFAULT_LAYERS, LAYER_CATALOG } from './layers/catalog'
+import { LayerMenu } from './LayerMenu'
 import { useNowcastFrames, useResolvedLocation, useStations, useWindField } from '@/query/hooks'
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
@@ -31,7 +32,7 @@ import { Panel } from '../primitives/Panel'
 import type { MapLayers, MapRange, MapScene } from './MapView'
 import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
 import { legendColor, RADAR_PALETTE } from './style'
-import { TimeScrubber, type ScrubSpan } from './TimeScrubber'
+import { TimeScrubber, type ScrubSpan, type ScrubTick } from './TimeScrubber'
 import s from './SpatialScope.module.css'
 
 const MapView = lazy(() => import('./MapView'))
@@ -39,6 +40,20 @@ const MapView = lazy(() => import('./MapView'))
 type Mode = 'map' | 'scope'
 const MODE_KEY = 'aeris.scopeMode'
 const RANGE_KEY = 'aeris.mapRange'
+const LAYERS_KEY = 'aeris.layers'
+
+/** Saved visibility merged over defaults (new layers appear with their default). */
+function loadLayers(): MapLayers {
+  try {
+    const raw = window.localStorage.getItem(LAYERS_KEY)
+    return { ...DEFAULT_LAYERS, ...(raw ? (JSON.parse(raw) as Partial<MapLayers>) : {}) }
+  } catch {
+    return DEFAULT_LAYERS
+  }
+}
+
+/** Layers the vector scope can draw without a basemap. */
+const SCOPE_LAYERS = new Set(['echo', 'stn', 'wind', 'grid'])
 const RANGES: Array<{ id: MapRange; label: string; caption: string }> = [
   { id: 'local', label: 'LOCAL', caption: `RNG ${RANGE_KM}KM · WEB MERCATOR` },
   { id: 'region', label: 'REGION', caption: 'RNG JAPAN · WEB MERCATOR' },
@@ -94,7 +109,12 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     load(RANGE_KEY, ['local', 'region', 'globe'], 'local'),
   )
   const [mapFailed, setMapFailed] = useState(false)
-  const [layers, setLayers] = useState<MapLayers>(DEFAULT_LAYERS)
+  const [layers, setLayersRaw] = useState<MapLayers>(loadLayers)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const setLayers = (v: MapLayers) => {
+    setLayersRaw(v)
+    save(LAYERS_KEY, JSON.stringify(v))
+  }
   const [focus, setFocus] = useState<string | null>(null)
   const [recenter, setRecenter] = useState(0)
 
@@ -111,31 +131,60 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   // LIVE shows the latest observation; SCRUB shows only what was valid at t.
   const shown =
     cursor.mode === 'live' ? latestObserved(frames, cursor.now) : frameAt(frames, cursor.t)
+  // The scrubber covers what the active layers can show: the radar's frames
+  // and, with earthquakes on, the past 24 hours.
+  const quakeSpan = layers.quake
   const span = useMemo<ScrubSpan | null>(() => {
     const first = frames[0]
     const last = frames.at(-1)
-    if (!first || !last) return null
+    const now = cursor.now
+    if (!quakeSpan && (!first || !last)) return null
+    const start = quakeSpan ? addMinutes(now, -24 * 60) : first!.validTime
+    const end = last ? (last.validTime > now ? last.validTime : now) : now
+    const observedUntil = last ? (latestObserved(frames, last.validTime)?.validTime ?? now) : now
     return {
-      start: first.validTime,
-      end: last.validTime,
-      observedUntil: latestObserved(frames, last.validTime)?.validTime ?? first.validTime,
+      start: quakeSpan && first && first.validTime < start ? first.validTime : start,
+      end,
+      observedUntil,
       stepMin: 5,
     }
-  }, [frames])
+  }, [frames, quakeSpan, cursor.now])
+  const ticks = useMemo<ScrubTick[]>(
+    () =>
+      quakeSpan
+        ? quakeEvents
+            .filter((e) => {
+              const sev = quakeSeverity(e).value
+              return sev !== 'none' && e.time.startedAt
+            })
+            .map((e) => ({
+              t: e.time.startedAt!,
+              tone: ['severe', 'extreme'].includes(quakeSeverity(e).value) ? 'alert' : 'event',
+            }))
+        : [],
+    [quakeEvents, quakeSpan],
+  )
   const [playing, setPlaying] = useState(false)
 
-  // Playback steps the global cursor through the frame times, wrapping around.
+  // Playback steps the global cursor through radar frames (5 min) or, without
+  // radar, through the span in 30-minute steps, wrapping around.
   const { scrubTo } = cursor
   const cursorT = cursor.t
+  const radarOn = layers.echo && frames.length > 0
   useEffect(() => {
-    if (!playing || frames.length === 0) return
+    if (!playing || !span) return
     const id = setInterval(() => {
       const ms = Date.parse(cursorT)
-      const next = frames.find((f) => Date.parse(f.validTime) > ms) ?? frames[0]!
-      scrubTo(next.validTime)
+      if (radarOn) {
+        const next = frames.find((f) => Date.parse(f.validTime) > ms) ?? frames[0]!
+        scrubTo(next.validTime)
+      } else {
+        const next = addMinutes(cursorT, 30)
+        scrubTo(next > span.end ? span.start : next)
+      }
     }, 650)
     return () => clearInterval(id)
-  }, [playing, frames, cursorT, scrubTo])
+  }, [playing, frames, cursorT, scrubTo, radarOn, span])
 
   const showMap = mode === 'map' && !mapFailed && active
   useEffect(() => {
@@ -228,14 +277,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     })
   }
 
-  const layerLabel: Record<keyof MapLayers, string> = {
-    echo: showMap ? 'RADAR' : 'PRECIP',
-    stn: 'STN',
-    wind: 'WIND',
-    grid: showMap ? 'RINGS' : 'GRID',
-    quake: 'QUAKE',
-  }
-
   return (
     <Panel
       code="M-01"
@@ -273,24 +314,27 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
               ))}
             </div>
           )}
-          <div className={s.toggles} role="group" aria-label="表示レイヤー">
-            {(Object.keys(layerLabel) as Array<keyof MapLayers>).map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={s.toggle}
-                aria-pressed={layers[id]}
-                onClick={() => setLayers((v) => ({ ...v, [id]: !v[id] }))}
-              >
-                {layerLabel[id]}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            className={s.toggle}
+            aria-expanded={menuOpen}
+            aria-haspopup="true"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            LAYERS {String(LAYER_CATALOG.filter((e) => layers[e.id]).length).padStart(2, '0')}
+          </button>
         </>
       }
     >
       <div className={s.main}>
         <div className={s.scopeWrap} data-mode={showMap ? 'map' : 'scope'}>
+          <LayerMenu
+            layers={layers}
+            setLayers={setLayers}
+            open={menuOpen}
+            setOpen={setMenuOpen}
+            available={(e) => showMap || SCOPE_LAYERS.has(e.id)}
+          />
           {showMap ? (
             <MapBoundary onError={onMapFailure}>
               <Suspense
@@ -372,7 +416,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
             </button>
           )}
         </div>
-        {showMap && layers.echo && (
+        {showMap && (layers.echo || layers.quake) && (
           <TimeScrubber
             cursor={cursor}
             span={span}
@@ -380,6 +424,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
             label="RADAR"
             playing={playing}
             setPlaying={setPlaying}
+            ticks={ticks}
           />
         )}
       </div>
