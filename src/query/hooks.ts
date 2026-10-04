@@ -23,6 +23,7 @@ import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
 import { useMapStatus, type MapStatus } from './map-status'
+import { useJmaQuakes, useUsgsQuakes } from './earth-hooks'
 import { useWeatherProvider } from './provider-context'
 
 const MIN = 60_000
@@ -279,6 +280,8 @@ export function useSystemHealth() {
   const mapStatus = useMapStatus()
   const online = useBrowserOnline()
   const now = useMinuteClock()
+  const jmaQuakes = useJmaQuakes()
+  const usgsQuakes = useUsgsQuakes()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -328,6 +331,25 @@ export function useSystemHealth() {
         healthFromSnapshot('jma-nowcast', snapshot(nowcast, latestFrame), opts('jma-nowcast')),
       ),
       channel('basemap', 'BASEMAP', basemapHealth(mapStatus)),
+      // Event feeds are quiet most of the time: judge on when we last checked.
+      channel(
+        'jma-quake',
+        'JMA SEISMIC',
+        healthFromSnapshot(
+          'jma-quake',
+          snapshot(jmaQuakes, jmaQuakes.data?.provenance.retrievedAt),
+          opts('jma-quake'),
+        ),
+      ),
+      channel(
+        'usgs-quake',
+        'USGS SEISMIC',
+        healthFromSnapshot(
+          'usgs-quake',
+          snapshot(usgsQuakes, usgsQuakes.data?.provenance.retrievedAt),
+          opts('usgs-quake'),
+        ),
+      ),
     ]
     const overall = aggregateStatus(
       channels.map((c) => c.health),
@@ -339,7 +361,7 @@ export function useSystemHealth() {
       .sort()
       .at(-1)
     return { channels, overall, lastUpdate, online }
-  }, [forecast, stations, alerts, official, nowcast, mapStatus, online, now])
+  }, [forecast, stations, alerts, official, nowcast, mapStatus, online, now, jmaQuakes, usgsQuakes])
 }
 
 // ─── System controls ───────────────────────────────────────────────────────

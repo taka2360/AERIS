@@ -19,6 +19,11 @@ import { compass16, formatCoord } from '@/domain/derive'
 import { frameAt, framesToIntervals, latestObserved } from '@/domain/earth/temporal'
 import { formatTime } from '@/domain/time'
 import { useTimeCursor } from '@/query/time-cursor'
+import { useQuakeEvents } from '@/query/earth-hooks'
+import { useSelection } from '@/query/selection'
+import { activeWindow } from '@/domain/earth/temporal'
+import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
+import { DEFAULT_LAYERS } from './layers/catalog'
 import { useNowcastFrames, useResolvedLocation, useStations, useWindField } from '@/query/hooks'
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
@@ -81,13 +86,15 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const nowcast = useNowcastFrames()
   const mapStatus = useMapStatus()
   const cursor = useTimeCursor()
+  const { events: quakeEvents } = useQuakeEvents()
+  const { selectedId, select } = useSelection()
 
   const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
   const [range, setRange] = useState<MapRange>(() =>
     load(RANGE_KEY, ['local', 'region', 'globe'], 'local'),
   )
   const [mapFailed, setMapFailed] = useState(false)
-  const [layers, setLayers] = useState<MapLayers>({ stn: true, wind: true, echo: true, grid: true })
+  const [layers, setLayers] = useState<MapLayers>(DEFAULT_LAYERS)
   const [focus, setFocus] = useState<string | null>(null)
   const [recenter, setRecenter] = useState(0)
 
@@ -148,6 +155,37 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const obsTime = stationList[0]?.observedAt
   const radarUrl = shown?.tileUrlTemplate ?? null
 
+  // Earthquakes as of the cursor time, fading out over 24 hours.
+  const quakes = useMemo(
+    () =>
+      activeWindow(quakeEvents, (e) => e.time.startedAt, cursor.t, 24 * 60).map(
+        ({ item: e, age }) => {
+          const mags = e.measures
+            .filter((m) => m.kind === 'earthquake.magnitude')
+            .map((m) => m.value)
+          const sev = quakeSeverity(e).value
+          return {
+            id: e.id,
+            lat: e.detail.hypocenter.lat,
+            lon: e.detail.hypocenter.lon,
+            magnitude: mags.length ? Math.max(...mags) : null,
+            age,
+            severe: sev === 'severe' || sev === 'extreme',
+          }
+        },
+      ),
+    [quakeEvents, cursor.t],
+  )
+  const intensityStations = useMemo(() => {
+    const sel = quakeEvents.find((e) => e.id === selectedId)
+    return (sel?.detail.stations ?? []).map((st) => ({
+      lat: st.lat,
+      lon: st.lon,
+      rank: intensityRank(st.intensity),
+      label: intensityLabel(st.intensity),
+    }))
+  }, [quakeEvents, selectedId])
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -157,8 +195,20 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       wind: windSamples,
       radarTileUrl: radarUrl,
       focusId: focused?.id ?? null,
+      quakes,
+      selectedEventId: selectedId,
+      intensityStations,
     }),
-    [center, stationList, windSamples, radarUrl, focused?.id],
+    [
+      center,
+      stationList,
+      windSamples,
+      radarUrl,
+      focused?.id,
+      quakes,
+      selectedId,
+      intensityStations,
+    ],
   )
 
   const changeMode = (m: Mode) => {
@@ -183,6 +233,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     stn: 'STN',
     wind: 'WIND',
     grid: showMap ? 'RINGS' : 'GRID',
+    quake: 'QUAKE',
   }
 
   return (
@@ -250,6 +301,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
                   layers={layers}
                   range={range}
                   onFocus={setFocus}
+                  onSelect={select}
                   onFailure={onMapFailure}
                   recenterToken={recenter}
                 />

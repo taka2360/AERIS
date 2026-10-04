@@ -35,6 +35,7 @@ export type MapViewProps = {
   layers: LayerVisibility
   range: MapRange
   onFocus: (id: string) => void
+  onSelect: (eventId: string) => void
   onFailure: (reason: string) => void
   recenterToken: number
 }
@@ -123,7 +124,10 @@ export default function MapView(props: MapViewProps) {
     map.once('style.load', () => {
       loaded.current = true
       const p = latest.current
-      const handlers = () => ({ onFocus: latest.current.onFocus })
+      const handlers = () => ({
+        onFocus: latest.current.onFocus,
+        onSelect: latest.current.onSelect,
+      })
       for (const def of MAP_LAYERS) {
         def.add(map, p.scene, handlers)
         deps.set(def.id, def.deps(p.scene))

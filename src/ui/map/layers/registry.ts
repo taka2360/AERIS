@@ -3,9 +3,16 @@
  * raster fields → areas → lines/tracks → points → labels.
  */
 import { radarLayer, ringsLayer, stationsLayer, windLayer } from './base-layers'
+import { quakeLayer } from './quake-layer'
 import type { MapLayerDef } from './types'
 
-export const MAP_LAYERS: MapLayerDef[] = [radarLayer, ringsLayer, windLayer, stationsLayer]
+export const MAP_LAYERS: MapLayerDef[] = [
+  radarLayer,
+  ringsLayer,
+  windLayer,
+  stationsLayer,
+  quakeLayer,
+]
 
 /** Source ids whose tile errors are data gaps rather than basemap failure. */
 export const OVERLAY_SOURCES = new Set(MAP_LAYERS.flatMap((l) => l.overlaySources ?? []))

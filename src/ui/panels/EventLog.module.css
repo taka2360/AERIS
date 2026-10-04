@@ -1,0 +1,113 @@
+.body {
+  padding-top: var(--s2);
+  max-height: 320px;
+  overflow: auto;
+}
+.chips {
+  display: inline-flex;
+  gap: 2px;
+}
+.chip {
+  padding: 0 5px;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--text-dim);
+  font-size: 0.625rem;
+  letter-spacing: var(--track);
+}
+.chip[aria-pressed='true'] {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #000;
+  font-weight: 700;
+}
+.empty {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-label);
+}
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  text-align: left;
+  font-weight: 400;
+  font-size: 0.625rem;
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+  padding: 2px 6px 2px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.table td {
+  padding: 2px 6px 2px 0;
+  border-bottom: 1px dotted var(--rule-faint);
+  white-space: nowrap;
+}
+.table tr[data-selected] td {
+  background: rgba(255, 176, 0, 0.1);
+}
+.table tr[data-cancelled] td {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+.time {
+  color: var(--text-dim);
+}
+.age {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+}
+.tag {
+  display: inline-block;
+  min-width: 3.4em;
+  padding: 0 3px;
+  font-size: 0.625rem;
+  text-align: center;
+  border: 1px solid var(--rule-strong);
+  color: var(--text-dim);
+}
+.place {
+  max-width: 18em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.select {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.select:hover,
+.select:focus-visible {
+  color: var(--amber-hi);
+  text-decoration: underline dotted;
+}
+.figure {
+  color: var(--amber);
+}
+tr[data-severity='moderate'] .figure {
+  color: var(--yellow);
+}
+tr[data-severity='severe'] .figure,
+tr[data-severity='extreme'] .figure {
+  color: var(--red);
+  font-weight: 700;
+}
+.src {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+}

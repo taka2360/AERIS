@@ -4,6 +4,7 @@ import type { WeatherProvider } from '@/services/provider'
 import { createPersistOptions, createQueryClient } from '@/query/client'
 import { LocationScope } from '@/query/location'
 import { WeatherProviderScope } from '@/query/provider-context'
+import { SelectionScope } from '@/query/selection'
 import { TimeCursorScope } from '@/query/time-cursor'
 import { Terminal } from '@/ui/shell/Terminal'
 
@@ -15,7 +16,9 @@ export function App({ provider }: { provider: WeatherProvider }) {
       <WeatherProviderScope provider={provider}>
         <LocationScope>
           <TimeCursorScope>
-            <Terminal />
+            <SelectionScope>
+              <Terminal />
+            </SelectionScope>
           </TimeCursorScope>
         </LocationScope>
       </WeatherProviderScope>

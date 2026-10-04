@@ -16,15 +16,28 @@ export type MapScene = {
   wind: WindSample[]
   radarTileUrl: string | null
   focusId: string | null
+  /** Earthquakes visible at the cursor time; age 0 = just happened → 1 = fading out */
+  quakes: Array<{
+    id: string
+    lat: number
+    lon: number
+    magnitude: number | null
+    age: number
+    severe: boolean
+  }>
+  selectedEventId: string | null
+  /** JMA intensity stations of the selected earthquake (rank = intensity class ordinal) */
+  intensityStations: Array<{ lat: number; lon: number; rank: number; label: string }>
 }
 
 /** User-facing toggle keys. Several definitions may share one toggle. */
-export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid'
+export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid' | 'quake'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 
 export type LayerHandlers = {
   onFocus: (id: string) => void
+  onSelect: (eventId: string) => void
 }
 
 export type MapLayerDef = {

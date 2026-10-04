@@ -10,6 +10,9 @@ import { SpatialScope } from '../map/SpatialScope'
 import { AerisStatus } from '../panels/AerisStatus'
 import { CurrentStatus } from '../panels/CurrentStatus'
 import { DailyForecast } from '../panels/DailyForecast'
+import { EventDetail } from '../panels/EventDetail'
+import { EventLog } from '../panels/EventLog'
+import { EventMonitor } from '../panels/EventMonitor'
 import { JmaWarning } from '../panels/JmaWarning'
 import { OfficialForecast } from '../panels/OfficialForecast'
 import { Solar } from '../panels/Solar'
@@ -20,10 +23,11 @@ import { TimeCursorBand } from './TimeCursorBand'
 import { TopBar } from './TopBar'
 import s from './Terminal.module.css'
 
-export type MobileView = 'status' | 'timeline' | 'map' | 'forecast' | 'sys'
+export type MobileView = 'status' | 'events' | 'timeline' | 'map' | 'forecast' | 'sys'
 
 const VIEWS: Array<{ id: MobileView; label: string }> = [
   { id: 'status', label: 'STATUS' },
+  { id: 'events', label: 'EVENTS' },
   { id: 'timeline', label: 'TIMELINE' },
   { id: 'map', label: 'SCOPE' },
   { id: 'forecast', label: 'OUTLOOK' },
@@ -92,11 +96,18 @@ export function Terminal() {
         </div>
         <div className={`${s.area} ${s.right}`} data-view-group="status">
           <JmaWarning />
+          <EventMonitor />
           <AerisStatus />
           <Solar />
         </div>
         <div className={`${s.area} ${s.timeline}`} data-view-group="timeline">
           <Timeline />
+        </div>
+        <div className={`${s.area} ${s.log}`} data-view-group="events">
+          <EventLog />
+        </div>
+        <div className={`${s.area} ${s.detail}`} data-view-group="events">
+          <EventDetail />
         </div>
         <div className={`${s.area} ${s.daily}`} data-view-group="forecast">
           <DailyForecast />
