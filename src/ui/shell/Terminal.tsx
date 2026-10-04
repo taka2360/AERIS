@@ -10,6 +10,7 @@ import { SpatialScope } from '../map/SpatialScope'
 import { AerisStatus } from '../panels/AerisStatus'
 import { CurrentStatus } from '../panels/CurrentStatus'
 import { DailyForecast } from '../panels/DailyForecast'
+import { Environment } from '../panels/Environment'
 import { EventDetail } from '../panels/EventDetail'
 import { EventLog } from '../panels/EventLog'
 import { EventMonitor } from '../panels/EventMonitor'
@@ -102,6 +103,9 @@ export function Terminal() {
         </div>
         <div className={`${s.area} ${s.timeline}`} data-view-group="timeline">
           <Timeline />
+        </div>
+        <div className={`${s.area} ${s.env}`} data-view-group="status">
+          <Environment />
         </div>
         <div className={`${s.area} ${s.log}`} data-view-group="events">
           <EventLog />

@@ -12,6 +12,7 @@ import type { HazardAssessment } from '@/domain/earth/assessments'
 import type {
   FieldClass,
   FieldSample,
+  PointSeries,
   RasterFieldKind,
   RasterFieldSeries,
   RasterFrame,
@@ -20,6 +21,8 @@ import type { GeoPoint } from '@/domain/earth/common'
 import type { Instant } from '@/domain/time'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 import type { VolcanoFeed } from '@/sources/jma-volcano'
+import type { KikikuruSeries } from '@/sources/jma-tile'
+import type { DischargeKey } from '@/sources/openmeteo-flood'
 
 export type { Scenario } from '@/sources/mock/scenario'
 
@@ -73,9 +76,17 @@ export interface VolcanoProvider {
   volcanoes(signal?: AbortSignal): Promise<SourceResult<VolcanoFeed>>
 }
 
+export interface HydrologyProvider {
+  /** 土砂・浸水・洪水キキクル series (JMA risk assessments) */
+  kikikuru(signal?: AbortSignal): Promise<SourceResult<KikikuruSeries>>
+  /** Modeled river discharge at the nearest GloFAS river cell */
+  river(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<PointSeries<DischargeKey>>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
   tsunami: TsunamiProvider
   atmosphere: AtmosphereProvider
   volcano: VolcanoProvider
+  hydrology: HydrologyProvider
 }

@@ -239,3 +239,18 @@ test('eruption scenario: a level-4 warning reaches the monitor and the detail', 
   await expect(detail).toContainText('レベル４（高齢者等避難）')
   await expect(detail).toContainText('噴火警戒レベル 4')
 })
+
+test('storm scenario: the hydro chain shows rain, キキクル and modeled river flow', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=storm'))
+  await waitForTerminal(page)
+  const chain = page.getByRole('group', { name: '雨から河川への連鎖' })
+  await expect(chain).toContainText('警戒')
+  await expect(chain).toContainText('MODEL')
+  await expect(chain).toContainText('NOT AVAILABLE')
+  const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
+  await expect(monitor.getByRole('listitem').filter({ hasText: 'GROUND' })).toContainText(
+    'ELEVATED',
+  )
+})

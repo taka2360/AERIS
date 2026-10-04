@@ -17,6 +17,8 @@ import {
   summarizeStrokes,
   tornadoStatus,
   volcanoStatus,
+  hydroStatus,
+  groundStatus,
   seismicStatus,
   severeStatus,
   tsunamiStatus,
@@ -32,7 +34,12 @@ import { fuseVolcanoes } from '@/services/fusion/volcano'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
 import { nominalPollMs, sourceSpec } from '@/sources/registry'
-import type { RasterFieldKind, RasterFieldSeries, RasterFrame } from '@/domain/earth/fields'
+import type {
+  PointSeries,
+  RasterFieldKind,
+  RasterFieldSeries,
+  RasterFrame,
+} from '@/domain/earth/fields'
 import { useMinuteClock } from './clock'
 import { useWeatherProvider } from './provider-context'
 
@@ -47,6 +54,8 @@ export const earthKeys = {
   thunder: () => ['earth', 'jma-thunder'] as const,
   information: () => ['earth', 'jma-information'] as const,
   volcanoes: () => ['earth', 'jma-volcano'] as const,
+  kikikuru: () => ['earth', 'jma-risk'] as const,
+  river: (lat: number, lon: number) => ['earth', 'river', lat, lon] as const,
   strokes: () => ['earth', 'jma-liden'] as const,
   sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
     ['earth', 'sample', kind, frame, lat, lon, r] as const,
@@ -194,6 +203,46 @@ export function useCyclones() {
   const q = useCycloneReports()
   const events = useMemo(() => (q.data?.data ?? []).map(cycloneEvent), [q.data])
   return { events, query: q }
+}
+
+export function useKikikuru() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.kikikuru(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.hydrology.kikikuru(signal)).data,
+    staleTime: 60_000,
+    refetchInterval: nominalPollMs('jma-risk'),
+  })
+}
+
+export function useRiver() {
+  const provider = useWeatherProvider()
+  const { location } = useResolvedLocation()
+  const lat = Math.round(location.lat * 100) / 100
+  const lon = Math.round(location.lon * 100) / 100
+  return useQuery({
+    queryKey: earthKeys.river(lat, lon),
+    queryFn: async ({ signal }) =>
+      unwrap(await provider.earth.hydrology.river({ lat, lon }, signal)),
+    staleTime: 60 * 60_000,
+    refetchInterval: nominalPollMs('openmeteo-flood'),
+    meta: { persist: true },
+  })
+}
+
+/** Today's modeled discharge and the forecast peak (with its date). */
+export function dischargeSummary(points: PointSeries<'discharge'>['points'], now: Instant) {
+  const today = points.find((p) => p.time.slice(0, 10) === now.slice(0, 10))
+  const future = points.filter((p) => p.role === 'forecast')
+  const peak = future.reduce<(typeof future)[number] | null>(
+    (m, p) => ((p.values.discharge ?? -1) > (m?.values.discharge ?? -1) ? p : m),
+    null,
+  )
+  return {
+    today: today?.values.discharge ?? null,
+    peak: peak?.values.discharge ?? null,
+    peakAt: peak?.time,
+  }
 }
 
 export function useVolcanoFeed() {
@@ -359,6 +408,10 @@ export function useEarthSystems(): SystemRow[] {
   const info = useInformation()
   const alerts = useAlerts()
   const volc = useVolcanoes()
+  const kiki = useKikikuru()
+  const river = useRiver()
+  const land = useLocalSample('kikikuru-land', kiki.data?.land, 1)
+  const inund = useLocalSample('kikikuru-inundation', kiki.data?.inundation, 1)
   const ltng = useLocalSample('lightning-activity', thunder.data?.lightning, 3)
   const torn = useLocalSample('tornado-probability', thunder.data?.tornado, 3)
   const { location } = useResolvedLocation()
@@ -403,6 +456,26 @@ export function useEarthSystems(): SystemRow[] {
         reading: volcanoStatus(volc.assessments, volc.sites, location, !!volc.query.data),
         checkedAt: latestCheck([volc.query]),
         feed: feedState([volc.query], sourceSpec('jma-volcano')!.freshness.staleAfterMin, now),
+        sources: ['JMA'],
+      },
+      {
+        id: 'hydro',
+        label: 'HYDRO',
+        reading: hydroStatus(
+          inund.data?.value?.value ?? null,
+          river.data ? dischargeSummary(river.data.data.points, now) : null,
+          !!inund.data || !!river.data,
+        ),
+        checkedAt: inund.data?.validFrom,
+        feed: sampleFeed(inund.data, kiki.isError),
+        sources: ['JMA', 'GloFAS'],
+      },
+      {
+        id: 'ground',
+        label: 'GROUND',
+        reading: groundStatus(land.data?.value?.value ?? null, !!land.data),
+        checkedAt: land.data?.validFrom,
+        feed: sampleFeed(land.data, kiki.isError),
         sources: ['JMA'],
       },
       {
@@ -454,6 +527,10 @@ export function useEarthSystems(): SystemRow[] {
     volc.assessments,
     volc.sites,
     volc.query,
+    inund.data,
+    land.data,
+    river.data,
+    kiki.isError,
     ltng.data,
     torn.data,
     thunder.isError,

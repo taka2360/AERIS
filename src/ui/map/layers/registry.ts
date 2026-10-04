@@ -15,12 +15,16 @@ import { cycloneLayer } from './cyclone-layer'
 import { quakeLayer } from './quake-layer'
 import { tsunamiLayer } from './tsunami-layer'
 import { volcanoLayer } from './volcano-layer'
+import { floodLayer, inundationLayer, landLayer } from './kikikuru-layers'
 import type { MapLayerDef } from './types'
 
 export const MAP_LAYERS: MapLayerDef[] = [
   radarLayer,
   lightningLayer,
   tornadoLayer,
+  landLayer,
+  inundationLayer,
+  floodLayer,
   ringsLayer,
   windLayer,
   stationsLayer,

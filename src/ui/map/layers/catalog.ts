@@ -8,7 +8,7 @@ import type { LayerToggle, LayerVisibility } from './types'
 export type LayerEntry = {
   id: LayerToggle
   label: string
-  group: 'ATMOS' | 'OBS' | 'GEO'
+  group: 'ATMOS' | 'HYDRO' | 'OBS' | 'GEO'
   /** Raster fields are mutually exclusive */
   raster?: boolean
   desc: string
@@ -27,6 +27,9 @@ export const LAYER_CATALOG: LayerEntry[] = [
   { id: 'torn', label: 'TORNADO', group: 'ATMOS', desc: '竜巻発生確度(気象庁)' },
   { id: 'wind', label: 'WIND', group: 'ATMOS', desc: '風(数値モデル)' },
   { id: 'cyclone', label: 'CYCLONE', group: 'ATMOS', desc: '台風・熱帯低気圧(気象庁)' },
+  { id: 'land', label: 'LANDSLIDE', group: 'HYDRO', raster: true, desc: '土砂キキクル(気象庁)' },
+  { id: 'inund', label: 'INUNDATION', group: 'HYDRO', raster: true, desc: '浸水キキクル(気象庁)' },
+  { id: 'flood', label: 'FLOOD', group: 'HYDRO', desc: '洪水キキクル・河川(気象庁)' },
   { id: 'stn', label: 'STN', group: 'OBS', desc: 'アメダス観測点' },
   { id: 'grid', label: 'RINGS', group: 'OBS', desc: '距離リング' },
   { id: 'quake', label: 'QUAKE', group: 'GEO', desc: '地震(気象庁・USGS)' },
@@ -46,6 +49,9 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   tsunami: true,
   cyclone: true,
   volcano: true,
+  land: false,
+  inund: false,
+  flood: true,
 }
 
 /** Toggle a layer; switching a raster field on switches the other rasters off. */

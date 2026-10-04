@@ -27,6 +27,7 @@ import {
   useThunder,
   useTsunami,
   useVolcanoes,
+  useKikikuru,
 } from '@/query/earth-hooks'
 import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
@@ -170,18 +171,42 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   )
   const ltngFrames = useMemo(() => toScopeFrames(thunder.data?.lightning.frames), [thunder.data])
   const tornFrames = useMemo(() => toScopeFrames(thunder.data?.tornado.frames), [thunder.data])
+  const kiki = useKikikuru()
+  const landFrames = useMemo(() => toScopeFrames(kiki.data?.land.frames), [kiki.data])
+  const inundFrames = useMemo(() => toScopeFrames(kiki.data?.inundation.frames), [kiki.data])
+  const floodFrames = useMemo(() => toScopeFrames(kiki.data?.flood.frames), [kiki.data])
   // LIVE shows the newest observation/analysis; SCRUB shows only what was valid at t.
   const pick = (fs: ScopeFrame[]) =>
     cursor.mode === 'live' ? liveFrame(fs, cursor.now) : frameAt(fs, cursor.t)
   const shown = pick(frames)
   const ltngShown = pick(ltngFrames)
   const tornShown = pick(tornFrames)
+  const landShown = pick(landFrames)
+  const inundShown = pick(inundFrames)
+  const floodShown = pick(floodFrames)
 
   // The scrubber covers what the active layers can show: raster frames,
   // the past hour of strokes and, with earthquakes on, the past 24 hours.
   const stepFrames = useMemo(
-    () => (layers.echo ? frames : layers.ltng || layers.torn ? ltngFrames : []),
-    [layers.echo, layers.ltng, layers.torn, frames, ltngFrames],
+    () =>
+      layers.echo
+        ? frames
+        : layers.ltng || layers.torn
+          ? ltngFrames
+          : layers.land || layers.inund || layers.flood
+            ? landFrames
+            : [],
+    [
+      layers.echo,
+      layers.ltng,
+      layers.torn,
+      layers.land,
+      layers.inund,
+      layers.flood,
+      frames,
+      ltngFrames,
+      landFrames,
+    ],
   )
   const quakeSpan = layers.quake
   const span = useMemo<ScrubSpan | null>(() => {
@@ -209,6 +234,16 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     [quakeEvents, quakeSpan],
   )
   const [playing, setPlaying] = useState(false)
+  // Legend and scrubber follow the raster field on display (one at a time).
+  const legend = layers.ltng
+    ? { colors: TILE_PALETTES.thunder, unit: '雷活動度', scrubLabel: 'THUNDER' }
+    : layers.land || layers.inund
+      ? { colors: TILE_PALETTES.kikikuru.slice(1), unit: 'キキクル', scrubLabel: 'KIKIKURU' }
+      : {
+          colors: TILE_PALETTES.precip.slice(1),
+          unit: 'mm/h',
+          scrubLabel: layers.echo ? 'RADAR' : 'EVENTS',
+        }
 
   // Playback steps the global cursor through the active raster's frames or,
   // without one, through the span in 30-minute steps, wrapping around.
@@ -356,6 +391,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       radarTileUrl: radarUrl,
       lightningTileUrl: ltngShown?.tileUrlTemplate ?? null,
       tornadoTileUrl: tornShown?.tileUrlTemplate ?? null,
+      landTileUrl: landShown?.tileUrlTemplate ?? null,
+      inundTileUrl: inundShown?.tileUrlTemplate ?? null,
+      floodTileUrl: floodShown?.tileUrlTemplate ?? null,
       strokes,
       focusId: focused?.id ?? null,
       quakes,
@@ -372,6 +410,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       radarUrl,
       ltngShown?.tileUrlTemplate,
       tornShown?.tileUrlTemplate,
+      landShown?.tileUrlTemplate,
+      inundShown?.tileUrlTemplate,
+      floodShown?.tileUrlTemplate,
       strokes,
       focused?.id,
       quakes,
@@ -505,13 +546,13 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           </div>
           {showMap ? (
             <div className={s.legend} aria-hidden="true">
-              {(layers.ltng ? TILE_PALETTES.thunder : TILE_PALETTES.precip.slice(1)).map((c) => (
+              {legend.colors.map((c) => (
                 <span key={c.label}>
                   <i style={{ background: legendColor(c.rgba) }} />
                   {c.label}
                 </span>
               ))}
-              <span className={s.legendUnit}>{layers.ltng ? '雷活動度' : 'mm/h'}</span>
+              <span className={s.legendUnit}>{legend.unit}</span>
             </div>
           ) : (
             <div className={s.legend} aria-hidden="true">
@@ -544,7 +585,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
             cursor={cursor}
             span={span}
             shown={layers.echo ? shown : layers.ltng || layers.torn ? ltngShown : null}
-            label={layers.echo ? 'RADAR' : layers.ltng || layers.torn ? 'THUNDER' : 'EVENTS'}
+            label={legend.scrubLabel}
             playing={playing}
             setPlaying={setPlaying}
             ticks={ticks}

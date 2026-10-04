@@ -439,3 +439,62 @@ export function volcanoStatus(
     rule: VOLCANO_RULE,
   }
 }
+
+// ── Hydro / ground (キキクル) ───────────────────────────────────────────────
+
+const HYDRO_RULE = 'aeris:hydro-status/v1'
+const GROUND_RULE = 'aeris:ground-status/v1'
+
+/** キキクル 警戒レベル相当 → status (5 → CRITICAL … 2 → ACTIVE). */
+function kikikuruStatus(level: number | null): SystemStatus {
+  const l = level ?? 0
+  return l >= 5
+    ? 'critical'
+    : l >= 4
+      ? 'warning'
+      : l >= 3
+        ? 'elevated'
+        : l >= 2
+          ? 'active'
+          : 'nominal'
+}
+
+const KIKIKURU_WORD: Record<number, string> = { 2: '注意', 3: '警戒', 4: '危険', 5: '災害切迫' }
+
+/**
+ * HYDRO: 浸水キキクル at the location (JMA assessment) sets the status. Modeled
+ * river discharge (GloFAS) only adds context: a forecast peak above twice
+ * today's value makes a quiet line ACTIVE, never more.
+ */
+export function hydroStatus(
+  inundationLevel: number | null,
+  discharge: { today: number | null; peak: number | null } | null,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: HYDRO_RULE }
+  let status = kikikuruStatus(inundationLevel)
+  const parts = [
+    inundationLevel && inundationLevel >= 2
+      ? `浸水キキクル ${KIKIKURU_WORD[inundationLevel]}`
+      : '浸水キキクル 危険度なし',
+  ]
+  if (discharge?.today != null) {
+    parts.push(`河川流量(MODEL) ${Math.round(discharge.today)}m³/s`)
+    if (status === 'nominal' && discharge.peak != null && discharge.peak > 2 * discharge.today)
+      status = 'active'
+  }
+  return { status, headline: parts.join(' · '), rule: HYDRO_RULE }
+}
+
+/** GROUND: 土砂キキクル at the location. */
+export function groundStatus(landLevel: number | null, hasData: boolean): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: GROUND_RULE }
+  return {
+    status: kikikuruStatus(landLevel),
+    headline:
+      landLevel && landLevel >= 2
+        ? `土砂キキクル ${KIKIKURU_WORD[landLevel]}`
+        : '土砂キキクル 危険度なし',
+    rule: GROUND_RULE,
+  }
+}

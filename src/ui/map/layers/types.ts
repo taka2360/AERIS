@@ -18,6 +18,10 @@ export type MapScene = {
   radarTileUrl: string | null
   lightningTileUrl: string | null
   tornadoTileUrl: string | null
+  landTileUrl: string | null
+  inundTileUrl: string | null
+  /** 洪水キキクル vector tile template (.pbf) */
+  floodTileUrl: string | null
   /** LIDEN strokes visible at the cursor time (age 0 → 1 over an hour) */
   strokes: Array<{ lat: number; lon: number; cg: boolean; age: number }>
   focusId: string | null
@@ -70,6 +74,9 @@ export type LayerToggle =
   | 'tsunami'
   | 'cyclone'
   | 'volcano'
+  | 'land'
+  | 'inund'
+  | 'flood'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 

@@ -16,6 +16,8 @@ import {
   synthTsunami,
   synthTsunamiAreas,
   synthVolcanoes,
+  synthKikikuru,
+  synthRiver,
 } from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
@@ -55,6 +57,12 @@ export function createMockEarthProvider(
     volcano: {
       volcanoes: (signal) =>
         run('jma-volcano', 'official', 'MOCK JMA', signal, () => synthVolcanoes(now(), scenario)),
+    },
+    hydrology: {
+      kikikuru: (signal) =>
+        run('jma-risk', 'official', 'MOCK JMA', signal, () => synthKikikuru(now())),
+      river: (_p, signal) =>
+        run('openmeteo-flood', 'model', 'MOCK GloFAS', signal, () => synthRiver(now(), scenario)),
     },
     atmosphere: {
       cyclones: (signal) =>

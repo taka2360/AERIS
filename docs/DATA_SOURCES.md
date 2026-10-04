@@ -198,7 +198,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 水文・土砂
 
-### KIKIKURU — `jma-risk` (planned)
+### KIKIKURU — `jma-risk`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -213,7 +213,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 10min |
 | 注記 | キキクルは危険度の評価(ASSESSMENT)であり、水位・土壌水分の観測値ではない |
 
-### RIVER DISCHARGE — `openmeteo-flood` (planned)
+### RIVER DISCHARGE — `openmeteo-flood`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -228,7 +228,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 1h |
 | 注記 | 5km 格子のモデル値。最寄りの河川が正しく選ばれない場合がある(観測値として表示しない) |
 
-### RIVER GAUGE — `relay-hydro` (planned)
+### RIVER GAUGE — `relay-hydro` (unavailable)
 
 | 項目 | 内容 |
 | --- | --- |

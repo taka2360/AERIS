@@ -230,6 +230,40 @@ export async function fetchThunderSeries(
   }
 }
 
+export type KikikuruSeries = {
+  land: RasterFieldSeries
+  inundation: RasterFieldSeries
+  /** 洪水キキクル: vector tiles (.pbf, source-layer 'flood', property 'level') */
+  flood: RasterFieldSeries
+}
+
+/** The three キキクル share one time list; flood is a vector-tile product. */
+export function buildKikikuru(entries: TargetTime[], retrievedAt: Instant): KikikuruSeries {
+  const land = buildSeries(FIELD_SPECS['kikikuru-land'], entries, retrievedAt)
+  return {
+    land,
+    inundation: buildSeries(FIELD_SPECS['kikikuru-inundation'], entries, retrievedAt),
+    flood: {
+      ...land,
+      kind: 'kikikuru-flood',
+      frames: land.frames.map((f) => ({
+        ...f,
+        tileUrlTemplate: f.tileUrlTemplate
+          .replace('/surf/land/', '/surf/flood/')
+          .replace(/\.png$/, '.pbf'),
+      })),
+      provenance: { ...land.provenance, label: 'JMA 洪水キキクル' },
+    },
+  }
+}
+
+export async function fetchKikikuru(signal?: AbortSignal): Promise<SourceResult<KikikuruSeries>> {
+  const r = await fetchTargetTimes(RISK, 'jma-risk', signal)
+  if (!r.ok) return r
+  const k = buildKikikuru(r.data, r.provenance.retrievedAt)
+  return { ok: true, data: k, provenance: k.land.provenance }
+}
+
 export async function fetchFieldSeries(
   kind: TileFieldKind,
   signal?: AbortSignal,

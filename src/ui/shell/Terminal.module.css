@@ -19,10 +19,11 @@
   background: var(--rule);
   border: 1px solid var(--rule-strong);
   grid-template-columns: minmax(360px, 410px) minmax(0, 1fr) minmax(320px, 370px);
-  grid-template-rows: minmax(470px, 1fr) auto auto auto;
+  grid-template-rows: minmax(470px, 1fr) auto auto auto auto;
   grid-template-areas:
     'left center right'
     'tl tl tl'
+    'env env env'
     'log log detail'
     'daily daily sys';
 }
@@ -59,6 +60,9 @@
 .timeline {
   grid-area: tl;
 }
+.env {
+  grid-area: env;
+}
 .log {
   grid-area: log;
 }
@@ -81,7 +85,7 @@
   .grid {
     /* Give the spatial scope the extra room: wider centre, taller top row. */
     grid-template-columns: minmax(400px, 0.9fr) minmax(0, 2.1fr) minmax(380px, 0.85fr);
-    grid-template-rows: minmax(max(520px, 58vh), 1fr) auto auto auto;
+    grid-template-rows: minmax(max(520px, 58vh), 1fr) auto auto auto auto;
   }
 }
 
@@ -95,6 +99,7 @@
       'left right'
       'center center'
       'tl tl'
+      'env env'
       'log log'
       'detail detail'
       'daily daily'

@@ -8,17 +8,25 @@ import type { IntensityObservation, LightningStroke } from '@/domain/earth/event
 import type {
   FieldClass,
   FieldSample,
+  PointSeries,
   RasterFieldKind,
   RasterFieldSeries,
   RasterFrame,
 } from '@/domain/earth/fields'
 import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { Provenance } from '@/domain/model'
-import { addMinutes, epoch, type Instant } from '@/domain/time'
+import { addMinutes, epoch, jstDateKey, type Instant } from '@/domain/time'
 import { adaptAreas, areasSchema, reportObservation, type TsunamiAreaLines } from '../jma-tsunami'
 import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
 import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
-import { buildSeries, FIELD_SPECS, type TargetTime } from '../jma-tile'
+import {
+  buildKikikuru,
+  buildSeries,
+  FIELD_SPECS,
+  type KikikuruSeries,
+  type TargetTime,
+} from '../jma-tile'
+import type { DischargeKey } from '../openmeteo-flood'
 import { PALETTES } from '../jma-tile/palettes'
 import { adaptInformation } from '../jma-information'
 import {
@@ -556,12 +564,15 @@ export function synthSample(
   scenario: Scenario,
 ): FieldSample<FieldClass> {
   const pal = PALETTES[kind]
-  const cls =
-    scenario === 'storm' && kind === 'lightning-activity'
-      ? pal.classes[2]!
-      : scenario === 'storm' && kind === 'tornado-probability'
-        ? pal.classes[0]!
-        : null
+  // Storm scenario: 雷活動度3, 竜巻発生確度1, 土砂「警戒」, 浸水「注意」at the location.
+  const stormClass: Partial<Record<RasterFieldKind, number>> = {
+    'lightning-activity': 2,
+    'tornado-probability': 0,
+    'kikikuru-land': 2,
+    'kikikuru-inundation': 1,
+  }
+  const i = scenario === 'storm' ? stormClass[kind] : undefined
+  const cls = i != null ? pal.classes[i]! : null
   return {
     value: cls ? { cls: cls.cls, value: cls.value, label: cls.label } : null,
     validFrom: frame.validFrom,
@@ -631,4 +642,61 @@ export function synthVolcanoes(now: Instant, scenario: Scenario): VolcanoFeed {
     ]
   }
   return { sites, reports: reports.map((r) => volcanoObservation(r, now)) }
+}
+
+/** キキクル analyses every 10 minutes over the past hour. */
+export function synthKikikuru(now: Instant): KikikuruSeries {
+  const base = addMinutes(now, -((epoch(now) / 60000) % 10) - 10)
+  const entries: TargetTime[] = []
+  for (let m = -50; m <= 0; m += 10) {
+    const t = stamp(addMinutes(base, m))
+    entries.push({
+      basetime: t,
+      validtime: t,
+      member: 'none',
+      elements: ['land', 'inund', 'flood'],
+    })
+  }
+  return buildKikikuru(entries, now)
+}
+
+/** GloFAS-like discharge: rising sharply in the storm scenario. */
+export function synthRiver(now: Instant, scenario: Scenario): PointSeries<DischargeKey> {
+  const today = jstDateKey(now)
+  const days = Array.from({ length: 21 }, (_, i) =>
+    addMinutes(`${today}T00:00:00+09:00`, (i - 7) * 1440),
+  )
+  const base = 120
+  return {
+    lat: 35.675,
+    lon: 139.775,
+    units: { discharge: 'm³/s', median: 'm³/s', max: 'm³/s', p75: 'm³/s' },
+    points: days.map((t, i) => {
+      const d = i - 7
+      const q =
+        scenario === 'storm'
+          ? base * (1 + 3 * Math.exp(-(((d - 1) / 1.5) ** 2)))
+          : base * (1 - d * 0.02)
+      return {
+        time: t,
+        role: d < 0 ? ('analysis' as const) : ('forecast' as const),
+        values: {
+          discharge: Math.round(q),
+          median: Math.round(q * 0.95),
+          max: Math.round(q * 1.6),
+          p75: Math.round(q * 1.15),
+        },
+      }
+    }),
+    derivation: 'modeled',
+    provenance: {
+      source: 'openmeteo-flood',
+      kind: 'model',
+      label: 'MOCK GloFAS',
+      retrievedAt: now,
+      role: 'forecast',
+      derivation: 'modeled',
+      sourceRole: 'forecast',
+    },
+  }
 }

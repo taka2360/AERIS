@@ -26,6 +26,8 @@ import { useMapStatus, type MapStatus } from './map-status'
 import {
   useCycloneReports,
   useInformation,
+  useKikikuru,
+  useRiver,
   useVolcanoFeed,
   useJmaQuakes,
   useStrokes,
@@ -295,6 +297,8 @@ export function useSystemHealth() {
   const strokes = useStrokes()
   const information = useInformation()
   const volcanoes = useVolcanoFeed()
+  const kikikuru = useKikikuru()
+  const river = useRiver()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -400,6 +404,24 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'jma-risk',
+        'KIKIKURU',
+        healthFromSnapshot(
+          'jma-risk',
+          snapshot(kikikuru, kikikuru.data?.land.provenance.observedAt),
+          opts('jma-risk'),
+        ),
+      ),
+      channel(
+        'openmeteo-flood',
+        'GloFAS RIVER',
+        healthFromSnapshot(
+          'openmeteo-flood',
+          snapshot(river, river.data?.provenance.retrievedAt),
+          opts('openmeteo-flood'),
+        ),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -435,6 +457,8 @@ export function useSystemHealth() {
     strokes,
     information,
     volcanoes,
+    kikikuru,
+    river,
   ])
 }
 

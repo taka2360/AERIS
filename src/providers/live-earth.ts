@@ -2,12 +2,19 @@
  * Live Earth-observation sources, split by domain behind the EarthProvider facade.
  */
 import type { EarthProvider, SeismicProvider } from '@/services/earth/provider'
+import { roundPoint } from '@/services/provider'
 import { fetchJmaQuakeDetail, fetchJmaQuakes } from '@/sources/jma-quake'
 import { fetchTsunamiAreas, fetchTsunamiReports } from '@/sources/jma-tsunami'
 import { fetchCyclones } from '@/sources/jma-typhoon'
 import { fetchVolcanoes } from '@/sources/jma-volcano'
+import { fetchRiverDischarge } from '@/sources/openmeteo-flood'
 import { fetchInformation } from '@/sources/jma-information'
-import { fetchLightningStrokes, fetchThunderSeries, type TileFieldKind } from '@/sources/jma-tile'
+import {
+  fetchKikikuru,
+  fetchLightningStrokes,
+  fetchThunderSeries,
+  type TileFieldKind,
+} from '@/sources/jma-tile'
 import { sampleFrame } from '@/sources/jma-tile/image'
 import { PALETTES } from '@/sources/jma-tile/palettes'
 import { fetchUsgsQuakes } from '@/sources/usgs-quake'
@@ -28,6 +35,10 @@ export function createLiveEarthProvider(): EarthProvider {
       areas: (signal) => fetchTsunamiAreas(signal),
     },
     volcano: { volcanoes: (signal) => fetchVolcanoes(signal) },
+    hydrology: {
+      kikikuru: (signal) => fetchKikikuru(signal),
+      river: (p, signal) => fetchRiverDischarge(roundPoint(p), signal),
+    },
     atmosphere: {
       cyclones: (signal) => fetchCyclones(signal),
       information: (signal) => fetchInformation(signal),
