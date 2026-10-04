@@ -16,6 +16,15 @@ export type LayerEntry = {
 
 export const LAYER_CATALOG: LayerEntry[] = [
   { id: 'echo', label: 'RADAR', group: 'ATMOS', raster: true, desc: '降水ナウキャスト(気象庁)' },
+  {
+    id: 'ltng',
+    label: 'LTNG',
+    group: 'ATMOS',
+    raster: true,
+    desc: '雷活動度(気象庁 雷ナウキャスト)',
+  },
+  { id: 'strk', label: 'STRIKES', group: 'ATMOS', desc: '個別の雷・落雷(気象庁 LIDEN)' },
+  { id: 'torn', label: 'TORNADO', group: 'ATMOS', desc: '竜巻発生確度(気象庁)' },
   { id: 'wind', label: 'WIND', group: 'ATMOS', desc: '風(数値モデル)' },
   { id: 'cyclone', label: 'CYCLONE', group: 'ATMOS', desc: '台風・熱帯低気圧(気象庁)' },
   { id: 'stn', label: 'STN', group: 'OBS', desc: 'アメダス観測点' },
@@ -26,6 +35,9 @@ export const LAYER_CATALOG: LayerEntry[] = [
 
 export const DEFAULT_LAYERS: LayerVisibility = {
   echo: true,
+  ltng: false,
+  strk: true,
+  torn: true,
   stn: true,
   wind: true,
   grid: true,

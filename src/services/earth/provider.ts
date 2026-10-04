@@ -7,6 +7,16 @@
 import type { SourceObservation } from '@/domain/earth/common'
 import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
+import type { LightningStroke } from '@/domain/earth/events'
+import type {
+  FieldClass,
+  FieldSample,
+  RasterFieldKind,
+  RasterFieldSeries,
+  RasterFrame,
+} from '@/domain/earth/fields'
+import type { GeoPoint } from '@/domain/earth/common'
+import type { Instant } from '@/domain/time'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 
 export type { Scenario } from '@/sources/mock/scenario'
@@ -35,6 +45,23 @@ export interface TsunamiProvider {
 export interface AtmosphereProvider {
   /** Tropical cyclones tracked by JMA (one report per cyclone, latest issuance) */
   cyclones(signal?: AbortSignal): Promise<SourceResult<Obs<CycloneReport>[]>>
+  /** 雷活動度 and 竜巻発生確度 nowcast series (analysis + 1 h nowcast) */
+  thunder(
+    signal?: AbortSignal,
+  ): Promise<SourceResult<{ lightning: RasterFieldSeries; tornado: RasterFieldSeries }>>
+  /** Individual lightning discharges (LIDEN) of the past hour, per 5-minute frame */
+  strokes(
+    signal?: AbortSignal,
+  ): Promise<SourceResult<{ strokes: LightningStroke[]; frames: Instant[] }>>
+  /** Classified value of a field around a point (highest class within radiusKm) */
+  sample(
+    kind: RasterFieldKind,
+    frame: RasterFrame,
+    series: RasterFieldSeries,
+    point: GeoPoint,
+    radiusKm: number,
+    signal?: AbortSignal,
+  ): Promise<SourceResult<FieldSample<FieldClass>>>
 }
 
 export interface EarthProvider {

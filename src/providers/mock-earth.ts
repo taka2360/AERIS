@@ -6,7 +6,15 @@ import type { Provenance, SourceId } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import type { Instant } from '@/domain/time'
 import type { EarthProvider } from '@/services/earth/provider'
-import { synthCyclones, synthQuakes, synthTsunami, synthTsunamiAreas } from '@/sources/mock/earth'
+import {
+  synthCyclones,
+  synthQuakes,
+  synthSample,
+  synthStrokes,
+  synthThunder,
+  synthTsunami,
+  synthTsunamiAreas,
+} from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
 export type MockRunner = <T>(
@@ -45,6 +53,16 @@ export function createMockEarthProvider(
     atmosphere: {
       cyclones: (signal) =>
         run('jma-typhoon', 'official', 'MOCK JMA', signal, () => synthCyclones(now(), scenario)),
+      thunder: (signal) =>
+        run('jma-thunder', 'official', 'MOCK JMA', signal, () => synthThunder(now())),
+      strokes: (signal) =>
+        run('jma-thunder', 'observation', 'MOCK LIDEN', signal, () =>
+          synthStrokes(now(), scenario),
+        ),
+      sample: (kind, frame, series, _point, _radiusKm, signal) =>
+        run(series.provenance.source, 'official', 'MOCK JMA', signal, () =>
+          synthSample(kind, frame, series, scenario),
+        ),
     },
   }
 }

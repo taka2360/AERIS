@@ -16,10 +16,17 @@ import {
   type ReactNode,
 } from 'react'
 import { compass16, formatCoord } from '@/domain/derive'
-import { frameAt, framesToIntervals, latestObserved } from '@/domain/earth/temporal'
-import { addMinutes, formatTime } from '@/domain/time'
+import { frameAt, framesToIntervals } from '@/domain/earth/temporal'
+import type { RasterFrame } from '@/domain/earth/fields'
+import { addMinutes, formatTime, toInstant } from '@/domain/time'
 import { useTimeCursor } from '@/query/time-cursor'
-import { useCyclones, useQuakeEvents, useTsunami } from '@/query/earth-hooks'
+import {
+  useCyclones,
+  useQuakeEvents,
+  useStrokes,
+  useThunder,
+  useTsunami,
+} from '@/query/earth-hooks'
 import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
 import { useSelection } from '@/query/selection'
@@ -33,7 +40,7 @@ import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
 import type { MapLayers, MapRange, MapScene } from './MapView'
 import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
-import { legendColor, RADAR_PALETTE } from './style'
+import { legendColor, TILE_PALETTES } from './style'
 import { TimeScrubber, type ScrubSpan, type ScrubTick } from './TimeScrubber'
 import s from './SpatialScope.module.css'
 
@@ -79,6 +86,31 @@ function save(key: string, value: string) {
   }
 }
 
+type ScopeFrame = {
+  validTime: string
+  validFrom: string
+  validUntil: string
+  role: 'observed' | 'analysis' | 'nowcast' | 'forecast'
+  tileUrlTemplate: string
+}
+
+/** Raster field frames with a representative time (interval midpoint). */
+function toScopeFrames(frames: RasterFrame[] | undefined): ScopeFrame[] {
+  return (frames ?? []).map((f) => ({
+    ...f,
+    validTime: toInstant((Date.parse(f.validFrom) + Date.parse(f.validUntil)) / 2),
+  }))
+}
+
+/** Newest observed/analysed frame at or before now — never a forecast frame. */
+function liveFrame(frames: ScopeFrame[], now: string): ScopeFrame | null {
+  let best: ScopeFrame | null = null
+  for (const f of frames)
+    if ((f.role === 'observed' || f.role === 'analysis') && f.validTime <= now)
+      if (!best || f.validTime > best.validTime) best = f
+  return best
+}
+
 /** Catches a failed lazy chunk / map crash and hands control back to SCOPE. */
 class MapBoundary extends Component<
   { onError: (msg: string) => void; children: ReactNode },
@@ -122,7 +154,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const [focus, setFocus] = useState<string | null>(null)
   const [recenter, setRecenter] = useState(0)
 
-  const frames = useMemo(
+  const thunder = useThunder()
+  const strokeData = useStrokes()
+  const frames = useMemo<ScopeFrame[]>(
     () =>
       framesToIntervals(
         (nowcast.data?.data ?? []).map((f) => ({
@@ -132,35 +166,39 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       ),
     [nowcast.data],
   )
-  // LIVE shows the latest observation; SCRUB shows only what was valid at t.
-  const shown =
-    cursor.mode === 'live' ? latestObserved(frames, cursor.now) : frameAt(frames, cursor.t)
-  // The scrubber covers what the active layers can show: the radar's frames
-  // and, with earthquakes on, the past 24 hours.
+  const ltngFrames = useMemo(() => toScopeFrames(thunder.data?.lightning.frames), [thunder.data])
+  const tornFrames = useMemo(() => toScopeFrames(thunder.data?.tornado.frames), [thunder.data])
+  // LIVE shows the newest observation/analysis; SCRUB shows only what was valid at t.
+  const pick = (fs: ScopeFrame[]) =>
+    cursor.mode === 'live' ? liveFrame(fs, cursor.now) : frameAt(fs, cursor.t)
+  const shown = pick(frames)
+  const ltngShown = pick(ltngFrames)
+  const tornShown = pick(tornFrames)
+
+  // The scrubber covers what the active layers can show: raster frames,
+  // the past hour of strokes and, with earthquakes on, the past 24 hours.
+  const stepFrames = useMemo(
+    () => (layers.echo ? frames : layers.ltng || layers.torn ? ltngFrames : []),
+    [layers.echo, layers.ltng, layers.torn, frames, ltngFrames],
+  )
   const quakeSpan = layers.quake
   const span = useMemo<ScrubSpan | null>(() => {
-    const first = frames[0]
-    const last = frames.at(-1)
     const now = cursor.now
-    if (!quakeSpan && (!first || !last)) return null
-    const start = quakeSpan ? addMinutes(now, -24 * 60) : first!.validTime
-    const end = last ? (last.validTime > now ? last.validTime : now) : now
-    const observedUntil = last ? (latestObserved(frames, last.validTime)?.validTime ?? now) : now
-    return {
-      start: quakeSpan && first && first.validTime < start ? first.validTime : start,
-      end,
-      observedUntil,
-      stepMin: 5,
-    }
-  }, [frames, quakeSpan, cursor.now])
+    const parts: Array<[string, string]> = []
+    if (stepFrames.length) parts.push([stepFrames[0]!.validTime, stepFrames.at(-1)!.validTime])
+    if (layers.strk) parts.push([addMinutes(now, -60), now])
+    if (quakeSpan) parts.push([addMinutes(now, -24 * 60), now])
+    if (parts.length === 0) return null
+    const start = parts.map((p) => p[0]).sort()[0]!
+    const end = [...parts.map((p) => p[1]), now].sort().at(-1)!
+    const observedUntil = liveFrame(stepFrames, now)?.validTime ?? now
+    return { start, end, observedUntil, stepMin: 5 }
+  }, [stepFrames, quakeSpan, layers.strk, cursor.now])
   const ticks = useMemo<ScrubTick[]>(
     () =>
       quakeSpan
         ? quakeEvents
-            .filter((e) => {
-              const sev = quakeSeverity(e).value
-              return sev !== 'none' && e.time.startedAt
-            })
+            .filter((e) => quakeSeverity(e).value !== 'none' && e.time.startedAt)
             .map((e) => ({
               t: e.time.startedAt!,
               tone: ['severe', 'extreme'].includes(quakeSeverity(e).value) ? 'alert' : 'event',
@@ -170,17 +208,16 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   )
   const [playing, setPlaying] = useState(false)
 
-  // Playback steps the global cursor through radar frames (5 min) or, without
-  // radar, through the span in 30-minute steps, wrapping around.
+  // Playback steps the global cursor through the active raster's frames or,
+  // without one, through the span in 30-minute steps, wrapping around.
   const { scrubTo } = cursor
   const cursorT = cursor.t
-  const radarOn = layers.echo && frames.length > 0
   useEffect(() => {
     if (!playing || !span) return
     const id = setInterval(() => {
       const ms = Date.parse(cursorT)
-      if (radarOn) {
-        const next = frames.find((f) => Date.parse(f.validTime) > ms) ?? frames[0]!
+      if (stepFrames.length) {
+        const next = stepFrames.find((f) => Date.parse(f.validTime) > ms) ?? stepFrames[0]!
         scrubTo(next.validTime)
       } else {
         const next = addMinutes(cursorT, 30)
@@ -188,7 +225,15 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       }
     }, 650)
     return () => clearInterval(id)
-  }, [playing, frames, cursorT, scrubTo, radarOn, span])
+  }, [playing, stepFrames, cursorT, scrubTo, span])
+
+  const strokes = useMemo(
+    () =>
+      activeWindow(strokeData.data?.data.strokes ?? [], (k) => k.windowEnd, cursor.t, 60).map(
+        ({ item, age }) => ({ lat: item.lat, lon: item.lon, cg: item.kind === 'cg', age }),
+      ),
+    [strokeData.data, cursor.t],
+  )
 
   const showMap = mode === 'map' && !mapFailed && active
   useEffect(() => {
@@ -288,6 +333,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       stations: stationList,
       wind: windSamples,
       radarTileUrl: radarUrl,
+      lightningTileUrl: ltngShown?.tileUrlTemplate ?? null,
+      tornadoTileUrl: tornShown?.tileUrlTemplate ?? null,
+      strokes,
       focusId: focused?.id ?? null,
       quakes,
       selectedEventId: selectedId,
@@ -300,6 +348,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       stationList,
       windSamples,
       radarUrl,
+      ltngShown?.tileUrlTemplate,
+      tornShown?.tileUrlTemplate,
+      strokes,
       focused?.id,
       quakes,
       selectedId,
@@ -431,13 +482,13 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           </div>
           {showMap ? (
             <div className={s.legend} aria-hidden="true">
-              {RADAR_PALETTE.slice(1).map((c) => (
-                <span key={c.min}>
+              {(layers.ltng ? TILE_PALETTES.thunder : TILE_PALETTES.precip.slice(1)).map((c) => (
+                <span key={c.label}>
                   <i style={{ background: legendColor(c.rgba) }} />
-                  {c.min}+
+                  {c.label}
                 </span>
               ))}
-              <span className={s.legendUnit}>mm/h</span>
+              <span className={s.legendUnit}>{layers.ltng ? '雷活動度' : 'mm/h'}</span>
             </div>
           ) : (
             <div className={s.legend} aria-hidden="true">
@@ -465,12 +516,12 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
             </button>
           )}
         </div>
-        {showMap && (layers.echo || layers.quake) && (
+        {showMap && span && (
           <TimeScrubber
             cursor={cursor}
             span={span}
-            shown={shown}
-            label="RADAR"
+            shown={layers.echo ? shown : layers.ltng || layers.torn ? ltngShown : null}
+            label={layers.echo ? 'RADAR' : layers.ltng || layers.torn ? 'THUNDER' : 'EVENTS'}
             playing={playing}
             setPlaying={setPlaying}
             ticks={ticks}

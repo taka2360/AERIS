@@ -9,7 +9,7 @@ import type { HazardAssessment } from './assessments'
 import type { GeoPoint } from './common'
 import { validAt } from './temporal'
 import { intensityLabel, intensityRank, SYSTEM_STATUS_RANK, type SystemStatus } from './derive'
-import type { CycloneEvent, EarthquakeEvent, NaturalEvent } from './events'
+import type { CycloneEvent, EarthquakeEvent, LightningStroke, NaturalEvent } from './events'
 
 export type SystemReading = {
   status: SystemStatus
@@ -266,4 +266,76 @@ export function cycloneStatus(
   if (p?.pressureHpa != null) parts.push(`${p.pressureHpa}hPa`)
   if (top.px) parts.push(`監視地点まで${top.px.distanceKm.toLocaleString('en-US')}km`)
   return { status: top.status, headline: parts.join(' · '), eventId: top.e.id, rule: CYCLONE_RULE }
+}
+
+// ── Lightning / tornado ─────────────────────────────────────────────────────
+
+const LIGHTNING_RULE = 'aeris:lightning-status/v1'
+const TORNADO_RULE = 'aeris:tornado-status/v1'
+
+export type StrokeSummary = {
+  /** Strokes with windows ending in the past 30 min (LIDEN covers Japan) */
+  recent: number
+  /** Nearest stroke to the location in the past 30 min */
+  nearestKm: number | null
+  /** Cloud-to-ground strokes within 10 km in the past 10 min */
+  localCg: number
+}
+
+export function summarizeStrokes(
+  strokes: LightningStroke[],
+  at: GeoPoint,
+  t: Instant,
+): StrokeSummary {
+  let recent = 0
+  let nearest: number | null = null
+  let localCg = 0
+  for (const s of strokes) {
+    const age = minutesBetween(s.windowEnd, t)
+    if (age < 0 || age > 30) continue
+    recent++
+    const d = haversineKm(at.lat, at.lon, s.lat, s.lon)
+    nearest = nearest == null ? d : Math.min(nearest, d)
+    if (s.kind === 'cg' && d <= 10 && age <= 10) localCg++
+  }
+  return { recent, nearestKm: nearest == null ? null : Math.round(nearest), localCg }
+}
+
+/**
+ * LIGHTNING status (AERIS rule) from LIDEN strokes and the local 雷活動度:
+ *   warning   活動度3+ at the location, or cloud-to-ground strokes within 10 km (10 min)
+ *   elevated  活動度1+ at the location, or any stroke within 30 km (30 min)
+ *   active    strokes somewhere in Japan in the past 30 min
+ *   nominal   none
+ */
+export function lightningStatus(
+  sum: StrokeSummary | null,
+  localActivity: number | null,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData || !sum) return { status: 'unknown', rule: LIGHTNING_RULE }
+  const act = localActivity ?? 0
+  const status: SystemStatus =
+    act >= 3 || sum.localCg > 0
+      ? 'warning'
+      : act >= 1 || (sum.nearestKm != null && sum.nearestKm <= 30)
+        ? 'elevated'
+        : sum.recent > 0
+          ? 'active'
+          : 'nominal'
+  const parts = [`全国 ${sum.recent}回/30分`]
+  if (sum.nearestKm != null) parts.push(`最寄り ${sum.nearestKm}km`)
+  parts.push(act > 0 ? `監視地点 活動度${act}` : '監視地点 活動なし')
+  return { status, headline: parts.join(' · '), rule: LIGHTNING_RULE }
+}
+
+/** TORNADO status from the local 竜巻発生確度 (2 → warning, 1 → elevated). */
+export function tornadoStatus(localProbability: number | null, hasData: boolean): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: TORNADO_RULE }
+  const p = localProbability ?? 0
+  return {
+    status: p >= 2 ? 'warning' : p >= 1 ? 'elevated' : 'nominal',
+    headline: p > 0 ? `監視地点 竜巻発生確度${p}` : '監視地点 発生確度なし',
+    rule: TORNADO_RULE,
+  }
 }

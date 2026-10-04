@@ -10,6 +10,7 @@
 import { z } from 'zod'
 import type { RasterFieldKind, RasterFieldSeries, RasterFrame } from '@/domain/earth/fields'
 import type { Derivation, TemporalRole } from '@/domain/earth/common'
+import type { LightningStroke } from '@/domain/earth/events'
 import { framesToIntervals } from '@/domain/earth/temporal'
 import type { SourceId } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
@@ -214,6 +215,21 @@ export async function fetchTargetTimes(
   }
 }
 
+/** Lightning activity and tornado probability share one time list (N3). */
+export async function fetchThunderSeries(
+  signal?: AbortSignal,
+): Promise<SourceResult<{ lightning: RasterFieldSeries; tornado: RasterFieldSeries }>> {
+  const r = await fetchTargetTimes(N3, 'jma-thunder', signal)
+  if (!r.ok) return r
+  const at = r.provenance.retrievedAt
+  const lightning = buildSeries(FIELD_SPECS['lightning-activity'], r.data, at)
+  return {
+    ok: true,
+    data: { lightning, tornado: buildSeries(FIELD_SPECS['tornado-probability'], r.data, at) },
+    provenance: lightning.provenance,
+  }
+}
+
 export async function fetchFieldSeries(
   kind: TileFieldKind,
   signal?: AbortSignal,
@@ -240,16 +256,6 @@ export const lidenSchema = z.object({
     }),
   ),
 })
-
-/** One detected lightning discharge (LIDEN), within a 5-minute window. */
-export type LightningStroke = {
-  lat: number
-  lon: number
-  /** Cloud-to-ground (落雷) vs cloud discharge (雲放電) */
-  kind: 'cg' | 'cc'
-  windowStart: Instant
-  windowEnd: Instant
-}
 
 /** LIDEN frame → strokes. type 4 = cloud-to-ground (per JMA's own renderer). */
 export function adaptLiden(

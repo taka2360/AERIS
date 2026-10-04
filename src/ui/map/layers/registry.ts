@@ -2,7 +2,15 @@
  * Draw order of all map overlays (first = bottom):
  * raster fields → areas → lines/tracks → points → labels.
  */
-import { radarLayer, ringsLayer, stationsLayer, windLayer } from './base-layers'
+import {
+  lightningLayer,
+  radarLayer,
+  ringsLayer,
+  stationsLayer,
+  strokesLayer,
+  tornadoLayer,
+  windLayer,
+} from './base-layers'
 import { cycloneLayer } from './cyclone-layer'
 import { quakeLayer } from './quake-layer'
 import { tsunamiLayer } from './tsunami-layer'
@@ -10,9 +18,12 @@ import type { MapLayerDef } from './types'
 
 export const MAP_LAYERS: MapLayerDef[] = [
   radarLayer,
+  lightningLayer,
+  tornadoLayer,
   ringsLayer,
   windLayer,
   stationsLayer,
+  strokesLayer,
   cycloneLayer,
   tsunamiLayer,
   quakeLayer,

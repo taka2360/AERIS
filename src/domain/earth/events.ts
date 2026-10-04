@@ -251,6 +251,16 @@ export type NaturalEvent =
   | SnowIceEvent
   | OtherEvent
 
+/** One detected lightning discharge (JMA LIDEN), known to within a 5-minute window. */
+export type LightningStroke = {
+  lat: number
+  lon: number
+  /** Cloud-to-ground (落雷) vs cloud discharge (雲放電) */
+  kind: 'cg' | 'cc'
+  windowStart: Instant
+  windowEnd: Instant
+}
+
 /** Satellite active-fire detection: an observation, not a fire "event". */
 export type ActiveFireDetection = {
   id: string

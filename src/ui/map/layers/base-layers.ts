@@ -5,8 +5,8 @@
 import { type GeoJSONSource, type MapLayerMouseEvent, type RasterTileSource } from 'maplibre-gl'
 import { ringsGeoJSON, stationsGeoJSON, windGeoJSON } from '../geo'
 import { jmaTiles, registerJmaProtocol } from '../jma-protocol'
-import { FONT, MAP_COLORS } from '../style'
-import type { MapLayerDef } from './types'
+import { FONT, MAP_COLORS, type TilePaletteId } from '../style'
+import type { MapLayerDef, MapScene } from './types'
 
 export const JMA_ATTRIBUTION = '<a href="https://www.jma.go.jp/" target="_blank">気象庁</a>'
 
@@ -190,5 +190,103 @@ export const stationsLayer: MapLayerDef = {
     map.removeFeatureState({ source: 'stations' })
     if (s.focusId)
       map.setFeatureState({ source: 'stations', id: Number(s.focusId) }, { focus: true })
+  },
+}
+
+/** A JMA classification raster (e.g. 雷活動度) drawn from the scene's tile URL. */
+export function jmaRasterLayer(opts: {
+  id: string
+  toggle: MapLayerDef['toggle']
+  palette: TilePaletteId
+  url: (s: MapScene) => string | null
+  maxzoom: number
+  opacity?: number
+}): MapLayerDef {
+  return {
+    id: opts.id,
+    toggle: opts.toggle,
+    styleLayers: [opts.id],
+    overlaySources: [opts.id],
+    add(map, s) {
+      map.addSource(opts.id, {
+        type: 'raster',
+        tiles: jmaTiles(opts.url(s), opts.palette),
+        tileSize: 256,
+        minzoom: 4,
+        maxzoom: opts.maxzoom,
+        attribution: JMA_ATTRIBUTION,
+      })
+      map.addLayer({
+        id: opts.id,
+        type: 'raster',
+        source: opts.id,
+        paint: {
+          'raster-opacity': opts.opacity ?? 0.9,
+          'raster-fade-duration': 0,
+          'raster-resampling': 'nearest',
+        },
+      })
+    },
+    deps: (s) => [opts.url(s)],
+    update(map, s) {
+      const url = opts.url(s)
+      const src = map.getSource(opts.id) as RasterTileSource | undefined
+      // No frame valid at the cursor time: show nothing rather than a stale frame.
+      src?.setTiles(url ? jmaTiles(url, opts.palette) : [])
+    },
+  }
+}
+
+export const lightningLayer = jmaRasterLayer({
+  id: 'lightning',
+  toggle: 'ltng',
+  palette: 'thunder',
+  url: (s) => s.lightningTileUrl,
+  maxzoom: 8,
+})
+
+export const tornadoLayer = jmaRasterLayer({
+  id: 'tornado',
+  toggle: 'torn',
+  palette: 'tornado',
+  url: (s) => s.tornadoTileUrl,
+  maxzoom: 8,
+})
+
+function strokesGeoJSON(s: MapScene) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: s.strokes.map((k) => ({
+      type: 'Feature' as const,
+      properties: { cg: k.cg ? 1 : 0, fresh: 1 - k.age },
+      geometry: { type: 'Point' as const, coordinates: [k.lon, k.lat] },
+    })),
+  }
+}
+
+/** LIDEN strokes: cloud-to-ground bright, cloud discharges faint, fading with age. */
+export const strokesLayer: MapLayerDef = {
+  id: 'strokes',
+  toggle: 'strk',
+  styleLayers: ['strokes'],
+  add(map, s) {
+    map.addSource('strokes', { type: 'geojson', data: strokesGeoJSON(s) })
+    map.addLayer({
+      id: 'strokes',
+      type: 'circle',
+      source: 'strokes',
+      paint: {
+        'circle-radius': ['case', ['==', ['get', 'cg'], 1], 3.2, 1.8],
+        'circle-color': ['case', ['==', ['get', 'cg'], 1], '#ffe14a', '#ffc94d'],
+        'circle-opacity': ['*', ['get', 'fresh'], ['case', ['==', ['get', 'cg'], 1], 1, 0.55]],
+        'circle-stroke-color': '#ffe14a',
+        'circle-stroke-width': ['case', ['==', ['get', 'cg'], 1], 0.8, 0],
+        'circle-stroke-opacity': ['get', 'fresh'],
+      },
+    })
+  },
+  deps: (s) => [s.strokes],
+  update(map, s) {
+    ;(map.getSource('strokes') as GeoJSONSource | undefined)?.setData(strokesGeoJSON(s))
   },
 }

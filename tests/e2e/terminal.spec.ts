@@ -197,3 +197,17 @@ test('typhoon scenario: the cyclone line warns and the detail shows the issued f
   await expect(detail).toContainText('予報の暴風警戒域にかかる')
   await expect(detail).toContainText('発表 · 気象庁(予測)')
 })
+
+test('storm scenario: lightning and tornado lines rise for the monitoring location', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=storm'))
+  await waitForTerminal(page)
+  const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
+  const ltng = monitor.getByRole('listitem').filter({ hasText: 'LIGHTNING' })
+  await expect(ltng).toContainText('WARNING')
+  await expect(ltng).toContainText('監視地点 活動度3')
+  await expect(monitor.getByRole('listitem').filter({ hasText: 'TORNADO' })).toContainText(
+    'ELEVATED',
+  )
+})

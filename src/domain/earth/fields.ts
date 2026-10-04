@@ -61,6 +61,9 @@ export type GridFieldSeries = {
   provenance: Provenance
 }
 
+/** A class of a classified field, e.g. 雷活動度2 or キキクル「警戒」. */
+export type FieldClass = { cls: number; value: number; label: string }
+
 /** The result of sampling a field at a point. */
 export type FieldSample<V = number> = {
   value: V | null

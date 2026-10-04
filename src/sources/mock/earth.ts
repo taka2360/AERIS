@@ -4,13 +4,22 @@
  * E2E assertions are reproducible.
  */
 import type { SourceObservation } from '@/domain/earth/common'
-import type { IntensityObservation } from '@/domain/earth/events'
+import type { IntensityObservation, LightningStroke } from '@/domain/earth/events'
+import type {
+  FieldClass,
+  FieldSample,
+  RasterFieldKind,
+  RasterFieldSeries,
+  RasterFrame,
+} from '@/domain/earth/fields'
 import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { Provenance } from '@/domain/model'
 import { addMinutes, epoch, type Instant } from '@/domain/time'
 import { adaptAreas, areasSchema, reportObservation, type TsunamiAreaLines } from '../jma-tsunami'
 import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
 import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
+import { buildSeries, FIELD_SPECS, type TargetTime } from '../jma-tile'
+import { PALETTES } from '../jma-tile/palettes'
 import type { Scenario } from './scenario'
 
 type Obs = SourceObservation<QuakeSolution>
@@ -466,4 +475,87 @@ export function synthCyclones(
     },
   }
   return [cycloneObservation(report, now)]
+}
+
+// ── Lightning / tornado ─────────────────────────────────────────────────────
+
+const stamp = (t: Instant) => {
+  const d = new Date(epoch(t))
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}00`
+}
+
+/** Thunder nowcast time lists shaped like JMA's N3 (5-min analyses, 10-min nowcasts). */
+export function synthThunder(now: Instant): {
+  lightning: RasterFieldSeries
+  tornado: RasterFieldSeries
+} {
+  const base = addMinutes(now, -((epoch(now) / 60000) % 5) - 5)
+  const entries: TargetTime[] = []
+  for (let m = -55; m <= 0; m += 5) {
+    const t = stamp(addMinutes(base, m))
+    entries.push({ basetime: t, validtime: t, elements: ['thns', 'trns', 'liden'] })
+  }
+  for (let m = 10; m <= 60; m += 10)
+    entries.push({
+      basetime: stamp(base),
+      validtime: stamp(addMinutes(base, m)),
+      elements: ['thns', 'trns'],
+    })
+  return {
+    lightning: buildSeries(FIELD_SPECS['lightning-activity'], entries, now),
+    tornado: buildSeries(FIELD_SPECS['tornado-probability'], entries, now),
+  }
+}
+
+/** A thunderstorm line crossing Tokyo south-west → north-east over the past hour. */
+export function synthStrokes(
+  now: Instant,
+  scenario: Scenario,
+): { strokes: LightningStroke[]; frames: Instant[] } {
+  const end = addMinutes(now, -((epoch(now) / 60000) % 5) - 5)
+  const frames = Array.from({ length: 12 }, (_, i) => addMinutes(end, -5 * i))
+  if (scenario !== 'storm') return { strokes: [], frames }
+  const strokes: LightningStroke[] = []
+  frames.forEach((fEnd, i) => {
+    const k = 11 - i // 0 (oldest) … 11 (newest)
+    const cLat = 35.25 + k * 0.04
+    const cLon = 139.05 + k * 0.07
+    for (let j = 0; j < 6; j++) {
+      const a = (j * 137.5 * Math.PI) / 180
+      const r = 0.03 + (j % 3) * 0.03
+      strokes.push({
+        lat: cLat + Math.sin(a) * r,
+        lon: cLon + Math.cos(a) * r,
+        kind: j % 3 === 0 ? 'cg' : 'cc',
+        windowStart: addMinutes(fEnd, -5),
+        windowEnd: fEnd,
+      })
+    }
+  })
+  return { strokes, frames }
+}
+
+/** Local class of a field in the storm scenario (otherwise nothing drawn). */
+export function synthSample(
+  kind: RasterFieldKind,
+  frame: RasterFrame,
+  series: RasterFieldSeries,
+  scenario: Scenario,
+): FieldSample<FieldClass> {
+  const pal = PALETTES[kind]
+  const cls =
+    scenario === 'storm' && kind === 'lightning-activity'
+      ? pal.classes[2]!
+      : scenario === 'storm' && kind === 'tornado-probability'
+        ? pal.classes[0]!
+        : null
+  return {
+    value: cls ? { cls: cls.cls, value: cls.value, label: cls.label } : null,
+    validFrom: frame.validFrom,
+    validUntil: frame.validUntil,
+    role: frame.role,
+    decode: 'decoded',
+    provenance: { ...series.provenance, decode: 'decoded' },
+  }
 }

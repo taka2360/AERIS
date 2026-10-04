@@ -12,7 +12,10 @@ import { unwrap } from '@/domain/result'
 import { minutesBetween, type Instant } from '@/domain/time'
 import {
   cycloneStatus,
+  lightningStatus,
   nearbyAreaCodes,
+  summarizeStrokes,
+  tornadoStatus,
   seismicStatus,
   tsunamiStatus,
   type SystemReading,
@@ -25,7 +28,8 @@ import { fuseTsunami } from '@/services/fusion/tsunami'
 import { cycloneEvent } from '@/services/fusion/cyclone'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
-import { sourceSpec } from '@/sources/registry'
+import { nominalPollMs, sourceSpec } from '@/sources/registry'
+import type { RasterFieldKind, RasterFieldSeries, RasterFrame } from '@/domain/earth/fields'
 import { useMinuteClock } from './clock'
 import { useWeatherProvider } from './provider-context'
 
@@ -37,6 +41,10 @@ export const earthKeys = {
   quakeDetail: (id: string) => ['earth', 'jma-quake-detail', id] as const,
   tsunami: () => ['earth', 'jma-tsunami'] as const,
   cyclones: () => ['earth', 'jma-typhoon'] as const,
+  thunder: () => ['earth', 'jma-thunder'] as const,
+  strokes: () => ['earth', 'jma-liden'] as const,
+  sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
+    ['earth', 'sample', kind, frame, lat, lon, r] as const,
   tsunamiAreas: () => ['earth', 'jma-tsunami-areas'] as const,
 }
 
@@ -183,6 +191,65 @@ export function useCyclones() {
   return { events, query: q }
 }
 
+export function useThunder() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.thunder(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.atmosphere.thunder(signal)).data,
+    staleTime: 60_000,
+    refetchInterval: nominalPollMs('jma-thunder'),
+  })
+}
+
+export function useStrokes() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.strokes(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.atmosphere.strokes(signal)),
+    staleTime: 60_000,
+    refetchInterval: nominalPollMs('jma-thunder'),
+  })
+}
+
+/** Newest analysed/observed frame at or before now (never a nowcast frame). */
+export function presentFrame(frames: RasterFrame[], now: Instant): RasterFrame | null {
+  return (
+    [...frames]
+      .filter((f) => (f.role === 'observed' || f.role === 'analysis') && f.validFrom <= now)
+      .sort((a, b) => (a.validFrom < b.validFrom ? 1 : -1))[0] ?? null
+  )
+}
+
+/** Classified value of a field at the monitoring location, from its present frame. */
+export function useLocalSample(
+  kind: RasterFieldKind,
+  series: RasterFieldSeries | undefined,
+  radiusKm = 3,
+) {
+  const provider = useWeatherProvider()
+  const { location } = useResolvedLocation()
+  const now = useMinuteClock()
+  const frame = series ? presentFrame(series.frames, now) : null
+  const lat = Math.round(location.lat * 100) / 100
+  const lon = Math.round(location.lon * 100) / 100
+  return useQuery({
+    queryKey: earthKeys.sample(kind, frame?.validFrom ?? 'none', lat, lon, radiusKm),
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await provider.earth.atmosphere.sample(
+          kind,
+          frame!,
+          series!,
+          { lat, lon },
+          radiusKm,
+          signal,
+        ),
+      ).data,
+    enabled: !!frame && !!series,
+    staleTime: Infinity,
+  })
+}
+
 /** Every canonical natural event known to the terminal, newest first. */
 export function useNaturalEvents(): { events: NaturalEvent[]; now: Instant } {
   const { events: quakes } = useQuakeEvents()
@@ -235,6 +302,13 @@ export function feedState(queries: Q[], staleAfterMin: number, now: Instant): Fe
   return failing.length > 0 ? 'partial' : 'ok'
 }
 
+/** Feed state of a point sample: decoding problems are reported as such. */
+function sampleFeed(sample: { decode: string } | undefined, failed: boolean): FeedState {
+  if (!sample) return failed ? 'unavailable' : 'pending'
+  if (sample.decode === 'not-decoded') return 'unavailable'
+  return sample.decode === 'partial' ? 'partial' : 'ok'
+}
+
 const latestCheck = (qs: Q[]) =>
   qs
     .map((q) => q.data?.provenance.retrievedAt)
@@ -246,9 +320,16 @@ export function useEarthSystems(): SystemRow[] {
   const quakes = useQuakeEvents()
   const tsunami = useTsunami()
   const cyclones = useCyclones()
+  const thunder = useThunder()
+  const strokes = useStrokes()
+  const ltng = useLocalSample('lightning-activity', thunder.data?.lightning, 3)
+  const torn = useLocalSample('tornado-probability', thunder.data?.tornado, 3)
   const { location } = useResolvedLocation()
   const now = useMinuteClock()
   return useMemo(() => {
+    const strokeSum = strokes.data
+      ? summarizeStrokes(strokes.data.data.strokes, location, now)
+      : null
     const qs = [quakes.jma, quakes.usgs]
     const feed = feedState(qs, sourceSpec('jma-quake')!.freshness.staleAfterMin, now)
     const hasData = qs.some((q) => q.data)
@@ -279,6 +360,26 @@ export function useEarthSystems(): SystemRow[] {
         feed: feedState([cyclones.query], sourceSpec('jma-typhoon')!.freshness.staleAfterMin, now),
         sources: ['JMA'],
       },
+      {
+        id: 'lightning',
+        label: 'LIGHTNING',
+        reading: lightningStatus(strokeSum, ltng.data?.value?.value ?? null, !!strokes.data),
+        // Newest LIDEN 5-minute window that was received.
+        checkedAt: strokes.data?.data.frames[0],
+        feed:
+          strokes.data?.provenance.decode === 'partial'
+            ? 'partial'
+            : feedState([strokes], sourceSpec('jma-thunder')!.freshness.staleAfterMin, now),
+        sources: ['JMA LIDEN'],
+      },
+      {
+        id: 'tornado',
+        label: 'TORNADO',
+        reading: tornadoStatus(torn.data?.value?.value ?? null, !!torn.data),
+        checkedAt: torn.data?.validFrom,
+        feed: sampleFeed(torn.data, thunder.isError),
+        sources: ['JMA'],
+      },
     ]
   }, [
     quakes.events,
@@ -288,6 +389,10 @@ export function useEarthSystems(): SystemRow[] {
     tsunami.reports,
     cyclones.events,
     cyclones.query,
+    strokes,
+    ltng.data,
+    torn.data,
+    thunder.isError,
     location,
     now,
   ])

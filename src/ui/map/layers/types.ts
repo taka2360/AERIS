@@ -16,6 +16,10 @@ export type MapScene = {
   stations: StationObservation[]
   wind: WindSample[]
   radarTileUrl: string | null
+  lightningTileUrl: string | null
+  tornadoTileUrl: string | null
+  /** LIDEN strokes visible at the cursor time (age 0 → 1 over an hour) */
+  strokes: Array<{ lat: number; lon: number; cg: boolean; age: number }>
   focusId: string | null
   /** Earthquakes visible at the cursor time; age 0 = just happened → 1 = fading out */
   quakes: Array<{
@@ -45,7 +49,8 @@ export type MapScene = {
 }
 
 /** User-facing toggle keys. Several definitions may share one toggle. */
-export type LayerToggle = 'echo' | 'stn' | 'wind' | 'grid' | 'quake' | 'tsunami' | 'cyclone'
+export type LayerToggle =
+  'echo' | 'ltng' | 'torn' | 'strk' | 'stn' | 'wind' | 'grid' | 'quake' | 'tsunami' | 'cyclone'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 
