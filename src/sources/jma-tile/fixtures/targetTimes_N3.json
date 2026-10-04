@@ -1,0 +1,160 @@
+[
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004103000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd"
+  ]
+ },
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004102000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd"
+  ]
+ },
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004101000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd"
+  ]
+ },
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004100000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd"
+  ]
+ },
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004095000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd",
+   "slmcs_fcst",
+   "slmcs_unify",
+   "slmcs_unifyfcst"
+  ]
+ },
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004094000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd",
+   "slmcs_fcst",
+   "slmcs_unify",
+   "slmcs_unifyfcst"
+  ]
+ },
+ {
+  "basetime": "20261004093000",
+  "validtime": "20261004093000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd",
+   "amds_rain10m",
+   "liden",
+   "slmcs",
+   "slmcs_fcst",
+   "slmcs_unify",
+   "slmcs_unifyfcst"
+  ]
+ },
+ {
+  "basetime": "20261004092500",
+  "validtime": "20261004092500",
+  "elements": [
+   "liden"
+  ]
+ },
+ {
+  "basetime": "20261004092000",
+  "validtime": "20261004092000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd",
+   "amds_rain10m",
+   "liden",
+   "slmcs",
+   "slmcs_fcst",
+   "slmcs_unify",
+   "slmcs_unifyfcst"
+  ]
+ },
+ {
+  "basetime": "20261004091500",
+  "validtime": "20261004091500",
+  "elements": [
+   "liden"
+  ]
+ },
+ {
+  "basetime": "20261004064500",
+  "validtime": "20261004064500",
+  "elements": [
+   "liden"
+  ]
+ },
+ {
+  "basetime": "20261004064000",
+  "validtime": "20261004064000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd",
+   "amds_rain10m",
+   "liden",
+   "slmcs",
+   "slmcs_fcst",
+   "slmcs_unify",
+   "slmcs_unifyfcst"
+  ]
+ },
+ {
+  "basetime": "20261004063500",
+  "validtime": "20261004063500",
+  "elements": [
+   "liden"
+  ]
+ },
+ {
+  "basetime": "20261004063000",
+  "validtime": "20261004063000",
+  "elements": [
+   "thns",
+   "thns_nd",
+   "trns",
+   "trns_nd",
+   "amds_rain10m",
+   "liden",
+   "slmcs",
+   "slmcs_fcst",
+   "slmcs_unify",
+   "slmcs_unifyfcst"
+  ]
+ }
+]

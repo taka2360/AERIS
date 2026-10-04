@@ -2,42 +2,15 @@
  * The original SPATIAL SCOPE overlays — radar echo, range rings, wind and
  * AMeDAS stations — as registry definitions.
  */
-import {
-  addProtocol,
-  type GeoJSONSource,
-  type MapLayerMouseEvent,
-  type RasterTileSource,
-} from 'maplibre-gl'
+import { type GeoJSONSource, type MapLayerMouseEvent, type RasterTileSource } from 'maplibre-gl'
 import { ringsGeoJSON, stationsGeoJSON, windGeoJSON } from '../geo'
-import { FONT, MAP_COLORS, recolorRadarPixels } from '../style'
+import { jmaTiles, registerJmaProtocol } from '../jma-protocol'
+import { FONT, MAP_COLORS } from '../style'
 import type { MapLayerDef } from './types'
 
 export const JMA_ATTRIBUTION = '<a href="https://www.jma.go.jp/" target="_blank">気象庁</a>'
 
-/**
- * aeris-radar://… → fetch the JMA tile over https and repaint it in the AERIS
- * palette before MapLibre sees it. Runs on the main thread; ~65k px per tile.
- */
-const RADAR_PROTOCOL = 'aeris-radar'
-addProtocol(RADAR_PROTOCOL, async (params, abort) => {
-  const res = await fetch(params.url.replace(`${RADAR_PROTOCOL}://`, 'https://'), {
-    signal: abort.signal,
-  })
-  if (!res.ok) throw new Error(`radar tile HTTP ${res.status}`)
-  const bitmap = await createImageBitmap(await res.blob())
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-  const ctx = canvas.getContext('2d')!
-  ctx.drawImage(bitmap, 0, 0)
-  bitmap.close()
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
-  recolorRadarPixels(img.data)
-  ctx.putImageData(img, 0, 0)
-  const blob = await canvas.convertToBlob({ type: 'image/png' })
-  return { data: await blob.arrayBuffer() }
-})
-
-const radarTiles = (url: string | null) =>
-  url ? [url.replace(/^https:\/\//, `${RADAR_PROTOCOL}://`)] : []
+registerJmaProtocol()
 
 function arrowImage(): ImageData {
   const size = 32
@@ -68,7 +41,7 @@ export const radarLayer: MapLayerDef = {
   add(map, scene) {
     map.addSource('radar', {
       type: 'raster',
-      tiles: radarTiles(scene.radarTileUrl),
+      tiles: jmaTiles(scene.radarTileUrl, 'precip'),
       tileSize: 256,
       minzoom: 4,
       maxzoom: 10,
@@ -84,7 +57,9 @@ export const radarLayer: MapLayerDef = {
   deps: (s) => [s.radarTileUrl],
   update(map, s) {
     if (!s.radarTileUrl) return
-    ;(map.getSource('radar') as RasterTileSource | undefined)?.setTiles(radarTiles(s.radarTileUrl))
+    ;(map.getSource('radar') as RasterTileSource | undefined)?.setTiles(
+      jmaTiles(s.radarTileUrl, 'precip'),
+    )
   },
 }
 
