@@ -14,6 +14,7 @@ import { roundPoint } from '@/services/provider'
 import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
+import { useMapStatus, type MapStatus } from './map-status'
 import { useWeatherProvider } from './provider-context'
 
 const MIN = 60_000
@@ -218,6 +219,46 @@ function snapshot<T>(q: UseQueryResult<T>, dataTime?: string) {
   }
 }
 
+/** The basemap is a UI subsystem, not a query; translate its self-reported state. */
+function basemapHealth(m: MapStatus): SourceHealth {
+  const base = { source: 'basemap' as const, lastSuccessAt: m.lastOkAt, errorMessage: m.detail }
+  switch (m.state) {
+    case 'online':
+      return {
+        ...base,
+        connectivity: 'online',
+        freshness: 'fresh',
+        validity: 'valid',
+        fetching: false,
+      }
+    case 'loading':
+      return {
+        ...base,
+        connectivity: 'unknown',
+        freshness: 'none',
+        validity: 'unknown',
+        fetching: true,
+      }
+    case 'degraded':
+    case 'unsupported':
+      return {
+        ...base,
+        connectivity: 'online',
+        freshness: 'fresh',
+        validity: 'invalid',
+        fetching: false,
+      }
+    case 'standby':
+      return {
+        ...base,
+        connectivity: 'unknown',
+        freshness: 'none',
+        validity: 'unknown',
+        fetching: false,
+      }
+  }
+}
+
 export const CRITICAL_SOURCES: SourceId[] = ['openmeteo', 'jma-amedas']
 
 export function useSystemHealth() {
@@ -226,6 +267,7 @@ export function useSystemHealth() {
   const alerts = useAlerts()
   const official = useOfficialForecast()
   const nowcast = useNowcastFrames()
+  const mapStatus = useMapStatus()
   const online = useBrowserOnline()
   const now = useMinuteClock()
 
@@ -270,6 +312,7 @@ export function useSystemHealth() {
           opts('jma-nowcast'),
         ),
       },
+      { id: 'basemap', label: 'BASEMAP', health: basemapHealth(mapStatus) },
     ]
     const overall = aggregateStatus(
       channels.map((c) => c.health),
@@ -281,7 +324,7 @@ export function useSystemHealth() {
       .sort()
       .at(-1)
     return { channels, overall, lastUpdate, online }
-  }, [forecast, stations, alerts, official, nowcast, online, now])
+  }, [forecast, stations, alerts, official, nowcast, mapStatus, online, now])
 }
 
 // ─── System controls ───────────────────────────────────────────────────────

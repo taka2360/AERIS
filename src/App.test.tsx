@@ -9,6 +9,8 @@ const clock = '2026-10-04T16:24:00+09:00'
 beforeEach(() => {
   window.sessionStorage.setItem('aeris.booted', '1') // skip boot overlay
   window.localStorage.clear()
+  // jsdom has no WebGL: run integration tests on the vector scope.
+  window.localStorage.setItem('aeris.scopeMode', 'scope')
 })
 
 describe('AERIS terminal (mock provider)', () => {
@@ -30,7 +32,7 @@ describe('AERIS terminal (mock provider)', () => {
 
   it('timeline cursor is keyboard operable and readout follows it', async () => {
     render(<App provider={createMockProvider({ clock, latency: [0, 0] })} />)
-    const slider = await screen.findByRole('slider')
+    const slider = await screen.findByRole('slider', { name: /時刻カーソル/ })
     const readout = screen.getByLabelText('カーソル位置の値')
     expect(readout).toHaveTextContent('16:00')
     slider.focus()
@@ -45,9 +47,23 @@ describe('AERIS terminal (mock provider)', () => {
     render(<App provider={createMockProvider({ clock, latency: [0, 0], fail: ['jma-warning'] })} />)
     const sys = await screen.findByRole('region', { name: 'SYSTEM' })
     await waitFor(() => expect(sys).toHaveTextContent('DEGRADED'), { timeout: 4000 })
-    expect(screen.getByRole('region', { name: 'JMA WARNING SYSTEM' })).toHaveTextContent(
-      'UNAVAILABLE',
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'JMA WARNING SYSTEM' })).toHaveTextContent(
+        'UNAVAILABLE',
+      ),
     )
+    expect(screen.getByRole('region', { name: 'CURRENT ATMOSPHERIC STATUS' })).toHaveTextContent(
+      'OBS',
+    )
+  })
+
+  it('falls back to the vector scope when the map cannot start (no WebGL)', async () => {
+    window.localStorage.setItem('aeris.scopeMode', 'map')
+    render(<App provider={createMockProvider({ clock, latency: [0, 0] })} />)
+    const scope = await screen.findByRole('region', { name: 'SPATIAL SCOPE' })
+    await waitFor(() => expect(scope).toHaveTextContent('BASEMAP UNAVAILABLE'), { timeout: 5000 })
+    expect(within(scope).getByRole('img', { name: /観測スコープ/ })).toBeInTheDocument()
+    // The rest of the terminal is unaffected
     expect(screen.getByRole('region', { name: 'CURRENT ATMOSPHERIC STATUS' })).toHaveTextContent(
       'OBS',
     )

@@ -9,6 +9,21 @@
   display: flex;
   gap: 2px;
 }
+.toggles + .toggles {
+  padding-left: var(--s3);
+  border-left: 1px solid var(--rule);
+}
+.toggle[data-mode][aria-pressed='true'] {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
 .toggle {
   height: 18px;
   padding: 0 6px;
@@ -31,8 +46,140 @@
  */
 .scopeWrap {
   position: relative;
+  flex: 1;
   min-width: 0;
   min-height: 360px;
+}
+.scopeWrap[data-mode='map'] {
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+.scopeWrap[data-mode='map'] .overlayTL,
+.scopeWrap[data-mode='map'] .overlayBL,
+.scopeWrap[data-mode='map'] .legend {
+  z-index: 2;
+  padding: 4px 6px;
+  background: rgba(5, 6, 7, 0.72);
+}
+.scopeWrap[data-mode='map'] .overlayBL {
+  bottom: 22px;
+}
+.scopeWrap[data-mode='map'] .legend {
+  right: auto;
+  left: 0;
+  bottom: 64px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  max-width: 70%;
+  gap: 2px 6px;
+}
+.legendUnit {
+  color: var(--text-faint);
+}
+.mapLoading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--cyan);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+}
+.warn {
+  color: var(--yellow);
+}
+.recenter {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  height: 22px;
+  padding: 0 8px;
+  background: rgba(5, 6, 7, 0.8);
+  border: 1px solid var(--rule-strong);
+  color: var(--amber);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track);
+}
+.recenter:hover {
+  background: var(--amber);
+  color: #000;
+}
+
+/* ── Radar time control ────────────────────────── */
+.radarBar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding-top: var(--s3);
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+}
+.play {
+  width: 26px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--amber);
+  font-size: 0.625rem;
+}
+.play[aria-pressed='true'] {
+  background: var(--amber);
+  color: #000;
+}
+.radarTime {
+  min-width: 3.2em;
+  font-size: var(--fs-data);
+  color: var(--text);
+}
+.radarKind {
+  min-width: 6.5em;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track);
+  color: var(--amber);
+}
+.radarKind[data-kind='forecast'] {
+  color: var(--cyan);
+}
+.slider {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--amber-dim) 0 var(--obs),
+    var(--cyan-dim) var(--obs) 100%
+  );
+}
+.slider::-moz-range-track {
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--amber-dim) 0 var(--obs),
+    var(--cyan-dim) var(--obs) 100%
+  );
+}
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 16px;
+  margin-top: -6px;
+  background: var(--text);
+  border: 0;
+}
+.slider::-moz-range-thumb {
+  width: 8px;
+  height: 16px;
+  background: var(--text);
+  border: 0;
+  border-radius: 0;
 }
 .scope {
   position: absolute;

@@ -5,6 +5,10 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // MapLibre (~1 MB raw, ~280 kB gzip) is a lazily loaded chunk by design.
+    chunkSizeWarningLimit: 1100,
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

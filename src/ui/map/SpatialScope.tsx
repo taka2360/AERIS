@@ -1,116 +1,199 @@
 /**
- * M-01 — Spatial scope. A local azimuthal plot centred on the target:
- * range rings, AMeDAS stations, model wind vectors and precipitation echoes.
- * Works with no basemap at all; the MapLibre layer (step 7) sits beneath it
- * and this vector view remains the fallback when tiles are unavailable.
+ * M-01 — Spatial scope panel.
+ *  MAP   : MapLibre basemap + JMA radar nowcast + stations + wind (lazy chunk)
+ *  SCOPE : vector azimuthal scope (no basemap / WebGL needed)
+ * The map is one subsystem among others: if it fails, the panel falls back to
+ * SCOPE and the system reports BASEMAP DEGRADED — weather monitoring continues.
  */
-import { memo, useMemo, useState } from 'react'
+import {
+  Component,
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { compass16, formatCoord } from '@/domain/derive'
-import type { StationObservation, WindSample } from '@/domain/model'
-import { formatTime } from '@/domain/time'
-import { useResolvedLocation, useStations, useWindField } from '@/query/hooks'
+import type { NowcastFrame } from '@/domain/model'
+import { formatTime, minutesBetween } from '@/domain/time'
+import { useMinuteClock } from '@/query/clock'
+import { useNowcastFrames, useResolvedLocation, useStations, useWindField } from '@/query/hooks'
+import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
+import type { MapLayers } from './MapView'
+import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
+import { legendColor, RADAR_PALETTE } from './style'
 import s from './SpatialScope.module.css'
 
-const RANGE_KM = 45
-const RINGS = [10, 20, 40]
+const MapView = lazy(() => import('./MapView'))
 
-type Layer = 'stn' | 'wind' | 'echo' | 'grid'
-const LAYERS: Array<{ id: Layer; label: string }> = [
-  { id: 'echo', label: 'ECHO' },
-  { id: 'stn', label: 'STN' },
-  { id: 'wind', label: 'WIND' },
-  { id: 'grid', label: 'GRID' },
-]
+type Mode = 'map' | 'scope'
+const MODE_KEY = 'aeris.scopeMode'
 
-function project(lat0: number, lon0: number) {
-  const kx = 111.32 * Math.cos((lat0 * Math.PI) / 180)
-  return (lat: number, lon: number) => ({ x: (lon - lon0) * kx, y: -(lat - lat0) * 111.32 })
+function loadMode(): Mode {
+  try {
+    return window.localStorage.getItem(MODE_KEY) === 'scope' ? 'scope' : 'map'
+  } catch {
+    return 'map'
+  }
 }
 
-function echoColor(mm: number): string {
-  if (mm >= 30) return 'var(--red)'
-  if (mm >= 10) return 'var(--yellow)'
-  if (mm >= 3) return 'var(--cyan)'
-  return 'var(--cyan-dim)'
+/** Catches a failed lazy chunk / map crash and hands control back to SCOPE. */
+class MapBoundary extends Component<
+  { onError: (msg: string) => void; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch(error: Error) {
+    this.props.onError(error.message)
+  }
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
 }
 
-const Echoes = memo(function Echoes({
-  stations,
-  proj,
+function RadarBar({
+  frames,
+  index,
+  setIndex,
+  playing,
+  setPlaying,
+  now,
 }: {
-  stations: StationObservation[]
-  proj: ReturnType<typeof project>
+  frames: NowcastFrame[]
+  index: number
+  setIndex: (i: number) => void
+  playing: boolean
+  setPlaying: (v: boolean) => void
+  now: string
 }) {
+  const f = frames[index]
+  if (!f) return <div className={s.radarBar}>RADAR · NO FRAMES</div>
+  const offset = Math.round(minutesBetween(now, f.validTime) / 5) * 5
   return (
-    <g className={s.echoes}>
-      {stations
-        .filter((st) => (st.precipitation1h ?? 0) > 0.2)
-        .map((st) => {
-          const p = proj(st.lat, st.lon)
-          const r = 3 + Math.sqrt(st.precipitation1h ?? 0) * 3
-          return (
-            <circle
-              key={st.id}
-              cx={p.x}
-              cy={p.y}
-              r={r}
-              fill={echoColor(st.precipitation1h ?? 0)}
-              className={s.echo}
-            />
-          )
-        })}
-    </g>
+    <div className={s.radarBar}>
+      <button
+        type="button"
+        className={s.play}
+        onClick={() => setPlaying(!playing)}
+        aria-label={playing ? 'レーダー再生を停止' : 'レーダーを再生'}
+        aria-pressed={playing}
+      >
+        {playing ? '■' : '▶'}
+      </button>
+      <span className={s.radarTime} data-kind={f.kind}>
+        {formatTime(f.validTime, false)}
+      </span>
+      <span className={s.radarKind} data-kind={f.kind}>
+        {f.kind === 'observation' ? 'OBS' : 'FCST'} {offset >= 0 ? '+' : '−'}
+        {Math.abs(offset)}M
+      </span>
+      <input
+        type="range"
+        className={s.slider}
+        min={0}
+        max={frames.length - 1}
+        value={index}
+        onChange={(e) => {
+          setPlaying(false)
+          setIndex(Number(e.target.value))
+        }}
+        aria-label="レーダー時刻"
+        aria-valuetext={`${formatTime(f.validTime, false)} ${f.kind === 'observation' ? '実況' : '予測'}`}
+        style={{
+          ['--obs' as string]: `${(frames.filter((x) => x.kind === 'observation').length / frames.length) * 100}%`,
+        }}
+      />
+    </div>
   )
-})
+}
 
-const WindVectors = memo(function WindVectors({
-  samples,
-  proj,
-}: {
-  samples: WindSample[]
-  proj: ReturnType<typeof project>
-}) {
-  return (
-    <g className={s.wind}>
-      {samples.map((w, i) => {
-        const p = proj(w.lat, w.lon)
-        if (Math.hypot(p.x, p.y) > RANGE_KM) return null
-        const len = 2 + Math.min(w.speed, 15) * 0.45
-        return (
-          <g
-            key={i}
-            transform={`translate(${p.x.toFixed(2)} ${p.y.toFixed(2)}) rotate(${w.direction + 180})`}
-          >
-            <line x1="0" y1={len / 2} x2="0" y2={-len / 2} />
-            <path d={`M0 ${-len / 2 - 1.2} L1 ${-len / 2 + 0.6} L-1 ${-len / 2 + 0.6} Z`} />
-          </g>
-        )
-      })}
-    </g>
-  )
-})
-
-export const SpatialScope = memo(function SpatialScope() {
+export const SpatialScope = memo(function SpatialScope({ active = true }: { active?: boolean }) {
   const { location } = useResolvedLocation()
   const stations = useStations()
   const wind = useWindField()
-  const [layers, setLayers] = useState<Record<Layer, boolean>>({
-    stn: true,
-    wind: true,
-    echo: true,
-    grid: true,
-  })
-  const [focus, setFocus] = useState<string | null>(null)
+  const nowcast = useNowcastFrames()
+  const mapStatus = useMapStatus()
+  const now = useMinuteClock()
 
-  const proj = useMemo(() => project(location.lat, location.lon), [location.lat, location.lon])
+  const [mode, setMode] = useState<Mode>(loadMode)
+  const [mapFailed, setMapFailed] = useState(false)
+  const [layers, setLayers] = useState<MapLayers>({ stn: true, wind: true, echo: true, grid: true })
+  const [focus, setFocus] = useState<string | null>(null)
+  const [recenter, setRecenter] = useState(0)
+
+  const frames = useMemo(() => nowcast.data?.data ?? [], [nowcast.data])
+  const latestObs = Math.max(
+    0,
+    frames.findLastIndex((f) => f.kind === 'observation'),
+  )
+  // A user-picked frame belongs to one frame list; a new list resets to the latest observation.
+  const listKey = nowcast.dataUpdatedAt
+  const [picked, setPickedRaw] = useState<{ key: number; index: number } | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const pickedIndex = picked?.key === listKey ? picked.index : null
+  const frameIndex = Math.min(pickedIndex ?? latestObs, Math.max(0, frames.length - 1))
+  const setPicked = (index: number) => setPickedRaw({ key: listKey, index })
+
+  // Play only while requested; the interval exists only during playback.
+  useEffect(() => {
+    if (!playing || frames.length === 0) return
+    const id = setInterval(() => {
+      setPickedRaw((p) => {
+        const cur = p?.key === listKey ? p.index : latestObs
+        return { key: listKey, index: (cur + 1) % frames.length }
+      })
+    }, 650)
+    return () => clearInterval(id)
+  }, [playing, frames.length, latestObs, listKey])
+
+  const showMap = mode === 'map' && !mapFailed && active
+  useEffect(() => {
+    if (!showMap && !mapFailed) setMapStatus({ state: 'standby' })
+  }, [showMap, mapFailed])
+
   const stationList = useMemo(
     () => (stations.data?.data ?? []).filter((st) => st.distanceKm <= RANGE_KM),
     [stations.data],
   )
+  const windSamples = useMemo(() => wind.data?.data ?? [], [wind.data])
+  const center = useMemo(
+    () => ({ lat: location.lat, lon: location.lon }),
+    [location.lat, location.lon],
+  )
   const focused = stationList.find((st) => st.id === focus) ?? stationList[0]
   const obsTime = stationList[0]?.observedAt
+  const radarUrl = frames[frameIndex]?.tileUrlTemplate ?? null
+
+  const changeMode = (m: Mode) => {
+    setMode(m)
+    if (m === 'map') setMapFailed(false)
+    try {
+      window.localStorage.setItem(MODE_KEY, m)
+    } catch {
+      /* ignore */
+    }
+  }
+  const onMapFailure = (msg: string) => {
+    setMapFailed(true)
+    setMapStatus({
+      state: mapStatus.state === 'unsupported' ? 'unsupported' : 'degraded',
+      detail: msg.slice(0, 40),
+    })
+  }
+
+  const layerLabel: Record<keyof MapLayers, string> = {
+    echo: showMap ? 'RADAR' : 'ECHO',
+    stn: 'STN',
+    wind: 'WIND',
+    grid: showMap ? 'RINGS' : 'GRID',
+  }
 
   return (
     <Panel
@@ -118,138 +201,132 @@ export const SpatialScope = memo(function SpatialScope() {
       title="SPATIAL SCOPE"
       bodyClassName={s.body}
       meta={
-        <div className={s.toggles} role="group" aria-label="表示レイヤー">
-          {LAYERS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className={s.toggle}
-              aria-pressed={layers[l.id]}
-              onClick={() => setLayers((v) => ({ ...v, [l.id]: !v[l.id] }))}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className={s.toggles} role="group" aria-label="表示モード">
+            {(['map', 'scope'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={s.toggle}
+                data-mode
+                aria-pressed={mode === m}
+                onClick={() => changeMode(m)}
+              >
+                {m.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div className={s.toggles} role="group" aria-label="表示レイヤー">
+            {(Object.keys(layerLabel) as Array<keyof MapLayers>).map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={s.toggle}
+                aria-pressed={layers[id]}
+                onClick={() => setLayers((v) => ({ ...v, [id]: !v[id] }))}
+              >
+                {layerLabel[id]}
+              </button>
+            ))}
+          </div>
+        </>
       }
     >
-      <div className={s.scopeWrap}>
-        <svg
-          className={s.scope}
-          viewBox={`${-RANGE_KM - 4} ${-RANGE_KM - 4} ${(RANGE_KM + 4) * 2} ${(RANGE_KM + 4) * 2}`}
-          role="img"
-          aria-label={`観測スコープ: 半径${RANGE_KM}km、観測点${stationList.length}地点`}
-        >
-          <defs>
-            <radialGradient id="scope-bg">
-              <stop offset="0%" stopColor="rgba(255,176,0,0.07)" />
-              <stop offset="100%" stopColor="rgba(255,176,0,0)" />
-            </radialGradient>
-          </defs>
-          <circle r={RANGE_KM} fill="url(#scope-bg)" />
-          {layers.grid && (
-            <g className={s.grid}>
-              {Array.from({ length: 9 }, (_, i) => (i - 4) * 10).map((v) => (
-                <g key={v}>
-                  <line x1={v} x2={v} y1={-RANGE_KM} y2={RANGE_KM} />
-                  <line y1={v} y2={v} x1={-RANGE_KM} x2={RANGE_KM} />
-                </g>
-              ))}
-            </g>
-          )}
-          <g className={s.rings}>
-            {RINGS.map((r) => (
-              <g key={r}>
-                <circle r={r} />
-                <text x={r * 0.71 + 0.8} y={-r * 0.71 - 0.8} className={s.ringLabel}>
-                  {r}KM
-                </text>
-              </g>
-            ))}
-            <circle r={RANGE_KM} className={s.outer} />
-            {Array.from({ length: 72 }, (_, i) => (
-              <line
-                key={i}
-                x1="0"
-                x2="0"
-                y1={-RANGE_KM}
-                y2={-RANGE_KM + (i % 6 === 0 ? 2.4 : 1)}
-                transform={`rotate(${i * 5})`}
-                className={s.bezel}
-              />
-            ))}
-            {['N', 'E', 'S', 'W'].map((d, i) => (
-              <text
-                key={d}
-                transform={`rotate(${i * 90}) translate(0 ${-RANGE_KM - 1.6})`}
-                className={s.cardinal}
+      <div className={s.main}>
+        <div className={s.scopeWrap} data-mode={showMap ? 'map' : 'scope'}>
+          {showMap ? (
+            <MapBoundary onError={onMapFailure}>
+              <Suspense
+                fallback={<div className={s.mapLoading}>◐ LOADING CARTOGRAPHIC ENGINE…</div>}
               >
-                {d}
-              </text>
-            ))}
-          </g>
-          {layers.echo && <Echoes stations={stationList} proj={proj} />}
-          {layers.wind && wind.data && <WindVectors samples={wind.data.data} proj={proj} />}
-          {layers.stn && (
-            <g className={s.stations}>
-              {stationList.map((st) => {
-                const p = proj(st.lat, st.lon)
-                const active = focused?.id === st.id
-                return (
-                  <g
-                    key={st.id}
-                    transform={`translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`}
-                    className={s.station}
-                    data-active={active || undefined}
-                    onPointerEnter={() => setFocus(st.id)}
-                  >
-                    <rect x="-1.1" y="-1.1" width="2.2" height="2.2" />
-                    {st.temperature != null && (
-                      <text x="2" y="0.9" className={s.stnTemp}>
-                        {st.temperature.toFixed(1)}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-            </g>
+                <MapView
+                  center={center}
+                  rangeKm={RANGE_KM}
+                  rings={RINGS}
+                  stations={stationList}
+                  wind={windSamples}
+                  radarTileUrl={radarUrl}
+                  layers={layers}
+                  focusId={focused?.id ?? null}
+                  onFocus={setFocus}
+                  onFailure={onMapFailure}
+                  recenterToken={recenter}
+                />
+              </Suspense>
+            </MapBoundary>
+          ) : (
+            <ScopeView
+              center={center}
+              stations={stationList}
+              wind={windSamples}
+              layers={layers}
+              focusId={focused?.id ?? null}
+              onFocus={setFocus}
+            />
           )}
-          {/* Target crosshair */}
-          <g className={s.cross}>
-            <line x1="-5" x2="-1.5" y1="0" y2="0" />
-            <line x1="1.5" x2="5" y1="0" y2="0" />
-            <line y1="-5" y2="-1.5" x1="0" x2="0" />
-            <line y1="1.5" y2="5" x1="0" x2="0" />
-            <circle r="0.6" />
-          </g>
-        </svg>
 
-        <div className={s.overlayTL} aria-hidden="true">
-          <div>CTR {formatCoord(location.lat, location.lon)}</div>
-          <div>RNG {RANGE_KM}KM · AZIMUTHAL</div>
+          <div className={s.overlayTL} aria-hidden="true">
+            <div>CTR {formatCoord(location.lat, location.lon)}</div>
+            <div>
+              RNG {RANGE_KM}KM · {showMap ? 'WEB MERCATOR' : 'AZIMUTHAL'}
+            </div>
+            {mapFailed && mode === 'map' && (
+              <div className={s.warn}>▲ BASEMAP UNAVAILABLE — VECTOR SCOPE</div>
+            )}
+          </div>
+          <div className={s.overlayBL} aria-hidden="true">
+            <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
+            <div>
+              STN {String(stationList.length).padStart(2, '0')} ·{' '}
+              {showMap ? 'ECHO SRC: JMA NOWCAST' : 'ECHO SRC: AMeDAS 1H'}
+            </div>
+          </div>
+          {showMap ? (
+            <div className={s.legend} aria-hidden="true">
+              {RADAR_PALETTE.slice(1).map((c) => (
+                <span key={c.min}>
+                  <i style={{ background: legendColor(c.rgba) }} />
+                  {c.min}+
+                </span>
+              ))}
+              <span className={s.legendUnit}>mm/h</span>
+            </div>
+          ) : (
+            <div className={s.legend} aria-hidden="true">
+              <span>
+                <i style={{ background: 'var(--cyan-dim)' }} />
+                &lt;3
+              </span>
+              <span>
+                <i style={{ background: 'var(--cyan)' }} />
+                3+
+              </span>
+              <span>
+                <i style={{ background: 'var(--yellow)' }} />
+                10+
+              </span>
+              <span>
+                <i style={{ background: 'var(--red)' }} />
+                30+ mm/h
+              </span>
+            </div>
+          )}
+          {showMap && (
+            <button type="button" className={s.recenter} onClick={() => setRecenter((n) => n + 1)}>
+              ⌖ RECENTER
+            </button>
+          )}
         </div>
-        <div className={s.overlayBL} aria-hidden="true">
-          <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
-          <div>STN {String(stationList.length).padStart(2, '0')} · ECHO SRC: AMeDAS 1H</div>
-        </div>
-        <div className={s.legend} aria-hidden="true">
-          <span>
-            <i style={{ background: 'var(--cyan-dim)' }} />
-            &lt;3
-          </span>
-          <span>
-            <i style={{ background: 'var(--cyan)' }} />
-            3+
-          </span>
-          <span>
-            <i style={{ background: 'var(--yellow)' }} />
-            10+
-          </span>
-          <span>
-            <i style={{ background: 'var(--red)' }} />
-            30+ mm/h
-          </span>
-        </div>
+        {showMap && layers.echo && (
+          <RadarBar
+            frames={frames}
+            index={frameIndex}
+            setIndex={setPicked}
+            playing={playing}
+            setPlaying={setPlaying}
+            now={now}
+          />
+        )}
       </div>
 
       <div className={s.side}>

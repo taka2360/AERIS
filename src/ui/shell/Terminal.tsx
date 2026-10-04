@@ -2,7 +2,7 @@
  * The terminal housing: one grid, panels separated by 1px rules.
  * Desktop shows everything at once; mobile switches between views.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useLocationControl } from '@/query/location'
 import { useSystemControls } from '@/query/hooks'
 import { Timeline } from '../charts/Timeline'
@@ -29,6 +29,23 @@ const VIEWS: Array<{ id: MobileView; label: string }> = [
   { id: 'sys', label: 'SYS' },
 ]
 
+const MOBILE_QUERY = '(max-width: 767px)'
+
+function subscribeMobile(cb: () => void) {
+  const mq = window.matchMedia(MOBILE_QUERY)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+
+/** True on the handheld layout, where only one view is visible at a time. */
+function useIsMobile(): boolean {
+  return useSyncExternalStore(
+    subscribeMobile,
+    () => window.matchMedia(MOBILE_QUERY).matches,
+    () => false,
+  )
+}
+
 function isTypingTarget(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
@@ -37,6 +54,7 @@ function isTypingTarget(t: EventTarget | null): boolean {
 export function Terminal() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [view, setView] = useState<MobileView>('status')
+  const isMobile = useIsMobile()
   const { locate } = useLocationControl()
   const { refresh } = useSystemControls()
 
@@ -67,7 +85,8 @@ export function Terminal() {
           <OfficialForecast />
         </div>
         <div className={`${s.area} ${s.center}`} data-view-group="map">
-          <SpatialScope />
+          {/* Hidden views stay mounted on mobile; keep the WebGL map off until shown. */}
+          <SpatialScope active={!isMobile || view === 'map'} />
         </div>
         <div className={`${s.area} ${s.right}`} data-view-group="status">
           <JmaWarning />
