@@ -244,7 +244,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 大気環境・雪氷
 
-### SNOW ANALYSIS — `jma-snow` (planned)
+### SNOW ANALYSIS — `jma-snow`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -259,7 +259,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 30min |
 | 注記 | 解析積雪深は観測とモデルから推定した面的な値(EST) |
 
-### AIR QUALITY — `openmeteo-air` (planned)
+### AIR QUALITY — `openmeteo-air`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -276,7 +276,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 海洋
 
-### MARINE MODEL — `openmeteo-marine` (planned)
+### MARINE MODEL — `openmeteo-marine`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -291,7 +291,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 1h |
 | 注記 | 波浪・SST・海流はモデル値。沿岸域では精度が限られる |
 
-### TIDE GAUGE — `noaa-tides` (planned)
+### TIDE GAUGE — `noaa-tides` (unavailable)
 
 | 項目 | 内容 |
 | --- | --- |
@@ -304,7 +304,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 役割 / 導出 | observation / measured(既定の時間区分: observed、品質: preliminary) |
 | 鮮度 | 想定更新 6min・1h 超で STALE |
 | 取得間隔 | 10min |
-| 注記 | 米国管理の検潮所のみ(太平洋の一部を含む)。リアルタイム値は暫定 |
+| 注記 | 米国管理の検潮所のみ(日本の検潮所を含まない)ため AERIS では未使用。気象庁の潮位観測は公開 JSON がない |
 
 ## 宇宙天気
 

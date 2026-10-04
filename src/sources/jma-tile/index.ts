@@ -186,6 +186,7 @@ export function buildSeries(
       observedAt: latest?.issuedAt,
       retrievedAt,
       role: spec.presentRole,
+      derivation: spec.derivation,
       sourceRole: spec.product === 'risk' ? 'assessment' : 'observation',
     },
   }
@@ -262,6 +263,20 @@ export async function fetchKikikuru(signal?: AbortSignal): Promise<SourceResult<
   if (!r.ok) return r
   const k = buildKikikuru(r.data, r.provenance.retrievedAt)
   return { ok: true, data: k, provenance: k.land.provenance }
+}
+
+export type SnowSeries = { depth: RasterFieldSeries; snowfall: RasterFieldSeries }
+
+export async function fetchSnow(signal?: AbortSignal): Promise<SourceResult<SnowSeries>> {
+  const r = await fetchTargetTimes(SNOW, 'jma-snow', signal)
+  if (!r.ok) return r
+  const at = r.provenance.retrievedAt
+  const depth = buildSeries(FIELD_SPECS['snow-depth'], r.data, at)
+  return {
+    ok: true,
+    data: { depth, snowfall: buildSeries(FIELD_SPECS['snowfall-3h'], r.data, at) },
+    provenance: depth.provenance,
+  }
 }
 
 export async function fetchFieldSeries(

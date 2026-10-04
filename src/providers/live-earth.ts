@@ -8,9 +8,12 @@ import { fetchTsunamiAreas, fetchTsunamiReports } from '@/sources/jma-tsunami'
 import { fetchCyclones } from '@/sources/jma-typhoon'
 import { fetchVolcanoes } from '@/sources/jma-volcano'
 import { fetchRiverDischarge } from '@/sources/openmeteo-flood'
+import { fetchAirQuality } from '@/sources/openmeteo-air'
+import { fetchMarine, fetchMarineGrid } from '@/sources/openmeteo-marine'
 import { fetchInformation } from '@/sources/jma-information'
 import {
   fetchKikikuru,
+  fetchSnow,
   fetchLightningStrokes,
   fetchThunderSeries,
   type TileFieldKind,
@@ -35,6 +38,12 @@ export function createLiveEarthProvider(): EarthProvider {
       areas: (signal) => fetchTsunamiAreas(signal),
     },
     volcano: { volcanoes: (signal) => fetchVolcanoes(signal) },
+    environment: {
+      air: (p, signal) => fetchAirQuality(roundPoint(p), signal),
+      marine: (p, signal) => fetchMarine(roundPoint(p), signal),
+      snow: (signal) => fetchSnow(signal),
+      marineGrid: (signal) => fetchMarineGrid(signal),
+    },
     hydrology: {
       kikikuru: (signal) => fetchKikikuru(signal),
       river: (p, signal) => fetchRiverDischarge(roundPoint(p), signal),

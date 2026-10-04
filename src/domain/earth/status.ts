@@ -6,6 +6,7 @@
 import { haversineKm } from '../derive'
 import type { AlertBulletin, AlertSeverity } from '../model'
 import { minutesBetween, type Instant } from '../time'
+import { AIR_LEVEL_LABEL, AIR_STATUS, type AirIndex } from './air'
 import type { HazardAssessment } from './assessments'
 import type { GeoPoint } from './common'
 import { validAt } from './temporal'
@@ -497,4 +498,57 @@ export function groundStatus(landLevel: number | null, hasData: boolean): System
         : '土砂キキクル 危険度なし',
     rule: GROUND_RULE,
   }
+}
+
+// ── Environment: air, ocean, snow ───────────────────────────────────────────
+
+/** AIR from the AERIS air index (CAMS model values). */
+export function airStatus(index: AirIndex | null, hasData: boolean): SystemReading {
+  if (!hasData || !index) return { status: 'unknown', rule: 'aeris:air-index/v1' }
+  return {
+    status: AIR_STATUS[index.level],
+    headline: `AIR QUALITY ${AIR_LEVEL_LABEL[index.level]}${index.driver ? ` · ${index.driver.toUpperCase().replace('_', '.')}` : ''} (MODEL)`,
+    rule: index.rule,
+  }
+}
+
+const OCEAN_RULE = 'aeris:ocean-status/v1'
+
+/** OCEAN from modeled significant wave height at the nearest sea cell. */
+export function oceanStatus(
+  waveHeightM: number | null,
+  sstC: number | null,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData || waveHeightM == null) return { status: 'unknown', rule: OCEAN_RULE }
+  const h = waveHeightM
+  const status: SystemStatus =
+    h >= 6 ? 'warning' : h >= 4 ? 'elevated' : h >= 2.5 ? 'active' : 'nominal'
+  const parts = [`波高 ${h.toFixed(1)}m`]
+  if (sstC != null) parts.push(`海面水温 ${sstC.toFixed(1)}°C`)
+  return { status, headline: `${parts.join(' · ')} (MODEL)`, rule: OCEAN_RULE }
+}
+
+const SNOW_RULE = 'aeris:snow-status/v1'
+
+/** SNOW-ICE from JMA's analysed snow depth and 3-hour snowfall at the location. */
+export function snowStatus(
+  depthCm: number | null,
+  snowfall3hCm: number | null,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: SNOW_RULE }
+  const d = depthCm ?? 0
+  const f = snowfall3hCm ?? 0
+  const status: SystemStatus =
+    f >= 20
+      ? 'warning'
+      : f >= 10 || d >= 100
+        ? 'elevated'
+        : f >= 3 || d >= 20
+          ? 'active'
+          : 'nominal'
+  const parts = [depthCm != null ? `積雪 ${depthCm}cm+` : '積雪なし']
+  if (snowfall3hCm != null) parts.push(`3時間降雪 ${snowfall3hCm}cm+`)
+  return { status, headline: `${parts.join(' · ')} (EST)`, rule: SNOW_RULE }
 }

@@ -21,7 +21,9 @@ import type { GeoPoint } from '@/domain/earth/common'
 import type { Instant } from '@/domain/time'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 import type { VolcanoFeed } from '@/sources/jma-volcano'
-import type { KikikuruSeries } from '@/sources/jma-tile'
+import type { KikikuruSeries, SnowSeries } from '@/sources/jma-tile'
+import type { AirQuality } from '@/sources/openmeteo-air'
+import type { MarineGrid, MarineState } from '@/sources/openmeteo-marine'
 import type { DischargeKey } from '@/sources/openmeteo-flood'
 
 export type { Scenario } from '@/sources/mock/scenario'
@@ -83,10 +85,22 @@ export interface HydrologyProvider {
   river(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<PointSeries<DischargeKey>>>
 }
 
+export interface EnvironmentProvider {
+  /** CAMS air quality at a point (model) */
+  air(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<AirQuality>>
+  /** Marine state at the nearest sea cell (model) */
+  marine(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<MarineState>>
+  /** JMA analysed snow depth / snowfall series */
+  snow(signal?: AbortSignal): Promise<SourceResult<SnowSeries>>
+  /** Modeled waves / SST on a regional grid (map layer) */
+  marineGrid(signal?: AbortSignal): Promise<SourceResult<MarineGrid>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
   tsunami: TsunamiProvider
   atmosphere: AtmosphereProvider
   volcano: VolcanoProvider
   hydrology: HydrologyProvider
+  environment: EnvironmentProvider
 }

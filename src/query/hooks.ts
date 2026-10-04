@@ -28,6 +28,9 @@ import {
   useInformation,
   useKikikuru,
   useRiver,
+  useAir,
+  useMarine,
+  useSnow,
   useVolcanoFeed,
   useJmaQuakes,
   useStrokes,
@@ -299,6 +302,9 @@ export function useSystemHealth() {
   const volcanoes = useVolcanoFeed()
   const kikikuru = useKikikuru()
   const river = useRiver()
+  const air = useAir()
+  const marine = useMarine()
+  const snow = useSnow()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -422,6 +428,33 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'openmeteo-air',
+        'CAMS AIR',
+        healthFromSnapshot(
+          'openmeteo-air',
+          snapshot(air, air.data?.data.at),
+          opts('openmeteo-air'),
+        ),
+      ),
+      channel(
+        'openmeteo-marine',
+        'MARINE MODEL',
+        healthFromSnapshot(
+          'openmeteo-marine',
+          snapshot(marine, marine.data?.data.at),
+          opts('openmeteo-marine'),
+        ),
+      ),
+      channel(
+        'jma-snow',
+        'SNOW ANALYSIS',
+        healthFromSnapshot(
+          'jma-snow',
+          snapshot(snow, snow.data?.depth.provenance.observedAt),
+          opts('jma-snow'),
+        ),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -459,6 +492,9 @@ export function useSystemHealth() {
     volcanoes,
     kikikuru,
     river,
+    air,
+    marine,
+    snow,
   ])
 }
 

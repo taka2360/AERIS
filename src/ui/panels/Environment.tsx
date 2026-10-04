@@ -6,7 +6,17 @@
 import { memo, useMemo } from 'react'
 import { formatShortDate } from '@/domain/time'
 import { useMinuteClock } from '@/query/clock'
-import { dischargeSummary, useKikikuru, useLocalSample, useRiver } from '@/query/earth-hooks'
+import { AIR_LEVEL_LABEL, airIndex, REFERENCES } from '@/domain/earth/air'
+import {
+  dischargeSummary,
+  useAir,
+  useKikikuru,
+  useLocalSample,
+  useMarine,
+  useRiver,
+  useSnow,
+} from '@/query/earth-hooks'
+import type { AirKey } from '@/query/earth-hooks'
 import { useCurrentConditions } from '@/query/hooks'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
@@ -134,6 +144,172 @@ function HydroChain() {
   )
 }
 
+const POLLUTANTS: Array<{ key: AirKey; label: string; ref?: keyof typeof REFERENCES }> = [
+  { key: 'pm2_5', label: 'PM2.5', ref: 'pm2_5' },
+  { key: 'pm10', label: 'PM10', ref: 'pm10' },
+  { key: 'ozone', label: 'O₃', ref: 'ozone' },
+  { key: 'nitrogen_dioxide', label: 'NO₂', ref: 'nitrogen_dioxide' },
+  { key: 'sulphur_dioxide', label: 'SO₂' },
+  { key: 'carbon_monoxide', label: 'CO' },
+  { key: 'dust', label: 'DUST' },
+  { key: 'aerosol_optical_depth', label: 'AOD' },
+  { key: 'uv_index', label: 'UV' },
+]
+
+function AirSection() {
+  const air = useAir()
+  const a = air.data?.data
+  const index = a ? airIndex(a.current) : null
+  return (
+    <section className={s.section} aria-label="大気環境">
+      <h3 className={s.sectionHead}>
+        AIR QUALITY
+        {index ? (
+          <span className={s.level} data-level={index.level}>
+            {AIR_LEVEL_LABEL[index.level]}
+          </span>
+        ) : air.isError ? (
+          <DataStateBadge state="unavailable" />
+        ) : (
+          <span className={s.dim}>--</span>
+        )}
+        {a && <QualityTags provenance={a.series.provenance} />}
+      </h3>
+      {a && (
+        <>
+          <div className={s.grid}>
+            {POLLUTANTS.map((p) => {
+              const v = a.current[p.key]
+              const ref = p.ref ? REFERENCES[p.ref] : null
+              return (
+                <div key={p.key} className={s.cell}>
+                  <span className={s.cellHead}>{p.label}</span>
+                  <span className={s.value}>
+                    {v == null ? '--' : v >= 100 ? Math.round(v) : v.toFixed(1)}
+                    <small>{a.units[p.key] ?? ''}</small>
+                  </span>
+                  {ref && v != null && (
+                    <span className={s.note}>
+                      {ref.whoLabel} ×{(v / ref.who).toFixed(1)} · {ref.jpLabel} ×
+                      {(v / ref.jp).toFixed(1)}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <span className={s.note}>
+            AERIS 指標({index?.rule})。CAMS モデルの1時間値を日平均等の基準と比べた目安 · 花粉:
+            日本域のデータなし
+          </span>
+        </>
+      )}
+    </section>
+  )
+}
+
+const compass = (deg: number | null | undefined) =>
+  deg == null ? '' : ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(deg / 45) % 8]
+
+function OceanSection() {
+  const marine = useMarine()
+  const m = marine.data?.data
+  const c = m?.current
+  const cells: Array<[string, string]> = c
+    ? [
+        [
+          'WAVE',
+          c.wave_height != null
+            ? `${c.wave_height.toFixed(1)} m ${compass(c.wave_direction)}`
+            : '--',
+        ],
+        ['PERIOD', c.wave_period != null ? `${c.wave_period.toFixed(1)} s` : '--'],
+        [
+          'SWELL',
+          c.swell_wave_height != null
+            ? `${c.swell_wave_height.toFixed(1)} m ${compass(c.swell_wave_direction)}`
+            : '--',
+        ],
+        [
+          'SST',
+          c.sea_surface_temperature != null ? `${c.sea_surface_temperature.toFixed(1)} °C` : '--',
+        ],
+        [
+          'CURRENT',
+          c.ocean_current_velocity != null
+            ? `${c.ocean_current_velocity.toFixed(1)} km/h ${compass(c.ocean_current_direction)}`
+            : '--',
+        ],
+        [
+          'SEA LEVEL',
+          c.sea_level_height_msl != null ? `${c.sea_level_height_msl.toFixed(2)} m` : '--',
+        ],
+      ]
+    : []
+  return (
+    <section className={s.section} aria-label="海洋">
+      <h3 className={s.sectionHead}>
+        OCEAN
+        {m && <QualityTags provenance={m.series.provenance} />}
+        {marine.isError && <DataStateBadge state="unavailable" />}
+      </h3>
+      {m && (
+        <>
+          <div className={s.grid}>
+            {cells.map(([k, v]) => (
+              <div key={k} className={s.cell}>
+                <span className={s.cellHead}>{k}</span>
+                <span className={s.value}>{v}</span>
+              </div>
+            ))}
+          </div>
+          <span className={s.note}>
+            最寄りの海域セル(監視地点から{m.cellDistanceKm}km)のモデル値 · 沿岸では精度が限られる ·
+            海面高度は潮汐を含むモデル値で、検潮所の観測ではない
+          </span>
+        </>
+      )}
+    </section>
+  )
+}
+
+function SnowSection() {
+  const snow = useSnow()
+  const depth = useLocalSample('snow-depth', snow.data?.depth, 1)
+  const fall = useLocalSample('snowfall-3h', snow.data?.snowfall, 1)
+  const text = (x: typeof depth, unit: string) =>
+    x.isError || x.data?.decode === 'not-decoded'
+      ? null
+      : x.data
+        ? x.data.value
+          ? `${x.data.value.label} ${unit}`
+          : 'なし'
+        : '--'
+  return (
+    <section className={s.section} aria-label="雪氷">
+      <h3 className={s.sectionHead}>
+        SNOW
+        {snow.data && <QualityTags provenance={snow.data.depth.provenance} />}
+      </h3>
+      <div className={s.grid}>
+        <div className={s.cell}>
+          <span className={s.cellHead}>積雪の深さ</span>
+          <span className={s.value}>
+            {text(depth, 'cm') ?? <DataStateBadge state="unavailable" />}
+          </span>
+        </div>
+        <div className={s.cell}>
+          <span className={s.cellHead}>3時間降雪量</span>
+          <span className={s.value}>
+            {text(fall, 'cm') ?? <DataStateBadge state="unavailable" />}
+          </span>
+        </div>
+      </div>
+      <span className={s.note}>気象庁 解析積雪深・解析降雪量(観測とモデルからの推定)</span>
+    </section>
+  )
+}
+
 export const Environment = memo(function Environment() {
   return (
     <Panel
@@ -146,6 +322,9 @@ export const Environment = memo(function Environment() {
         <h3 className={s.sectionHead}>HYDRO · RAIN → RISK → RIVER</h3>
         <HydroChain />
       </section>
+      <AirSection />
+      <OceanSection />
+      <SnowSection />
     </Panel>
   )
 })

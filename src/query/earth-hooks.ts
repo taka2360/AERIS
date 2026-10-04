@@ -19,12 +19,17 @@ import {
   volcanoStatus,
   hydroStatus,
   groundStatus,
+  airStatus,
+  oceanStatus,
+  snowStatus,
   seismicStatus,
   severeStatus,
   tsunamiStatus,
   type SystemReading,
 } from '@/domain/earth/status'
 import { tsunamiKindRank } from '@/sources/jma-tsunami'
+import { airIndex } from '@/domain/earth/air'
+export type { AirKey } from '@/sources/openmeteo-air'
 import { useAlerts, useResolvedLocation } from './hooks'
 import type { Provenance, SourceId } from '@/domain/model'
 import { fuseQuakes } from '@/services/fusion/earthquake'
@@ -56,6 +61,10 @@ export const earthKeys = {
   volcanoes: () => ['earth', 'jma-volcano'] as const,
   kikikuru: () => ['earth', 'jma-risk'] as const,
   river: (lat: number, lon: number) => ['earth', 'river', lat, lon] as const,
+  air: (lat: number, lon: number) => ['earth', 'air', lat, lon] as const,
+  marine: (lat: number, lon: number) => ['earth', 'marine', lat, lon] as const,
+  snow: () => ['earth', 'jma-snow'] as const,
+  marineGrid: () => ['earth', 'marine-grid'] as const,
   strokes: () => ['earth', 'jma-liden'] as const,
   sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
     ['earth', 'sample', kind, frame, lat, lon, r] as const,
@@ -217,9 +226,7 @@ export function useKikikuru() {
 
 export function useRiver() {
   const provider = useWeatherProvider()
-  const { location } = useResolvedLocation()
-  const lat = Math.round(location.lat * 100) / 100
-  const lon = Math.round(location.lon * 100) / 100
+  const { lat, lon } = useRoundedLocation()
   return useQuery({
     queryKey: earthKeys.river(lat, lon),
     queryFn: async ({ signal }) =>
@@ -243,6 +250,63 @@ export function dischargeSummary(points: PointSeries<'discharge'>['points'], now
     peak: peak?.values.discharge ?? null,
     peakAt: peak?.time,
   }
+}
+
+/** Rounded monitoring location for outbound requests and cache keys. */
+function useRoundedLocation() {
+  const { location } = useResolvedLocation()
+  return {
+    lat: Math.round(location.lat * 100) / 100,
+    lon: Math.round(location.lon * 100) / 100,
+  }
+}
+
+export function useAir() {
+  const provider = useWeatherProvider()
+  const { lat, lon } = useRoundedLocation()
+  return useQuery({
+    queryKey: earthKeys.air(lat, lon),
+    queryFn: async ({ signal }) =>
+      unwrap(await provider.earth.environment.air({ lat, lon }, signal)),
+    staleTime: 30 * 60_000,
+    refetchInterval: nominalPollMs('openmeteo-air'),
+    meta: { persist: true },
+  })
+}
+
+export function useMarine() {
+  const provider = useWeatherProvider()
+  const { lat, lon } = useRoundedLocation()
+  return useQuery({
+    queryKey: earthKeys.marine(lat, lon),
+    queryFn: async ({ signal }) =>
+      unwrap(await provider.earth.environment.marine({ lat, lon }, signal)),
+    staleTime: 30 * 60_000,
+    refetchInterval: nominalPollMs('openmeteo-marine'),
+    meta: { persist: true },
+  })
+}
+
+/** Regional wave / SST grid; fetched only while the map layer needs it. */
+export function useMarineGrid(enabled: boolean) {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.marineGrid(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.environment.marineGrid(signal)),
+    enabled,
+    staleTime: 60 * 60_000,
+    refetchInterval: enabled ? nominalPollMs('openmeteo-marine') : false,
+  })
+}
+
+export function useSnow() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.snow(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.environment.snow(signal)).data,
+    staleTime: 10 * 60_000,
+    refetchInterval: nominalPollMs('jma-snow'),
+  })
 }
 
 export function useVolcanoFeed() {
@@ -414,6 +478,11 @@ export function useEarthSystems(): SystemRow[] {
   const inund = useLocalSample('kikikuru-inundation', kiki.data?.inundation, 1)
   const ltng = useLocalSample('lightning-activity', thunder.data?.lightning, 3)
   const torn = useLocalSample('tornado-probability', thunder.data?.tornado, 3)
+  const air = useAir()
+  const marine = useMarine()
+  const snow = useSnow()
+  const snowDepth = useLocalSample('snow-depth', snow.data?.depth, 1)
+  const snowfall = useLocalSample('snowfall-3h', snow.data?.snowfall, 1)
   const { location } = useResolvedLocation()
   const now = useMinuteClock()
   return useMemo(() => {
@@ -479,6 +548,38 @@ export function useEarthSystems(): SystemRow[] {
         sources: ['JMA'],
       },
       {
+        id: 'ocean',
+        label: 'OCEAN',
+        reading: oceanStatus(
+          marine.data?.data.current.wave_height ?? null,
+          marine.data?.data.current.sea_surface_temperature ?? null,
+          !!marine.data,
+        ),
+        checkedAt: marine.data?.data.at,
+        feed: feedState([marine], sourceSpec('openmeteo-marine')!.freshness.staleAfterMin, now),
+        sources: ['MARINE MODEL'],
+      },
+      {
+        id: 'air',
+        label: 'AIR',
+        reading: airStatus(air.data ? airIndex(air.data.data.current) : null, !!air.data),
+        checkedAt: air.data?.data.at,
+        feed: feedState([air], sourceSpec('openmeteo-air')!.freshness.staleAfterMin, now),
+        sources: ['CAMS'],
+      },
+      {
+        id: 'snow',
+        label: 'SNOW-ICE',
+        reading: snowStatus(
+          snowDepth.data?.value?.value ?? null,
+          snowfall.data?.value?.value ?? null,
+          !!snowDepth.data,
+        ),
+        checkedAt: snowDepth.data?.validFrom,
+        feed: sampleFeed(snowDepth.data, snow.isError),
+        sources: ['JMA'],
+      },
+      {
         id: 'severe',
         label: 'SEVERE WX',
         reading: severeStatus(
@@ -531,6 +632,11 @@ export function useEarthSystems(): SystemRow[] {
     land.data,
     river.data,
     kiki.isError,
+    air,
+    marine,
+    snowDepth.data,
+    snowfall.data,
+    snow.isError,
     ltng.data,
     torn.data,
     thunder.isError,

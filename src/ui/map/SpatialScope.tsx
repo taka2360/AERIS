@@ -18,7 +18,7 @@ import {
 import { compass16, formatCoord } from '@/domain/derive'
 import { frameAt, framesToIntervals } from '@/domain/earth/temporal'
 import type { RasterFrame } from '@/domain/earth/fields'
-import { addMinutes, formatTime, toInstant } from '@/domain/time'
+import { addMinutes, formatTime, minutesBetween, toInstant } from '@/domain/time'
 import { useTimeCursor } from '@/query/time-cursor'
 import {
   useCyclones,
@@ -28,6 +28,8 @@ import {
   useTsunami,
   useVolcanoes,
   useKikikuru,
+  useMarineGrid,
+  useSnow,
 } from '@/query/earth-hooks'
 import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
@@ -175,6 +177,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const landFrames = useMemo(() => toScopeFrames(kiki.data?.land.frames), [kiki.data])
   const inundFrames = useMemo(() => toScopeFrames(kiki.data?.inundation.frames), [kiki.data])
   const floodFrames = useMemo(() => toScopeFrames(kiki.data?.flood.frames), [kiki.data])
+  const snow = useSnow()
+  const snowdFrames = useMemo(() => toScopeFrames(snow.data?.depth.frames), [snow.data])
+  const snowfFrames = useMemo(() => toScopeFrames(snow.data?.snowfall.frames), [snow.data])
   // LIVE shows the newest observation/analysis; SCRUB shows only what was valid at t.
   const pick = (fs: ScopeFrame[]) =>
     cursor.mode === 'live' ? liveFrame(fs, cursor.now) : frameAt(fs, cursor.t)
@@ -184,6 +189,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const landShown = pick(landFrames)
   const inundShown = pick(inundFrames)
   const floodShown = pick(floodFrames)
+  const snowdShown = pick(snowdFrames)
+  const snowfShown = pick(snowfFrames)
 
   // The scrubber covers what the active layers can show: raster frames,
   // the past hour of strokes and, with earthquakes on, the past 24 hours.
@@ -195,7 +202,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           ? ltngFrames
           : layers.land || layers.inund || layers.flood
             ? landFrames
-            : [],
+            : layers.snowd || layers.snowf
+              ? snowdFrames
+              : [],
     [
       layers.echo,
       layers.ltng,
@@ -206,6 +215,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       frames,
       ltngFrames,
       landFrames,
+      layers.snowd,
+      layers.snowf,
+      snowdFrames,
     ],
   )
   const quakeSpan = layers.quake
@@ -239,11 +251,15 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     ? { colors: TILE_PALETTES.thunder, unit: '雷活動度', scrubLabel: 'THUNDER' }
     : layers.land || layers.inund
       ? { colors: TILE_PALETTES.kikikuru.slice(1), unit: 'キキクル', scrubLabel: 'KIKIKURU' }
-      : {
-          colors: TILE_PALETTES.precip.slice(1),
-          unit: 'mm/h',
-          scrubLabel: layers.echo ? 'RADAR' : 'EVENTS',
-        }
+      : layers.snowd
+        ? { colors: TILE_PALETTES.snow, unit: 'cm', scrubLabel: 'SNOW' }
+        : layers.snowf
+          ? { colors: TILE_PALETTES.snowfall, unit: 'cm/3h', scrubLabel: 'SNOW' }
+          : {
+              colors: TILE_PALETTES.precip.slice(1),
+              unit: 'mm/h',
+              scrubLabel: layers.echo ? 'RADAR' : 'EVENTS',
+            }
 
   // Playback steps the global cursor through the active raster's frames or,
   // without one, through the span in 30-minute steps, wrapping around.
@@ -381,6 +397,14 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     })
   }, [volc.events, volc.assessments, volc.sites])
 
+  // The wave grid is a single model analysis: shown only near its own time.
+  const marineGrid = useMarineGrid(layers.wave)
+  const marineCells = useMemo(() => {
+    const g = marineGrid.data?.data
+    if (!g || Math.abs(minutesBetween(g.at, cursor.t)) > 90) return []
+    return g.cells
+  }, [marineGrid.data, cursor.t])
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -394,6 +418,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       landTileUrl: landShown?.tileUrlTemplate ?? null,
       inundTileUrl: inundShown?.tileUrlTemplate ?? null,
       floodTileUrl: floodShown?.tileUrlTemplate ?? null,
+      snowDepthTileUrl: snowdShown?.tileUrlTemplate ?? null,
+      snowfallTileUrl: snowfShown?.tileUrlTemplate ?? null,
+      marineCells,
       strokes,
       focusId: focused?.id ?? null,
       quakes,
@@ -413,6 +440,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       landShown?.tileUrlTemplate,
       inundShown?.tileUrlTemplate,
       floodShown?.tileUrlTemplate,
+      snowdShown?.tileUrlTemplate,
+      snowfShown?.tileUrlTemplate,
+      marineCells,
       strokes,
       focused?.id,
       quakes,

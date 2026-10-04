@@ -15,7 +15,7 @@ import type {
 } from '@/domain/earth/fields'
 import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
 import type { Provenance } from '@/domain/model'
-import { addMinutes, epoch, jstDateKey, type Instant } from '@/domain/time'
+import { addMinutes, epoch, jstDateKey, toInstant, type Instant } from '@/domain/time'
 import { adaptAreas, areasSchema, reportObservation, type TsunamiAreaLines } from '../jma-tsunami'
 import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
 import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
@@ -24,9 +24,21 @@ import {
   buildSeries,
   FIELD_SPECS,
   type KikikuruSeries,
+  type SnowSeries,
   type TargetTime,
 } from '../jma-tile'
 import type { DischargeKey } from '../openmeteo-flood'
+import { adaptAir, airSchema, type AirQuality } from '../openmeteo-air'
+import airFixture from '../openmeteo-air/fixtures/air-tokyo.json'
+import {
+  adaptMarine,
+  GRID_LATS,
+  GRID_LONS,
+  marineSchema,
+  type MarineGrid,
+  type MarineState,
+} from '../openmeteo-marine'
+import marineFixture from '../openmeteo-marine/fixtures/marine-tokyo.json'
 import { PALETTES } from '../jma-tile/palettes'
 import { adaptInformation } from '../jma-information'
 import {
@@ -699,4 +711,79 @@ export function synthRiver(now: Instant, scenario: Scenario): PointSeries<Discha
       sourceRole: 'forecast',
     },
   }
+}
+
+/** Air quality: the real CAMS response for Tokyo (fixture) re-timed to now. */
+export function synthAir(now: Instant): AirQuality {
+  const a = adaptAir(airSchema.parse(airFixture), now, now)
+  const shift = epoch(now) - epoch(a.at)
+  const at = (t: Instant) => toInstant(epoch(t) + shift - ((epoch(t) + shift) % 3_600_000))
+  return {
+    ...a,
+    at: at(a.at),
+    series: {
+      ...a.series,
+      points: a.series.points.map((p) => ({
+        ...p,
+        time: at(p.time),
+        role: at(p.time) <= now ? ('analysis' as const) : ('forecast' as const),
+      })),
+      provenance: { ...a.series.provenance, observedAt: at(a.at) },
+    },
+  }
+}
+
+/** Marine state: the real Tokyo Bay response; the typhoon scenario raises the sea. */
+export function synthMarine(now: Instant, scenario: Scenario): MarineState {
+  const m = adaptMarine(marineSchema.parse(marineFixture), { lat: 35.68, lon: 139.77 }, now, now)
+  if (scenario !== 'typhoon') return { ...m, at: now }
+  return {
+    ...m,
+    at: now,
+    current: { ...m.current, wave_height: 6.8, wave_period: 11.5, swell_wave_height: 5.2 },
+  }
+}
+
+/** Snow analyses (hourly) and forecasts; October: nothing drawn. */
+export function synthSnow(now: Instant): SnowSeries {
+  const base = addMinutes(now, -((epoch(now) / 60000) % 60) - 60)
+  const entries: TargetTime[] = []
+  for (let h = -5; h <= 0; h++) {
+    const t = stamp(addMinutes(base, h * 60))
+    entries.push({ basetime: t, validtime: t, elements: ['snowd', 'snowf03h'] })
+  }
+  for (let h = 1; h <= 6; h++)
+    entries.push({
+      basetime: stamp(base),
+      validtime: stamp(addMinutes(base, h * 60)),
+      elements: ['snowd', 'snowf03h'],
+    })
+  return {
+    depth: buildSeries(FIELD_SPECS['snow-depth'], entries, now),
+    snowfall: buildSeries(FIELD_SPECS['snowfall-3h'], entries, now),
+  }
+}
+
+/** A smooth synthetic wave field; the typhoon scenario adds a high sea south of Kanto. */
+export function synthMarineGrid(now: Instant, scenario: Scenario): MarineGrid {
+  const cells: MarineGrid['cells'] = []
+  for (const lat of GRID_LATS)
+    for (const lon of GRID_LONS) {
+      // Rough land mask: skip cells over Honshu / Kyushu / Hokkaido / the continent.
+      const land =
+        (lon <= 129 && lat >= 33) ||
+        (lon >= 132 && lon <= 141 && lat >= 33 && lat <= 40) ||
+        (lon >= 141 && lon <= 144 && lat >= 42 && lat <= 45)
+      if (land) continue
+      const storm =
+        scenario === 'typhoon' ? 6 * Math.exp(-(((lat - 31) / 3) ** 2 + ((lon - 138) / 4) ** 2)) : 0
+      cells.push({
+        lat,
+        lon,
+        wave: Math.round((1 + 0.06 * (45 - lat) + storm) * 10) / 10,
+        dir: 90 + lat,
+        sst: Math.round((31 - 0.45 * (lat - 24)) * 10) / 10,
+      })
+    }
+  return { at: now, cells }
 }

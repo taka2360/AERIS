@@ -254,3 +254,21 @@ test('storm scenario: the hydro chain shows rain, キキクル and modeled river
     'ELEVATED',
   )
 })
+
+test('environment panel: air quality index with references and ocean model values', async ({
+  page,
+}) => {
+  await page.goto(mockUrl('&scenario=typhoon'))
+  await waitForTerminal(page)
+  const air = page.getByRole('region', { name: '大気環境' })
+  await expect(air).toContainText('MODERATE')
+  await expect(air).toContainText('WHO 24h')
+  await expect(air).toContainText('MODEL')
+  const ocean = page.getByRole('region', { name: '海洋' })
+  await expect(ocean).toContainText('6.8 m')
+  const row = page
+    .getByRole('region', { name: 'EVENT MONITOR' })
+    .getByRole('listitem')
+    .filter({ hasText: 'OCEAN' })
+  await expect(row).toContainText('WARNING')
+})

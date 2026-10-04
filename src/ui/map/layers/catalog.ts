@@ -8,7 +8,7 @@ import type { LayerToggle, LayerVisibility } from './types'
 export type LayerEntry = {
   id: LayerToggle
   label: string
-  group: 'ATMOS' | 'HYDRO' | 'OBS' | 'GEO'
+  group: 'ATMOS' | 'HYDRO' | 'ENV' | 'OBS' | 'GEO'
   /** Raster fields are mutually exclusive */
   raster?: boolean
   desc: string
@@ -30,6 +30,21 @@ export const LAYER_CATALOG: LayerEntry[] = [
   { id: 'land', label: 'LANDSLIDE', group: 'HYDRO', raster: true, desc: '土砂キキクル(気象庁)' },
   { id: 'inund', label: 'INUNDATION', group: 'HYDRO', raster: true, desc: '浸水キキクル(気象庁)' },
   { id: 'flood', label: 'FLOOD', group: 'HYDRO', desc: '洪水キキクル・河川(気象庁)' },
+  {
+    id: 'snowd',
+    label: 'SNOW DEPTH',
+    group: 'ENV',
+    raster: true,
+    desc: '解析積雪深(気象庁・推定)',
+  },
+  {
+    id: 'snowf',
+    label: 'SNOWFALL',
+    group: 'ENV',
+    raster: true,
+    desc: '解析降雪量 3時間(気象庁・推定)',
+  },
+  { id: 'wave', label: 'WAVES', group: 'ENV', desc: '波高・海面水温(モデル)' },
   { id: 'stn', label: 'STN', group: 'OBS', desc: 'アメダス観測点' },
   { id: 'grid', label: 'RINGS', group: 'OBS', desc: '距離リング' },
   { id: 'quake', label: 'QUAKE', group: 'GEO', desc: '地震(気象庁・USGS)' },
@@ -52,6 +67,9 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   land: false,
   inund: false,
   flood: true,
+  snowd: false,
+  snowf: false,
+  wave: false,
 }
 
 /** Toggle a layer; switching a raster field on switches the other rasters off. */

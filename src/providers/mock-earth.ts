@@ -18,6 +18,10 @@ import {
   synthVolcanoes,
   synthKikikuru,
   synthRiver,
+  synthAir,
+  synthMarine,
+  synthSnow,
+  synthMarineGrid,
 } from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
@@ -57,6 +61,17 @@ export function createMockEarthProvider(
     volcano: {
       volcanoes: (signal) =>
         run('jma-volcano', 'official', 'MOCK JMA', signal, () => synthVolcanoes(now(), scenario)),
+    },
+    environment: {
+      air: (_p, signal) =>
+        run('openmeteo-air', 'model', 'MOCK CAMS', signal, () => synthAir(now())),
+      marine: (_p, signal) =>
+        run('openmeteo-marine', 'model', 'MOCK MARINE', signal, () => synthMarine(now(), scenario)),
+      snow: (signal) => run('jma-snow', 'official', 'MOCK JMA', signal, () => synthSnow(now())),
+      marineGrid: (signal) =>
+        run('openmeteo-marine', 'model', 'MOCK MARINE', signal, () =>
+          synthMarineGrid(now(), scenario),
+        ),
     },
     hydrology: {
       kikikuru: (signal) =>

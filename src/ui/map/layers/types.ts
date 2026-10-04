@@ -22,6 +22,16 @@ export type MapScene = {
   inundTileUrl: string | null
   /** 洪水キキクル vector tile template (.pbf) */
   floodTileUrl: string | null
+  snowDepthTileUrl: string | null
+  snowfallTileUrl: string | null
+  /** Modeled wave / SST grid cells (MODEL) */
+  marineCells: Array<{
+    lat: number
+    lon: number
+    wave: number
+    dir: number | null
+    sst: number | null
+  }>
   /** LIDEN strokes visible at the cursor time (age 0 → 1 over an hour) */
   strokes: Array<{ lat: number; lon: number; cg: boolean; age: number }>
   focusId: string | null
@@ -77,6 +87,9 @@ export type LayerToggle =
   | 'land'
   | 'inund'
   | 'flood'
+  | 'snowd'
+  | 'snowf'
+  | 'wave'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 
