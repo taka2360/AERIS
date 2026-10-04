@@ -325,7 +325,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 
 ## 全球イベント
 
-### NASA EONET — `eonet` (planned)
+### NASA EONET — `eonet`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -340,7 +340,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 15min |
 | 注記 | 自然現象の追跡カタログ(集約)。影響評価ではない |
 
-### GDACS — `gdacs` (planned)
+### GDACS — `gdacs`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -355,7 +355,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 15min |
 | 注記 | Green/Orange/Red は人的影響の評価(ASSESSMENT) |
 
-### NASA FIRMS — `relay-firms` (planned)
+### NASA FIRMS — `relay-firms`
 
 | 項目 | 内容 |
 | --- | --- |
@@ -371,7 +371,7 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 取得間隔 | 10min |
 | 注記 | 衛星による熱異常の検出(1検出=1観測)。火災イベントは AERIS がクラスタ化した派生 |
 
-### NOAA NHC — `relay-nhc` (planned)
+### NOAA NHC — `relay-nhc`
 
 | 項目 | 内容 |
 | --- | --- |

@@ -152,6 +152,8 @@ test.describe('earthquake scenario', () => {
     await expect(detail).toContainText('Mw 5.9')
     await expect(detail).toContainText('震度5強')
     await expect(detail).toContainText('AERIS 判定')
+    // GDACS is shown as an assessment linked to the measured quake, not merged.
+    await expect(detail).toContainText('GDACS Orange')
   })
 
   test('quiet scenario keeps the band clear of distant quakes', async ({ page }) => {
@@ -293,5 +295,22 @@ test('geomag scenario: the space weather panel separates observations, estimates
   await expect(panel).toContainText('ASSESSMENT')
   await expect(page.getByRole('region', { name: 'EVENT LOG' })).toContainText(
     'Geomagnetic K-index of 7',
+  )
+})
+
+test('global events: EONET, GDACS and FIRMS clusters appear with their roles', async ({ page }) => {
+  await page.goto(mockUrl('&scenario=quiet'))
+  await waitForTerminal(page)
+  const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
+  await expect(monitor.getByRole('listitem').filter({ hasText: 'GLOBAL' })).toContainText('EONET')
+  await expect(monitor.getByRole('listitem').filter({ hasText: 'WILDFIRE' })).toContainText('派生')
+  const log = page.getByRole('region', { name: 'EVENT LOG' })
+  await log.getByRole('button', { name: 'FIRE', exact: true }).click()
+  await log
+    .getByRole('button', { name: /熱異常クラスタ/ })
+    .first()
+    .click()
+  await expect(page.getByRole('region', { name: 'EVENT DETAIL' })).toContainText(
+    'クラスタ化した派生イベント',
   )
 })

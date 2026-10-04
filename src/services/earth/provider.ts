@@ -25,6 +25,9 @@ import type { KikikuruSeries, SnowSeries } from '@/sources/jma-tile'
 import type { AirQuality } from '@/sources/openmeteo-air'
 import type { MarineGrid, MarineState } from '@/sources/openmeteo-marine'
 import type { AuroraGrid, SpaceWeather } from '@/sources/swpc'
+import type { EonetEvent } from '@/sources/eonet'
+import type { GdacsAssessment } from '@/sources/gdacs'
+import type { FirmsFeed, NhcFeed } from '@/sources/relay'
 import type { DischargeKey } from '@/sources/openmeteo-flood'
 
 export type { Scenario } from '@/sources/mock/scenario'
@@ -104,6 +107,17 @@ export interface SpaceWeatherProvider {
   aurora(signal?: AbortSignal): Promise<SourceResult<AuroraGrid>>
 }
 
+export interface GlobalEventProvider {
+  /** NASA EONET open events (tracking catalogue) */
+  eonet(signal?: AbortSignal): Promise<SourceResult<Obs<EonetEvent>[]>>
+  /** GDACS impact assessments */
+  gdacs(signal?: AbortSignal): Promise<SourceResult<GdacsAssessment[]>>
+  /** NASA FIRMS detections via the relay (NOT CONFIGURED without it) */
+  firms(signal?: AbortSignal): Promise<SourceResult<FirmsFeed>>
+  /** NOAA NHC active storms via the relay */
+  nhc(signal?: AbortSignal): Promise<SourceResult<NhcFeed>>
+}
+
 export interface EarthProvider {
   seismic: SeismicProvider
   tsunami: TsunamiProvider
@@ -112,4 +126,5 @@ export interface EarthProvider {
   hydrology: HydrologyProvider
   environment: EnvironmentProvider
   space: SpaceWeatherProvider
+  global: GlobalEventProvider
 }

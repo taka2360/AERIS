@@ -75,12 +75,18 @@ export function eventFigure(e: NaturalEvent): string {
     }
     case 'volcano':
       return e.detail.levelName ?? ''
+    case 'wildfire': {
+      const frp = measures(e, 'wildfire.max_frp')[0]
+      const n = measures(e, 'wildfire.detections')[0]
+      if (frp) return `${n?.value ?? '?'} det · ${Math.round(frp.value)} MW`
+      return e.measures[0] ? `${e.measures[0].value} ${e.measures[0].unit ?? ''}` : ''
+    }
     case 'space-weather':
       return e.detail.kind.toUpperCase()
     case 'tsunami':
       return e.lifecycle === 'ongoing' ? '発表中' : e.lifecycle === 'cancelled' ? '取消' : '解除'
     default:
-      return ''
+      return e.measures[0] ? `${e.measures[0].value} ${e.measures[0].unit ?? ''}`.trim() : ''
   }
 }
 
@@ -92,6 +98,10 @@ export function sourceTags(e: NaturalEvent): string[] {
     'jma-typhoon': 'JMA',
     'jma-volcano': 'JMA',
     swpc: 'NOAA SWPC',
+    eonet: 'EONET',
+    gdacs: 'GDACS',
+    'relay-firms': 'FIRMS',
+    'relay-nhc': 'NHC',
   }
   return [...new Set(e.sources.map((s) => names[s.source] ?? s.source.toUpperCase()))]
 }

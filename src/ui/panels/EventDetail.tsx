@@ -3,7 +3,7 @@
  * next to USGS Mw, each with its provenance), the agency's native levels,
  * and — clearly separated — AERIS's derived judgement and its rule.
  */
-import { memo, useMemo } from 'react'
+import { Fragment, memo, useMemo } from 'react'
 import { haversineKm } from '@/domain/derive'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
 import type {
@@ -19,6 +19,7 @@ import { formatDate, formatTime } from '@/domain/time'
 import {
   useTsunami,
   useVolcanoes,
+  useGdacsLinks,
   useEarthSystems,
   useNaturalEvents,
   useQuakeDetail,
@@ -52,6 +53,8 @@ function QuakeDetail({ e }: { e: EarthquakeEvent }) {
   const withStations = useMemo(() => ({ ...e, detail: { ...e.detail, stations } }), [e, stations])
   const sev = quakeSeverity(withStations)
   const rel = quakeRelevance(withStations, location)
+  const { events } = useNaturalEvents()
+  const gdacs = useGdacsLinks(events).get(e.id) ?? []
   const assoc = associations.filter(
     (a) =>
       e.sources.some((s) => s.nativeId === a.a.nativeId) ||
@@ -124,6 +127,15 @@ function QuakeDetail({ e }: { e: EarthquakeEvent }) {
         </span>
       </div>
 
+      {gdacs.length > 0 && (
+        <div className={s.derived}>
+          <span className={s.derivedTag}>GDACS ASSESSMENT</span>
+          {gdacs.map((g) => (
+            <b key={g.id}>{g.level.label}</b>
+          ))}
+          <span className={s.rule}>人的影響の評価 · 観測ではない</span>
+        </div>
+      )}
       {top.length > 0 && (
         <table className={s.stations}>
           <caption>観測点の震度(上位{top.length}) · 気象庁</caption>
@@ -402,6 +414,79 @@ function VolcanoSiteDetail({ site }: { site: VolcanoSite }) {
   )
 }
 
+const ROLE_NOTE: Record<string, string> = {
+  eonet: 'NASA EONET: 他機関の報告を追跡する集約カタログ(観測そのものではない)',
+  gdacs: 'GDACS: 人的影響の評価(観測ではない)',
+  'relay-firms': 'AERIS が NASA FIRMS の衛星検出をクラスタ化した派生イベント',
+  'relay-nhc': 'NOAA NHC の解析位置(中継経由)',
+  swpc: 'NOAA SWPC の警報・注意報',
+}
+
+/** Events from aggregators / assessments / derived clusters. */
+function GenericDetail({ e }: { e: NaturalEvent }) {
+  const { events } = useNaturalEvents()
+  const links = useGdacsLinks(events)
+  const { select } = useSelection()
+  const gdacs = links.get(e.id) ?? []
+  const detail = e.detail as { description?: string; url?: string; nativeType?: string }
+  const src = e.sources[0]?.source ?? ''
+  return (
+    <>
+      <dl className={s.grid}>
+        {detail.nativeType && (
+          <>
+            <dt>TYPE</dt>
+            <dd>{detail.nativeType}</dd>
+          </>
+        )}
+        {e.geometry.type === 'Point' && e.category !== 'space-weather' && (
+          <>
+            <dt>POSITION</dt>
+            <dd>
+              {e.geometry.coordinates[1].toFixed(2)}°, {e.geometry.coordinates[0].toFixed(2)}°
+            </dd>
+          </>
+        )}
+        {e.measures.map((m) => (
+          <Fragment key={m.kind}>
+            <dt>{m.kind.split('.')[1]?.toUpperCase()}</dt>
+            <dd>
+              {m.value} {m.unit}
+              <QualityTags provenance={m.provenance} />
+            </dd>
+          </Fragment>
+        ))}
+        <dt>SOURCE ROLE</dt>
+        <dd>
+          <QualityTags provenance={e.provenance} />
+        </dd>
+      </dl>
+      {ROLE_NOTE[src] && <p className={`${s.comment} ja`}>{ROLE_NOTE[src]}</p>}
+      {detail.description && <p className={s.comment}>{detail.description}</p>}
+      {gdacs.length > 0 && (
+        <div className={s.derived}>
+          <span className={s.derivedTag}>GDACS ASSESSMENT</span>
+          {gdacs.map((a) => (
+            <span key={a.id}>
+              <b>{a.level.label}</b> {a.values.severity ?? ''}
+            </span>
+          ))}
+        </div>
+      )}
+      {e.related?.map((r) => (
+        <button key={r.id} type="button" className={s.clear} onClick={() => select(r.id)}>
+          → RELATED {r.id.split(':')[0]?.toUpperCase()}
+        </button>
+      ))}
+      {detail.url && (
+        <a className={s.ext} href={detail.url} target="_blank" rel="noreferrer">
+          SOURCE ↗
+        </a>
+      )}
+    </>
+  )
+}
+
 function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
   const { now } = useNaturalEvents()
   const at = eventTime(e)
@@ -421,6 +506,9 @@ function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
       {e.category === 'tsunami' && <TsunamiDetail e={e} />}
       {e.category === 'tropical-cyclone' && <CycloneDetail e={e} />}
       {e.category === 'volcano' && <VolcanoDetail e={e} />}
+      {!['earthquake', 'tsunami', 'tropical-cyclone', 'volcano'].includes(e.category) && (
+        <GenericDetail e={e} />
+      )}
     </>
   )
 }

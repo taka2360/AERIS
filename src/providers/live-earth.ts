@@ -11,6 +11,9 @@ import { fetchRiverDischarge } from '@/sources/openmeteo-flood'
 import { fetchAirQuality } from '@/sources/openmeteo-air'
 import { fetchMarine, fetchMarineGrid } from '@/sources/openmeteo-marine'
 import { fetchAurora, fetchSpaceWeather } from '@/sources/swpc'
+import { fetchEonet } from '@/sources/eonet'
+import { fetchGdacs } from '@/sources/gdacs'
+import { fetchFirms, fetchNhc } from '@/sources/relay'
 import { fetchInformation } from '@/sources/jma-information'
 import {
   fetchKikikuru,
@@ -39,6 +42,12 @@ export function createLiveEarthProvider(): EarthProvider {
       areas: (signal) => fetchTsunamiAreas(signal),
     },
     volcano: { volcanoes: (signal) => fetchVolcanoes(signal) },
+    global: {
+      eonet: (signal) => fetchEonet(signal),
+      gdacs: (signal) => fetchGdacs(signal),
+      firms: (signal) => fetchFirms([-180, -90, 180, 90], signal),
+      nhc: (signal) => fetchNhc(signal),
+    },
     space: {
       weather: (signal) => fetchSpaceWeather(signal),
       aurora: (signal) => fetchAurora(signal),

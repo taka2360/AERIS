@@ -52,6 +52,11 @@ import swKp from '../swpc/fixtures/noaa-planetary-k-index.json'
 import swKp1m from '../swpc/fixtures/planetary_k_index_1m.json'
 import swPropagated from '../swpc/fixtures/propagated-solar-wind-1-hour.json'
 import ovationFixture from '../swpc/fixtures/ovation-subset.json'
+import { adaptEonet, eonetObservation, eonetSchema, type EonetEvent } from '../eonet'
+import eonetFixture from '../eonet/fixtures/events-open.json'
+import { adaptGdacs, gdacsSchema, type GdacsAssessment } from '../gdacs'
+import gdacsFixture from '../gdacs/fixtures/events.json'
+import type { FirmsFeed, NhcFeed } from '../relay'
 import { PALETTES } from '../jma-tile/palettes'
 import { adaptInformation } from '../jma-information'
 import {
@@ -858,5 +863,80 @@ export function synthAurora(now: Instant, scenario: Scenario): AuroraGrid {
     cells: g.cells.map(
       ([lon, lat, p]) => [lon, lat, Math.min(100, p * boost)] as [number, number, number],
     ),
+  }
+}
+
+/** EONET and GDACS from real responses (fixtures, 2026-10-04). */
+export function synthEonet(now: Instant): SourceObservation<EonetEvent>[] {
+  return adaptEonet(eonetSchema.parse(eonetFixture)).map((e) => eonetObservation(e, now))
+}
+
+export function synthGdacs(now: Instant, scenario: Scenario): GdacsAssessment[] {
+  const a = adaptGdacs(gdacsSchema.parse(gdacsFixture), now)
+  if (scenario !== 'quake') return a
+  // Quake scenario: GDACS rates the Kanto earthquake Orange.
+  return [
+    {
+      ...a[0]!,
+      id: 'gdacs:EQ:mock:1',
+      level: { value: 'Orange', label: 'GDACS Orange' },
+      rank: 2,
+      area: { code: 'Japan', name: 'Earthquake in Japan' },
+      time: { startedAt: addMinutes(now, -12), validFrom: addMinutes(now, -12) },
+      values: { eventtype: 'EQ', lat: 36.12, lon: 140.21 },
+    },
+    ...a,
+  ]
+}
+
+/** FIRMS-like detections: a cluster in Kyushu (storm-free scenarios) and abroad. */
+export function synthFirms(now: Instant): FirmsFeed {
+  const pts: Array<[number, number, number]> = [
+    [32.79, 130.73, 18],
+    [32.8, 130.75, 42],
+    [32.81, 130.74, 9],
+    [32.78, 130.76, 25],
+    [-17.5, 128.2, 120],
+    [-17.52, 128.25, 95],
+    [-17.48, 128.22, 60],
+    [38.9, -121.1, 300],
+    [38.91, -121.12, 210],
+    [38.92, -121.09, 150],
+    [38.95, -121.15, 80],
+    [10.2, 20.5, 12],
+  ]
+  return {
+    fetchedAt: addMinutes(now, -20),
+    total: pts.length,
+    detections: pts.map(([lat, lon, frp], i) => ({
+      id: `mock-fire-${i}`,
+      lat,
+      lon,
+      detectedAt: addMinutes(now, -60 - i * 10),
+      frpMw: frp,
+      confidence: 'nominal' as const,
+      satellite: 'N20',
+      daynight: 'D' as const,
+    })),
+  }
+}
+
+export function synthNhc(now: Instant): NhcFeed {
+  return {
+    fetchedAt: addMinutes(now, -30),
+    storms: [
+      {
+        id: 'ep182026',
+        name: 'Rachel',
+        classification: 'HU',
+        intensityKt: 85,
+        pressureMb: 975,
+        lat: 18.2,
+        lon: -105.3,
+        movementDir: 300,
+        movementSpeedKt: 9,
+        lastUpdate: addMinutes(now, -90),
+      },
+    ],
   }
 }

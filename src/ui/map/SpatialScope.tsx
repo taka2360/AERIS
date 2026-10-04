@@ -31,6 +31,9 @@ import {
   useMarineGrid,
   useSnow,
   useAurora,
+  useFirms,
+  useGlobalEvents,
+  useGdacsLinks,
 } from '@/query/earth-hooks'
 import { cyclonePositionAt } from '@/domain/earth/temporal'
 import { activeTsunami } from '@/domain/earth/status'
@@ -47,6 +50,7 @@ import type { MapLayers, MapRange, MapScene } from './MapView'
 import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
 import { legendColor, TILE_PALETTES } from './style'
 import { TimeScrubber, type ScrubSpan, type ScrubTick } from './TimeScrubber'
+import { CATEGORY_TAG } from '../panels/event-format'
 import s from './SpatialScope.module.css'
 
 const MapView = lazy(() => import('./MapView'))
@@ -414,6 +418,36 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     return g.cells
   }, [aurora.data, cursor.t])
 
+  // Fires: detections up to the cursor time, fading over 24 h.
+  const firms = useFirms()
+  const fireDetections = useMemo(
+    () =>
+      activeWindow(firms.data?.data.detections ?? [], (d) => d.detectedAt, cursor.t, 24 * 60).map(
+        ({ item, age }) => ({ lat: item.lat, lon: item.lon, frp: item.frpMw, age }),
+      ),
+    [firms.data, cursor.t],
+  )
+  // Global markers: events started by the cursor time, coloured by linked GDACS level.
+  const { events: globalEvents } = useGlobalEvents()
+  const links = useGdacsLinks(globalEvents)
+  const globalMarkers = useMemo(
+    () =>
+      globalEvents
+        .filter((e) => e.geometry.type === 'Point')
+        .filter((e) => !e.time.startedAt || e.time.startedAt <= cursor.t)
+        .map((e) => {
+          const [lon, lat] = (e.geometry as { coordinates: [number, number] }).coordinates
+          return {
+            id: e.id,
+            lat,
+            lon,
+            tag: CATEGORY_TAG[e.category],
+            rank: Math.max(0, ...(links.get(e.id) ?? []).map((a) => a.rank)),
+          }
+        }),
+    [globalEvents, links, cursor.t],
+  )
+
   const scene = useMemo<MapScene>(
     () => ({
       center,
@@ -431,6 +465,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       snowfallTileUrl: snowfShown?.tileUrlTemplate ?? null,
       marineCells,
       auroraCells,
+      fireDetections,
+      globalMarkers,
       strokes,
       focusId: focused?.id ?? null,
       quakes,
@@ -454,6 +490,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       snowfShown?.tileUrlTemplate,
       marineCells,
       auroraCells,
+      fireDetections,
+      globalMarkers,
       strokes,
       focused?.id,
       quakes,

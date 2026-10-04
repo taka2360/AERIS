@@ -24,6 +24,10 @@ import {
   synthMarineGrid,
   synthSpaceWeather,
   synthAurora,
+  synthEonet,
+  synthGdacs,
+  synthFirms,
+  synthNhc,
 } from '@/sources/mock/earth'
 import type { Scenario } from '@/sources/mock/scenario'
 
@@ -63,6 +67,14 @@ export function createMockEarthProvider(
     volcano: {
       volcanoes: (signal) =>
         run('jma-volcano', 'official', 'MOCK JMA', signal, () => synthVolcanoes(now(), scenario)),
+    },
+    global: {
+      eonet: (signal) => run('eonet', 'observation', 'MOCK EONET', signal, () => synthEonet(now())),
+      gdacs: (signal) =>
+        run('gdacs', 'official', 'MOCK GDACS', signal, () => synthGdacs(now(), scenario)),
+      firms: (signal) =>
+        run('relay-firms', 'observation', 'MOCK FIRMS', signal, () => synthFirms(now())),
+      nhc: (signal) => run('relay-nhc', 'official', 'MOCK NHC', signal, () => synthNhc(now())),
     },
     space: {
       weather: (signal) =>

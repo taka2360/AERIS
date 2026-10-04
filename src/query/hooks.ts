@@ -32,6 +32,10 @@ import {
   useMarine,
   useSnow,
   useSpaceWeather,
+  useEonet,
+  useGdacs,
+  useFirms,
+  useNhc,
   useVolcanoFeed,
   useJmaQuakes,
   useStrokes,
@@ -307,6 +311,10 @@ export function useSystemHealth() {
   const marine = useMarine()
   const snow = useSnow()
   const space = useSpaceWeather()
+  const eonet = useEonet()
+  const gdacs = useGdacs()
+  const firms = useFirms()
+  const nhc = useNhc()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -466,6 +474,38 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'eonet',
+        'NASA EONET',
+        healthFromSnapshot(
+          'eonet',
+          snapshot(eonet, eonet.data?.provenance.retrievedAt),
+          opts('eonet'),
+        ),
+      ),
+      channel(
+        'gdacs',
+        'GDACS',
+        healthFromSnapshot(
+          'gdacs',
+          snapshot(gdacs, gdacs.data?.provenance.retrievedAt),
+          opts('gdacs'),
+        ),
+      ),
+      channel(
+        'relay-firms',
+        'FIRMS (RELAY)',
+        healthFromSnapshot(
+          'relay-firms',
+          snapshot(firms, firms.data?.data.fetchedAt),
+          opts('relay-firms'),
+        ),
+      ),
+      channel(
+        'relay-nhc',
+        'NHC (RELAY)',
+        healthFromSnapshot('relay-nhc', snapshot(nhc, nhc.data?.data.fetchedAt), opts('relay-nhc')),
+      ),
+      channel(
         'usgs-quake',
         'USGS SEISMIC',
         healthFromSnapshot(
@@ -507,6 +547,10 @@ export function useSystemHealth() {
     marine,
     snow,
     space,
+    eonet,
+    gdacs,
+    firms,
+    nhc,
   ])
 }
 

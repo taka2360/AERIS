@@ -592,3 +592,74 @@ export function spaceStatus(
   if (sw.xray.current) parts.push(`X-ray ${sw.xray.current}`)
   return { status, headline: parts.join(' · '), rule: SPACE_RULE }
 }
+
+// ── Global / wildfire ───────────────────────────────────────────────────────
+
+const GLOBAL_RULE = 'aeris:global-status/v1'
+
+/**
+ * GLOBAL from GDACS impact assessments in force (Red → WARNING, Orange →
+ * ELEVATED) and EONET-tracked events (any open → ACTIVE).
+ */
+export function globalStatus(
+  gdacs: HazardAssessment[],
+  events: NaturalEvent[],
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: GLOBAL_RULE }
+  const current = gdacs.filter((a) => a.scheme === 'gdacs' && a.status !== 'cancelled')
+  const red = current.filter((a) => a.rank >= 3)
+  const orange = current.filter((a) => a.rank === 2)
+  const tracked = events.filter(
+    (e) => e.sources.some((s) => s.source === 'eonet') && e.lifecycle === 'ongoing',
+  )
+  const status: SystemStatus = red.length
+    ? 'warning'
+    : orange.length
+      ? 'elevated'
+      : tracked.length
+        ? 'active'
+        : 'nominal'
+  const top = red[0] ?? orange[0]
+  const parts = [
+    `GDACS R${red.length} O${orange.length} G${current.length - red.length - orange.length}`,
+    `EONET ${tracked.length} open`,
+  ]
+  if (top) parts.unshift(top.area.name)
+  return { status, headline: parts.join(' · '), eventId: top?.eventRef, rule: GLOBAL_RULE }
+}
+
+const FIRE_RULE = 'aeris:wildfire-status/v1'
+
+/**
+ * WILDFIRE: an AERIS fire cluster (FIRMS) within 50 km → ELEVATED; any fire
+ * cluster or tracked wildfire → ACTIVE. Without FIRMS the line still uses EONET.
+ */
+export function wildfireStatus(
+  fires: NaturalEvent[],
+  at: GeoPoint,
+  hasData: boolean,
+): SystemReading {
+  if (!hasData) return { status: 'unknown', rule: FIRE_RULE }
+  const clusters = fires.filter(
+    (e) =>
+      e.category === 'wildfire' &&
+      e.derivation === 'derived' &&
+      e.sources[0]?.source === 'relay-firms',
+  )
+  const tracked = fires.filter((e) => e.category === 'wildfire' && e.sources[0]?.source === 'eonet')
+  const distance = (e: NaturalEvent) => {
+    if (e.geometry.type !== 'Point') return Infinity
+    const [lon, lat] = e.geometry.coordinates
+    return haversineKm(at.lat, at.lon, lat, lon)
+  }
+  const near = clusters.filter((e) => distance(e) <= 50)
+  const status: SystemStatus = near.length
+    ? 'elevated'
+    : clusters.length || tracked.length
+      ? 'active'
+      : 'nominal'
+  const parts = [`熱異常クラスタ ${clusters.length}(派生)`, `追跡中 ${tracked.length}(EONET)`]
+  if (near.length) parts.unshift('監視地点50km内に熱異常')
+  return { status, headline: parts.join(' · '), rule: FIRE_RULE }
+}

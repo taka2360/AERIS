@@ -25,6 +25,10 @@ export type MapScene = {
   snowDepthTileUrl: string | null
   snowfallTileUrl: string | null
   /** Modeled wave / SST grid cells (MODEL) */
+  /** FIRMS detections at the cursor time (age 0 → 1 over 24 h) */
+  fireDetections: Array<{ lat: number; lon: number; frp: number | null; age: number }>
+  /** Tracked / assessed events (EONET, GDACS, fire clusters); rank = GDACS level */
+  globalMarkers: Array<{ id: string; lat: number; lon: number; tag: string; rank: number }>
   /** OVATION aurora probability cells [lon, lat, %] (FORECAST MODEL) */
   auroraCells: Array<[number, number, number]>
   marineCells: Array<{
@@ -93,6 +97,8 @@ export type LayerToggle =
   | 'snowf'
   | 'wave'
   | 'aurora'
+  | 'fire'
+  | 'global'
 
 export type LayerVisibility = Record<LayerToggle, boolean>
 

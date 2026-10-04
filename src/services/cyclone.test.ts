@@ -67,3 +67,20 @@ describe('cyclone status (AERIS rule)', () => {
     expect(r.headline).toContain('監視地点まで')
   })
 })
+
+describe('cyclone titles', () => {
+  const base = {
+    id: 'x',
+    issuedAt: '2026-10-04T18:45:00+09:00',
+    detail: { observedTrack: [], forecasts: [] },
+  }
+  it('names typhoons, downgraded systems and unnumbered depressions', () => {
+    expect(typhoonTitle({ ...base, number: '2627', name: 'チョーイワン', category: 'TY' })).toBe(
+      '台風第27号 チョーイワン',
+    )
+    expect(typhoonTitle({ ...base, number: '2627', name: 'チョーイワン', category: 'LOW' })).toBe(
+      '温帯低気圧(旧台風第27号 チョーイワン)',
+    )
+    expect(typhoonTitle({ ...base, category: 'TD' })).toBe('熱帯低気圧')
+  })
+})

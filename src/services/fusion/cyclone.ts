@@ -9,11 +9,13 @@ import type { CycloneReport } from '@/sources/jma-typhoon'
 /** '2627' → '台風第27号' (JMA numbers are YYNN). */
 export function typhoonTitle(r: CycloneReport): string {
   const nn = r.number ? Number(r.number.slice(-2)) : null
-  const base = nn ? `台風第${nn}号` : '熱帯低気圧'
   const name = r.name ? ` ${r.name}` : ''
-  if (r.category === 'LOW') return `温帯低気圧(旧${base}${name})`
-  if (r.category === 'TD') return `熱帯低気圧(旧${base}${name})`
-  return `${base}${name}`
+  // A depression that was never named a typhoon has no number.
+  if (!nn) return r.category === 'LOW' ? '温帯低気圧' : '熱帯低気圧'
+  const base = `台風第${nn}号${name}`
+  if (r.category === 'LOW') return `温帯低気圧(旧${base})`
+  if (r.category === 'TD') return `熱帯低気圧(旧${base})`
+  return base
 }
 
 export function cycloneEvent(obs: SourceObservation<CycloneReport>): CycloneEvent {

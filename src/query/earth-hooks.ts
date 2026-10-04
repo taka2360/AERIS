@@ -23,6 +23,8 @@ import {
   oceanStatus,
   snowStatus,
   spaceStatus,
+  globalStatus,
+  wildfireStatus,
   seismicStatus,
   severeStatus,
   tsunamiStatus,
@@ -38,6 +40,14 @@ import { fuseTsunami } from '@/services/fusion/tsunami'
 import { cycloneEvent } from '@/services/fusion/cyclone'
 import { fuseVolcanoes } from '@/services/fusion/volcano'
 import { spaceEvents } from '@/services/fusion/space'
+import {
+  clusterFires,
+  eonetEvent,
+  gdacsEvents,
+  linkGdacs,
+  nhcEvent,
+  relateStorms,
+} from '@/services/fusion/global'
 import type { CycloneReport } from '@/sources/jma-typhoon'
 import type { SpaceWeather } from '@/sources/swpc'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
@@ -70,6 +80,10 @@ export const earthKeys = {
   marineGrid: () => ['earth', 'marine-grid'] as const,
   space: () => ['earth', 'swpc'] as const,
   aurora: () => ['earth', 'ovation'] as const,
+  eonet: () => ['earth', 'eonet'] as const,
+  gdacs: () => ['earth', 'gdacs'] as const,
+  firms: () => ['earth', 'firms'] as const,
+  nhc: () => ['earth', 'nhc'] as const,
   strokes: () => ['earth', 'jma-liden'] as const,
   sample: (kind: string, frame: string, lat: number, lon: number, r: number) =>
     ['earth', 'sample', kind, frame, lat, lon, r] as const,
@@ -213,10 +227,28 @@ export function useCycloneReports() {
   })
 }
 
+export function useNhc() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.nhc(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.global.nhc(signal)),
+    staleTime: 5 * 60_000,
+    refetchInterval: nominalPollMs('relay-nhc'),
+  })
+}
+
+/** JMA cyclones plus NHC storms (Atlantic / East Pacific, via the relay). */
 export function useCyclones() {
   const q = useCycloneReports()
-  const events = useMemo(() => (q.data?.data ?? []).map(cycloneEvent), [q.data])
-  return { events, query: q }
+  const nhc = useNhc()
+  const events = useMemo(
+    () => [
+      ...(q.data?.data ?? []).map(cycloneEvent),
+      ...(nhc.data ? nhc.data.data.storms.map((s) => nhcEvent(s, nhc.data!.provenance)) : []),
+    ],
+    [q.data, nhc.data],
+  )
+  return { events, query: q, nhc }
 }
 
 export function useKikikuru() {
@@ -337,6 +369,65 @@ export function useAurora(enabled: boolean) {
   })
 }
 
+export function useEonet() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.eonet(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.global.eonet(signal)),
+    staleTime: 10 * 60_000,
+    refetchInterval: nominalPollMs('eonet'),
+    meta: { persist: true },
+  })
+}
+
+export function useGdacs() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.gdacs(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.global.gdacs(signal)),
+    staleTime: 10 * 60_000,
+    refetchInterval: nominalPollMs('gdacs'),
+    meta: { persist: true },
+  })
+}
+
+export function useFirms() {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: earthKeys.firms(),
+    queryFn: async ({ signal }) => unwrap(await provider.earth.global.firms(signal)),
+    staleTime: 5 * 60_000,
+    refetchInterval: nominalPollMs('relay-firms'),
+  })
+}
+
+/**
+ * Global picture: EONET tracked events (storms related to agency cyclones),
+ * GDACS-only floods/droughts, AERIS fire clusters from FIRMS, and GDACS
+ * assessments linked to the events they rate.
+ */
+export function useGlobalEvents() {
+  const eonet = useEonet()
+  const gdacs = useGdacs()
+  const firms = useFirms()
+  const { events: cyclones } = useCyclones()
+  const now = useMinuteClock()
+  const events = useMemo<NaturalEvent[]>(() => {
+    const tracked = relateStorms((eonet.data?.data ?? []).map(eonetEvent), cyclones)
+    const fires = firms.data
+      ? clusterFires(firms.data.data.detections, now, firms.data.provenance)
+      : []
+    return [...tracked, ...gdacsEvents(gdacs.data?.data ?? []), ...fires]
+  }, [eonet.data, gdacs.data, firms.data, cyclones, now])
+  return { events, eonet, gdacs, firms }
+}
+
+/** GDACS assessments keyed by the event they were linked to. */
+export function useGdacsLinks(events: NaturalEvent[]) {
+  const gdacs = useGdacs()
+  return useMemo(() => linkGdacs(gdacs.data?.data ?? [], events), [gdacs.data, events])
+}
+
 export function useSnow() {
   const provider = useWeatherProvider()
   return useQuery({
@@ -441,15 +532,16 @@ export function useNaturalEvents(): { events: NaturalEvent[]; now: Instant } {
   const { events: cyclones } = useCyclones()
   const { events: volcanoes } = useVolcanoes()
   const space = useSpaceEvents()
+  const { events: global } = useGlobalEvents()
   const now = useMinuteClock()
   const events = useMemo<NaturalEvent[]>(
     () =>
-      [...tsunamis, ...cyclones, ...volcanoes, ...space, ...quakes].sort(
+      [...tsunamis, ...cyclones, ...volcanoes, ...space, ...global, ...quakes].sort(
         (a, b) =>
           Date.parse(b.time.startedAt ?? b.time.observedAt ?? b.time.issuedAt ?? '') -
           Date.parse(a.time.startedAt ?? a.time.observedAt ?? a.time.issuedAt ?? ''),
       ),
-    [quakes, tsunamis, cyclones, volcanoes, space],
+    [quakes, tsunamis, cyclones, volcanoes, space, global],
   )
   return { events, now }
 }
@@ -523,6 +615,7 @@ export function useEarthSystems(): SystemRow[] {
   const snowDepth = useLocalSample('snow-depth', snow.data?.depth, 1)
   const snowfall = useLocalSample('snowfall-3h', snow.data?.snowfall, 1)
   const sw = useSpaceWeather()
+  const global = useGlobalEvents()
   const { location } = useResolvedLocation()
   const now = useMinuteClock()
   return useMemo(() => {
@@ -631,6 +724,43 @@ export function useEarthSystems(): SystemRow[] {
         sources: ['NOAA SWPC'],
       },
       {
+        id: 'wildfire',
+        label: 'WILDFIRE',
+        reading: wildfireStatus(
+          global.events,
+          location,
+          !!global.eonet.data || !!global.firms.data,
+        ),
+        checkedAt: latestCheck([global.firms, global.eonet]),
+        // FIRMS is optional (relay): without it the line runs on EONET alone.
+        feed: global.firms.data
+          ? feedState(
+              [global.firms, global.eonet],
+              sourceSpec('relay-firms')!.freshness.staleAfterMin,
+              now,
+            )
+          : global.eonet.data
+            ? 'partial'
+            : feedState([global.eonet], sourceSpec('eonet')!.freshness.staleAfterMin, now),
+        sources: global.firms.data ? ['FIRMS', 'EONET'] : ['EONET'],
+      },
+      {
+        id: 'global',
+        label: 'GLOBAL',
+        reading: globalStatus(
+          global.gdacs.data?.data ?? [],
+          global.events,
+          !!global.gdacs.data || !!global.eonet.data,
+        ),
+        checkedAt: latestCheck([global.gdacs, global.eonet]),
+        feed: feedState(
+          [global.gdacs, global.eonet],
+          sourceSpec('gdacs')!.freshness.staleAfterMin,
+          now,
+        ),
+        sources: ['GDACS', 'EONET'],
+      },
+      {
         id: 'severe',
         label: 'SEVERE WX',
         reading: severeStatus(
@@ -689,6 +819,7 @@ export function useEarthSystems(): SystemRow[] {
     snowfall.data,
     snow.isError,
     sw,
+    global,
     ltng.data,
     torn.data,
     thunder.isError,

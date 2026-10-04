@@ -18,6 +18,7 @@ import { volcanoLayer } from './volcano-layer'
 import { floodLayer, inundationLayer, landLayer } from './kikikuru-layers'
 import { snowDepthLayer, snowfallLayer, waveLayer } from './env-layers'
 import { auroraLayer } from './aurora-layer'
+import { fireLayer, globalLayer } from './global-layers'
 import type { MapLayerDef } from './types'
 
 export const MAP_LAYERS: MapLayerDef[] = [
@@ -34,6 +35,8 @@ export const MAP_LAYERS: MapLayerDef[] = [
   ringsLayer,
   windLayer,
   stationsLayer,
+  fireLayer,
+  globalLayer,
   strokesLayer,
   cycloneLayer,
   tsunamiLayer,
