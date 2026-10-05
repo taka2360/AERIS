@@ -2,56 +2,117 @@
   display: flex;
   flex-direction: column;
   gap: var(--s2);
+  min-width: 0;
 }
+/*
+ * Layout follows the panel's own width (container query), not the viewport:
+ * the same panel sits full-width on tablets and beside S-03 on desktop.
+ *   narrow : one column
+ *   medium : hydro | air  /  ocean | snow
+ *   wide   : hydro (3) air (3)  /  ocean (4) snow (2) on a 6-column track
+ */
 .body {
+  container-type: inline-size;
+}
+.layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-  gap: var(--s4);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s4) var(--s5);
 }
 .sectionHead {
   margin: 0;
   display: flex;
-  gap: var(--s3);
+  flex-wrap: wrap;
+  gap: 2px var(--s3);
   align-items: baseline;
   font-size: 0.625rem;
   font-weight: 400;
   color: var(--amber-dim);
   letter-spacing: var(--track-wide);
 }
+
+/* ── Hydro chain: numbered steps; arrows only where the next step is beside ── */
 .chain {
+  container-type: inline-size;
+}
+.chainGrid {
   display: grid;
-  grid-template-columns:
-    minmax(0, 0.8fr) auto minmax(0, 1fr) auto minmax(0, 1.3fr) auto
-    minmax(0, 0.9fr);
-  align-items: start;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s3) 18px;
+}
+@container (min-width: 460px) {
+  .chainGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .node {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  padding: 4px;
+  align-items: flex-start;
+  padding: 4px 6px;
   border: 1px solid var(--rule);
   font-size: var(--fs-micro);
+  overflow-wrap: anywhere;
+}
+.node > * {
+  max-width: 100%;
+}
+/* Arrow in the gap to the right; hidden at the end of a row. */
+.node:not(:last-child)::after {
+  content: '→';
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  width: 12px;
+  text-align: center;
+  transform: translateY(-50%);
+  color: var(--amber-dim);
+  font-size: var(--fs-label);
+  line-height: 1;
+}
+.node:nth-child(2n)::after {
+  content: none;
+}
+@container (min-width: 460px) {
+  .node:nth-child(2n):not(:last-child)::after {
+    content: '→';
+  }
 }
 .nodeHead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.5625rem;
   color: var(--text-faint);
   letter-spacing: var(--track-wide);
 }
+.nodeHead i {
+  display: inline-grid;
+  place-items: center;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber-dim);
+  font-style: normal;
+  font-size: 0.5rem;
+  letter-spacing: 0;
+}
 .value {
   font-size: var(--fs-data);
   color: var(--text);
+  white-space: nowrap;
 }
 .value small {
   margin-left: 2px;
   font-size: var(--fs-micro);
   color: var(--text-dim);
 }
-.arrow {
-  align-self: center;
-  color: var(--amber-dim);
+.value small.dir {
+  margin-left: 6px;
+  color: var(--cyan-dim);
 }
 .kiki {
   display: flex;
@@ -80,9 +141,26 @@
 }
 .note {
   font-size: 0.5625rem;
+  line-height: 1.5;
   color: var(--text-faint);
 }
+.ratios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 0.5625rem;
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+}
+.ratio b {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.ratio[data-over] b {
+  color: var(--yellow);
+}
 .spark {
+  align-self: stretch;
   width: 100%;
   height: 22px;
 }
@@ -103,7 +181,7 @@
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 4px;
 }
 .cell {
@@ -136,8 +214,27 @@
   color: var(--purple);
 }
 
-@media (max-width: 1279px) {
-  .chain {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+/* Section placement (see .layout) */
+@container (min-width: 640px) {
+  .layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (min-width: 900px) {
+  .layout {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .hydro,
+  .air {
+    grid-column: span 3;
+  }
+  .ocean {
+    grid-column: span 4;
+  }
+  .snow {
+    grid-column: span 2;
+  }
+  .ocean .grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }

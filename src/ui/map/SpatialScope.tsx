@@ -294,6 +294,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   )
 
   const showMap = mode === 'map' && !mapFailed && active
+  // NEAREST is a local readout: zoomed out to REGION/GLOBE the map takes the full width.
+  const showSide = !showMap || range === 'local'
   useEffect(() => {
     if (!showMap && !mapFailed) setMapStatus({ state: 'standby' })
   }, [showMap, mapFailed])
@@ -529,7 +531,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     <Panel
       code="M-01"
       title="SPATIAL SCOPE"
-      bodyClassName={s.body}
+      className={s.panel}
+      bodyClassName={showSide ? s.body : `${s.body} ${s.bodyWide}`}
       meta={
         <>
           <div className={s.toggles} role="group" aria-label="表示モード">
@@ -677,48 +680,52 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
         )}
       </div>
 
-      <div className={s.side}>
-        <div className={s.sideHead}>OBS NETWORK · NEAREST</div>
-        <table className={s.stnTable}>
-          <caption className="visually-hidden">近傍のアメダス観測点</caption>
-          <thead>
-            <tr>
-              <th scope="col">STN</th>
-              <th scope="col">KM</th>
-              <th scope="col">°C</th>
-              <th scope="col">MM</th>
-              <th scope="col">WIND</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stationList.slice(0, 12).map((st) => (
-              <tr
-                key={st.id}
-                data-active={focused?.id === st.id || undefined}
-                onPointerEnter={() => setFocus(st.id)}
-                tabIndex={0}
-                onFocus={() => setFocus(st.id)}
-              >
-                <th scope="row" className="ja">
-                  {st.name}
-                </th>
-                <td>{st.distanceKm.toFixed(1)}</td>
-                <td>{fmt(st.temperature)}</td>
-                <td data-wet={(st.precipitation1h ?? 0) > 0 || undefined}>
-                  {fmt(st.precipitation1h)}
-                </td>
-                <td>
-                  {fmt(st.windSpeed)}
-                  <small>{st.windDirection != null ? ` ${compass16(st.windDirection)}` : ''}</small>
-                </td>
+      {showSide && (
+        <div className={s.side}>
+          <div className={s.sideHead}>OBS NETWORK · NEAREST</div>
+          <table className={s.stnTable}>
+            <caption className="visually-hidden">近傍のアメダス観測点</caption>
+            <thead>
+              <tr>
+                <th scope="col">STN</th>
+                <th scope="col">KM</th>
+                <th scope="col">°C</th>
+                <th scope="col">MM</th>
+                <th scope="col">WIND</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {(stations.isError || stations.failureCount > 0) && (
-          <div className={s.err}>■ OBS NETWORK UNAVAILABLE</div>
-        )}
-      </div>
+            </thead>
+            <tbody>
+              {stationList.slice(0, 12).map((st) => (
+                <tr
+                  key={st.id}
+                  data-active={focused?.id === st.id || undefined}
+                  onPointerEnter={() => setFocus(st.id)}
+                  tabIndex={0}
+                  onFocus={() => setFocus(st.id)}
+                >
+                  <th scope="row" className="ja">
+                    {st.name}
+                  </th>
+                  <td>{st.distanceKm.toFixed(1)}</td>
+                  <td>{fmt(st.temperature)}</td>
+                  <td data-wet={(st.precipitation1h ?? 0) > 0 || undefined}>
+                    {fmt(st.precipitation1h)}
+                  </td>
+                  <td>
+                    {fmt(st.windSpeed)}
+                    <small>
+                      {st.windDirection != null ? ` ${compass16(st.windDirection)}` : ''}
+                    </small>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {(stations.isError || stations.failureCount > 0) && (
+            <div className={s.err}>■ OBS NETWORK UNAVAILABLE</div>
+          )}
+        </div>
+      )}
     </Panel>
   )
 })

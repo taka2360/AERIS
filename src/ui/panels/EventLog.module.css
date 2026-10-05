@@ -3,6 +3,15 @@
   max-height: 320px;
   overflow: auto;
 }
+/* Desktop: the log sits at the bottom of a stack and takes whatever height
+   its neighbour column leaves — more rows instead of an empty strip. */
+@media (min-width: 1280px) {
+  .body {
+    flex: 1 1 0;
+    min-height: 260px;
+    max-height: none;
+  }
+}
 .chips {
   display: inline-flex;
   gap: 2px;

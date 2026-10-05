@@ -4,6 +4,26 @@
   gap: var(--s4);
   padding: var(--s3) var(--s4);
 }
+.bodyWide {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* The scope is width-bound in a narrow centre column (1280–1600px screens):
+   move NEAREST under it instead of beside it. */
+.panel {
+  container-type: inline-size;
+}
+@container (max-width: 760px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .side {
+    border-left: 0 !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s3);
+  }
+}
 
 .toggles {
   display: flex;
