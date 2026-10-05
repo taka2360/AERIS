@@ -3,7 +3,7 @@
  * (one colour scale at a time); point and line layers combine freely.
  */
 import { useEffect, useRef } from 'react'
-import { LAYER_CATALOG, toggleLayer, type LayerEntry } from './layers/catalog'
+import { LAYER_CATALOG, toggleLayer } from './layers/catalog'
 import type { LayerVisibility } from './layers/types'
 import s from './SpatialScope.module.css'
 
@@ -14,14 +14,11 @@ export function LayerMenu({
   setLayers,
   open,
   setOpen,
-  available,
 }: {
   layers: LayerVisibility
   setLayers: (v: LayerVisibility) => void
   open: boolean
   setOpen: (v: boolean) => void
-  /** Layers the current view can draw (vector scope supports fewer) */
-  available: (e: LayerEntry) => boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -45,11 +42,10 @@ export function LayerMenu({
         <fieldset key={g} className={s.layerGroup}>
           <legend>{g}</legend>
           {LAYER_CATALOG.filter((e) => e.group === g).map((e) => (
-            <label key={e.id} className={s.layerItem} data-disabled={!available(e) || undefined}>
+            <label key={e.id} className={s.layerItem}>
               <input
                 type="checkbox"
                 checked={layers[e.id]}
-                disabled={!available(e)}
                 onChange={() => setLayers(toggleLayer(layers, e.id))}
               />
               <span className={s.layerName}>{e.label}</span>

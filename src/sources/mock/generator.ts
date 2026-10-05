@@ -14,8 +14,10 @@ import type {
   Provenance,
   StationObservation,
   WeatherCondition,
+  WindGridTier,
   WindSample,
 } from '@/domain/model'
+import { windGridPoints } from '@/domain/model'
 import {
   addMinutes,
   epoch,
@@ -263,6 +265,27 @@ export function synthWindField(lat: number, lon: number, now: Instant): WindSamp
     }
   }
   return samples
+}
+
+/**
+ * Coarse grid wind: westerlies in mid-latitudes, trade winds in the tropics,
+ * polar easterlies, with a slow wave so the field is not uniform.
+ */
+export function synthWindGrid(tier: WindGridTier, now: Instant): WindSample[] {
+  const t = epoch(now) / 3_600_000
+  return windGridPoints(tier).map((p, k) => {
+    const a = Math.abs(p.lat)
+    // Direction the wind blows FROM (meteorological).
+    const base = a < 30 ? (p.lat >= 0 ? 60 : 120) : a < 60 ? (p.lat >= 0 ? 260 : 280) : 90
+    const wave = Math.sin((p.lon + t * 2) / 25) * 35 + Math.cos(p.lat / 9) * 15
+    return {
+      lat: p.lat,
+      lon: p.lon,
+      speed: round1(4 + (a >= 30 && a < 60 ? 5 : 1) + noise(k * 17 + Math.floor(t)) * 3),
+      direction: Math.round((base + wave + 360) % 360),
+      major: p.major,
+    }
+  })
 }
 
 export function synthAlerts(now: Instant, prov: Provenance): AlertBulletin {

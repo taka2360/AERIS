@@ -24,6 +24,37 @@
     padding-top: var(--s3);
   }
 }
+/* Stacked: table and FOCUS/NETWORK side by side, so the map keeps its height. */
+@container (min-width: 520px) and (max-width: 760px) {
+  .body .side {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--s5);
+  }
+  .side > .sideHead {
+    grid-column: 1;
+  }
+  .side > .stnTable {
+    grid-column: 1;
+  }
+  .side > .extras {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    margin-top: 0;
+  }
+}
+@container (max-width: 519px) {
+  .body .extras {
+    display: none;
+  }
+}
+/* Narrow track: keep only the main scale marks. */
+@container (max-width: 700px) {
+  .scale span[data-minor] {
+    display: none;
+  }
+}
 
 .toggles {
   display: flex;
@@ -104,9 +135,6 @@
   color: var(--cyan);
   font-size: var(--fs-label);
   letter-spacing: var(--track-wide);
-}
-.warn {
-  color: var(--yellow);
 }
 .recenter {
   position: absolute;
@@ -201,15 +229,6 @@
   border: 0;
   border-radius: 0;
 }
-.scope {
-  position: absolute;
-  inset: 30px 0;
-  width: 100%;
-  height: calc(100% - 60px);
-  overflow: visible;
-  font-family: var(--font-mono);
-}
-
 @media (max-width: 767px) {
   .body {
     grid-template-columns: minmax(0, 1fr);
@@ -224,42 +243,6 @@
     padding-top: var(--s3);
   }
 }
-
-.grid line {
-  stroke: var(--grid);
-  stroke-width: 0.15;
-}
-.rings circle {
-  fill: none;
-  stroke: var(--rule-strong);
-  stroke-width: 0.2;
-  stroke-dasharray: 0.6 0.8;
-}
-.rings .outer {
-  stroke: var(--amber-dim);
-  stroke-width: 0.3;
-  stroke-dasharray: none;
-}
-.bezel {
-  stroke: var(--amber-dim);
-  stroke-width: 0.25;
-}
-.ringLabel {
-  font-size: 1.8px;
-  fill: var(--text-faint);
-}
-.cardinal {
-  font-size: 2.6px;
-  fill: var(--amber);
-  text-anchor: middle;
-}
-
-.precipTrack {
-  fill: none;
-  stroke: var(--rule-strong);
-  stroke-width: 0.15;
-}
-
 .wind line {
   stroke: var(--cyan);
   stroke-width: 0.25;
@@ -269,31 +252,6 @@
   fill: var(--cyan);
   opacity: 0.5;
 }
-
-.station rect {
-  fill: var(--bg);
-  stroke: var(--amber);
-  stroke-width: 0.3;
-}
-.station[data-active] rect {
-  fill: var(--amber);
-}
-.stnTemp {
-  font-size: 2.2px;
-  fill: var(--text);
-}
-.station[data-active] .stnTemp {
-  fill: var(--amber-hi);
-}
-
-.cross line {
-  stroke: var(--amber-hi);
-  stroke-width: 0.35;
-}
-.cross circle {
-  fill: var(--amber-hi);
-}
-
 .overlayTL,
 .overlayBL {
   position: absolute;
@@ -407,6 +365,45 @@
   min-width: 0;
   display: flex;
   align-items: center;
+  /* Room for the scale labels under the track */
+  padding-bottom: 11px;
+}
+/* The present: centre of the track */
+.nowMark {
+  position: absolute;
+  top: -2px;
+  width: 1px;
+  height: 20px;
+  margin-left: -0.5px;
+  background: var(--amber-hi);
+  box-shadow: 0 0 4px var(--amber-glow);
+  pointer-events: none;
+}
+.scale {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10px;
+  pointer-events: none;
+}
+.scale span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.5625rem;
+  line-height: 10px;
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+  white-space: nowrap;
+}
+.scale span:first-child {
+  transform: none;
+}
+.scale span:last-child {
+  transform: translateX(-100%);
+}
+.scale span[data-now] {
+  color: var(--amber);
 }
 .sliderWrap .slider {
   width: 100%;
@@ -495,4 +492,157 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── Below the station table: focus station + network spread ── */
+.side {
+  display: flex;
+  flex-direction: column;
+}
+.extras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  margin-top: var(--s4);
+}
+.focusCard,
+.netCard {
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+}
+.focusMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin: 2px 0 6px;
+}
+.focusTemp {
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--amber-hi);
+  text-shadow: 0 0 10px var(--amber-glow);
+}
+.focusTemp small,
+.focusWind small {
+  margin-left: 3px;
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  text-shadow: none;
+}
+.focusWind {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--fs-data);
+  color: var(--text);
+}
+.windArrow {
+  display: inline-block;
+  color: var(--cyan);
+  transition: transform 300ms ease;
+}
+.windArrow[data-calm] {
+  visibility: hidden;
+}
+.focusGrid,
+.netGrid {
+  display: grid;
+  gap: 2px var(--s3);
+  margin: 0;
+  font-size: var(--fs-micro);
+}
+.focusGrid {
+  grid-template-columns: auto 1fr auto 1fr;
+}
+.focusGrid dt,
+.netGrid dt {
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+}
+.focusGrid dd,
+.netGrid dd {
+  margin: 0;
+  color: var(--text);
+  text-align: right;
+}
+.focusFoot {
+  margin-top: 6px;
+  font-size: 0.625rem;
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+}
+.netGrid {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-top: 6px;
+}
+.netGrid dd {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s3);
+  min-width: 0;
+}
+.netGrid dd span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+.netGrid dd b {
+  font-weight: 400;
+  color: var(--text);
+  min-width: 4.5em;
+}
+.netGrid dd b[data-wet] {
+  color: var(--cyan);
+}
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.625rem;
+  color: var(--text-dim);
+}
+.stripTrack {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  background: linear-gradient(to right, rgba(0, 200, 255, 0.18), rgba(255, 176, 0, 0.22));
+  border: 1px solid var(--rule);
+}
+.stripTrack i {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--text-dim);
+}
+.stripTrack i[data-focus] {
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--amber-hi);
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+
+/* Map outage notice (no vector fallback) */
+.mapDown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  padding: var(--s5);
+  text-align: center;
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+}
+.mapDown b {
+  color: var(--yellow);
+  letter-spacing: var(--track-wide);
 }

@@ -9,8 +9,6 @@ const clock = '2026-10-04T16:24:00+09:00'
 beforeEach(() => {
   window.sessionStorage.setItem('aeris.booted', '1') // skip boot overlay
   window.localStorage.clear()
-  // jsdom has no WebGL: run integration tests on the vector scope.
-  window.localStorage.setItem('aeris.scopeMode', 'scope')
 })
 
 describe('AERIS terminal (mock provider)', () => {
@@ -57,15 +55,17 @@ describe('AERIS terminal (mock provider)', () => {
     )
   })
 
-  it('falls back to the vector scope when the map cannot start (no WebGL)', async () => {
-    window.localStorage.setItem('aeris.scopeMode', 'map')
+  it('reports the map outage when the map cannot start (no WebGL)', async () => {
     render(<App provider={createMockProvider({ clock, latency: [0, 0] })} />)
     const scope = await screen.findByRole('region', { name: 'SPATIAL SCOPE' })
     await waitFor(() => expect(scope).toHaveTextContent('BASEMAP UNAVAILABLE'), { timeout: 5000 })
-    expect(within(scope).getByRole('img', { name: /観測スコープ/ })).toBeInTheDocument()
+    // The nearest-station readout does not depend on the map
+    expect(within(scope).getByRole('table', { name: '近傍のアメダス観測点' })).toBeInTheDocument()
     // The rest of the terminal is unaffected
-    expect(screen.getByRole('region', { name: 'CURRENT ATMOSPHERIC STATUS' })).toHaveTextContent(
-      'OBS',
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'CURRENT ATMOSPHERIC STATUS' })).toHaveTextContent(
+        'OBS',
+      ),
     )
   })
 })

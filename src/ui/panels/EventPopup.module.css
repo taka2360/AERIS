@@ -1,0 +1,122 @@
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  height: 24px;
+  padding-right: 2px;
+  border-bottom: 1px solid var(--amber-dim);
+  background: linear-gradient(to right, rgba(255, 176, 0, 0.16), transparent 70%);
+}
+.tag {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  background: var(--amber);
+  color: #000;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--track);
+}
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--amber-hi);
+  font-size: var(--fs-label);
+}
+.close {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  font-size: 0.6875rem;
+}
+.close:hover,
+.close:focus-visible {
+  border-color: var(--amber-dim);
+  color: var(--amber-hi);
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 8px;
+}
+.figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  color: var(--text);
+}
+.figure b {
+  font-size: var(--fs-data);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.cat {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}
+.rows {
+  display: grid;
+  grid-template-columns: 4.2em minmax(0, 1fr);
+  gap: 2px var(--s3);
+  margin: 0;
+  font-size: var(--fs-micro);
+}
+.rows dt {
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+}
+.rows dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.age {
+  margin-left: 6px;
+  color: var(--cyan);
+}
+.sev[data-sev='minor'] {
+  color: var(--cyan);
+}
+.sev[data-sev='moderate'] {
+  color: var(--yellow);
+}
+.sev[data-sev='severe'],
+.sev[data-sev='extreme'] {
+  color: var(--red);
+}
+.cancel {
+  color: var(--red);
+  font-size: var(--fs-micro);
+}
+.dim {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+}
+.more {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 10px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  color: var(--text-dim);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  cursor: pointer;
+}
+.more:hover,
+.more:focus-visible {
+  background: var(--amber);
+  color: #000;
+}
+.moreCode {
+  color: inherit;
+}

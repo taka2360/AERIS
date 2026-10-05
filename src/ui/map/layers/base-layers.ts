@@ -2,10 +2,11 @@
  * The original SPATIAL SCOPE overlays — radar echo, range rings, wind and
  * AMeDAS stations — as registry definitions.
  */
-import { type GeoJSONSource, type MapLayerMouseEvent, type RasterTileSource } from 'maplibre-gl'
-import { ringsGeoJSON, stationsGeoJSON, windGeoJSON } from '../geo'
+import { type GeoJSONSource, type RasterTileSource } from 'maplibre-gl'
+import { ringsGeoJSON, windGeoJSON } from '../geo'
 import { jmaTiles, registerJmaProtocol } from '../jma-protocol'
 import { FONT, MAP_COLORS, type TilePaletteId } from '../style'
+import type { WindSample } from '@/domain/model'
 import type { MapLayerDef, MapScene } from './types'
 
 export const JMA_ATTRIBUTION = '<a href="https://www.jma.go.jp/" target="_blank">気象庁</a>'
@@ -106,96 +107,75 @@ export const ringsLayer: MapLayerDef = {
   },
 }
 
+/**
+ * Zoom bands of the wind grids (exclusive upper bound). Each grid is shown
+ * only where its spacing reads as a field: the fine local grid covers ±0.3°
+ * and would leave the rest of a zoomed-out view empty.
+ */
+export const WIND_ZOOM = { globeUntil: 3, regionMajorUntil: 5, regionUntil: 7.5 } as const
+
+const WIND_TIERS: Array<{
+  id: string
+  pick: (s: MapScene) => WindSample[]
+  minzoom?: number
+  maxzoom?: number
+  /** Thin the grid to every other point (spacing ×2) */
+  major?: boolean
+}> = [
+  { id: 'wind-globe', pick: (s) => s.windGlobe, maxzoom: WIND_ZOOM.globeUntil },
+  {
+    id: 'wind-region-major',
+    pick: (s) => s.windRegion,
+    minzoom: WIND_ZOOM.globeUntil,
+    maxzoom: WIND_ZOOM.regionMajorUntil,
+    major: true,
+  },
+  {
+    id: 'wind-region',
+    pick: (s) => s.windRegion,
+    minzoom: WIND_ZOOM.regionMajorUntil,
+    maxzoom: WIND_ZOOM.regionUntil,
+  },
+  { id: 'wind', pick: (s) => s.wind, minzoom: WIND_ZOOM.regionUntil },
+]
+
+const windSourceId = (tier: string) => (tier === 'wind-region-major' ? 'wind-region' : tier)
+
 export const windLayer: MapLayerDef = {
   id: 'wind',
   toggle: 'wind',
-  styleLayers: ['wind'],
+  styleLayers: WIND_TIERS.map((w) => w.id),
   add(map, s) {
     if (!map.hasImage('wind-arrow')) map.addImage('wind-arrow', arrowImage(), { pixelRatio: 2 })
-    map.addSource('wind', { type: 'geojson', data: windGeoJSON(s.wind) })
-    map.addLayer({
-      id: 'wind',
-      type: 'symbol',
-      source: 'wind',
-      layout: {
-        'icon-image': 'wind-arrow',
-        // Arrow points where the wind blows TO.
-        'icon-rotate': ['+', ['get', 'direction'], 180],
-        'icon-rotation-alignment': 'map',
-        'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.6, 15, 1.4],
-        'icon-allow-overlap': true,
-      },
-      paint: { 'icon-opacity': 0.6 },
-    })
+    for (const tier of WIND_TIERS) {
+      const source = windSourceId(tier.id)
+      if (!map.getSource(source))
+        map.addSource(source, { type: 'geojson', data: windGeoJSON(tier.pick(s)) })
+      map.addLayer({
+        id: tier.id,
+        type: 'symbol',
+        source,
+        ...(tier.minzoom != null && { minzoom: tier.minzoom }),
+        ...(tier.maxzoom != null && { maxzoom: tier.maxzoom }),
+        ...(tier.major && { filter: ['==', ['get', 'major'], true] }),
+        layout: {
+          'icon-image': 'wind-arrow',
+          // Arrow points where the wind blows TO.
+          'icon-rotate': ['+', ['get', 'direction'], 180],
+          'icon-rotation-alignment': 'map',
+          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.6, 15, 1.4],
+          'icon-allow-overlap': true,
+        },
+        paint: { 'icon-opacity': 0.6 },
+      })
+    }
   },
-  deps: (s) => [s.wind],
+  deps: (s) => [s.wind, s.windRegion, s.windGlobe],
   update(map, s) {
-    ;(map.getSource('wind') as GeoJSONSource | undefined)?.setData(windGeoJSON(s.wind))
-  },
-}
-
-const STATION_MIN_ZOOM = 6.5
-
-export const stationsLayer: MapLayerDef = {
-  id: 'stations',
-  toggle: 'stn',
-  styleLayers: ['stations', 'station-labels'],
-  add(map, s, handlers) {
-    map.addSource('stations', { type: 'geojson', data: stationsGeoJSON(s.stations) })
-    map.addLayer({
-      id: 'stations',
-      type: 'circle',
-      source: 'stations',
-      // The nearest dozen stations are a local readout; zoomed out they collapse
-      // into one clump over the location and only hide what is around it.
-      minzoom: STATION_MIN_ZOOM,
-      paint: {
-        'circle-radius': ['case', ['boolean', ['feature-state', 'focus'], false], 5, 3.5],
-        'circle-color': [
-          'case',
-          ['boolean', ['feature-state', 'focus'], false],
-          MAP_COLORS.amber,
-          MAP_COLORS.bg,
-        ],
-        'circle-stroke-color': MAP_COLORS.amber,
-        'circle-stroke-width': 1.2,
-      },
-    })
-    map.addLayer({
-      id: 'station-labels',
-      type: 'symbol',
-      source: 'stations',
-      minzoom: STATION_MIN_ZOOM,
-      layout: {
-        'text-field': ['get', 'temp'],
-        'text-font': FONT,
-        'text-size': 11,
-        'text-offset': [0.6, 0],
-        'text-anchor': 'left',
-      },
-      paint: {
-        'text-color': MAP_COLORS.text,
-        'text-halo-color': MAP_COLORS.bg,
-        'text-halo-width': 1.4,
-      },
-    })
-    map.on('mouseenter', 'stations', (e: MapLayerMouseEvent) => {
-      map.getCanvas().style.cursor = 'pointer'
-      const id = e.features?.[0]?.properties?.id
-      if (id) handlers().onFocus(String(id))
-    })
-    map.on('mouseleave', 'stations', () => {
-      map.getCanvas().style.cursor = ''
-    })
-    if (s.focusId)
-      map.setFeatureState({ source: 'stations', id: Number(s.focusId) }, { focus: true })
-  },
-  deps: (s) => [s.stations, s.focusId],
-  update(map, s) {
-    ;(map.getSource('stations') as GeoJSONSource | undefined)?.setData(stationsGeoJSON(s.stations))
-    map.removeFeatureState({ source: 'stations' })
-    if (s.focusId)
-      map.setFeatureState({ source: 'stations', id: Number(s.focusId) }, { focus: true })
+    for (const tier of WIND_TIERS) {
+      if (tier.id === 'wind-region-major') continue
+      ;(map.getSource(tier.id) as GeoJSONSource | undefined)?.setData(windGeoJSON(tier.pick(s)))
+    }
   },
 }
 

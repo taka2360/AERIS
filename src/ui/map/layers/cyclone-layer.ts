@@ -8,7 +8,7 @@ import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { splitAtAntimeridian } from '@/domain/earth/common'
 import { destination } from '../geo'
 import { FONT, MAP_COLORS } from '../style'
-import type { MapLayerDef, MapScene } from './types'
+import { pickPoint, type MapLayerDef, type MapScene } from './types'
 
 function circle(lat: number, lon: number, km: number, steps = 64): [number, number][] {
   return Array.from({ length: steps + 1 }, (_, i) => {
@@ -146,7 +146,7 @@ export const cycloneLayer: MapLayerDef = {
     })
     map.on('click', 'cyclone-centre', (e: MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.id
-      if (id) handlers().onSelect(String(id))
+      if (id) handlers().onSelect(String(id), pickPoint(e))
     })
   },
   deps: (s) => [s.cyclones, s.selectedEventId],

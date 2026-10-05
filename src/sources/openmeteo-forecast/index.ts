@@ -1,4 +1,10 @@
-import type { GeoPoint, ModelForecast, WindSample } from '@/domain/model'
+import {
+  windGridPoints,
+  type GeoPoint,
+  type ModelForecast,
+  type WindGridTier,
+  type WindSample,
+} from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import { toInstant } from '@/domain/time'
 import { fetchValidated } from '../http'
@@ -62,6 +68,47 @@ export async function fetchWindField(
   return {
     ok: true,
     data: adaptWindField(r.data),
+    provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
+  }
+}
+
+/**
+ * Coarse wind grid for zoomed-out views (180 points; each counts as one API
+ * call, so the caller fetches it only while such a view is shown and keeps
+ * it for hours). Open-Meteo snaps points to model cells but keeps request
+ * order, which carries the "major" (thinned subset) flag across.
+ */
+export async function fetchWindGrid(
+  tier: WindGridTier,
+  signal?: AbortSignal,
+): Promise<SourceResult<WindSample[]>> {
+  const pts = windGridPoints(tier)
+  const q = new URLSearchParams({
+    latitude: pts.map((p) => p.lat.toFixed(2)).join(','),
+    longitude: pts.map((p) => p.lon.toFixed(2)).join(','),
+    current: 'wind_speed_10m,wind_direction_10m',
+    wind_speed_unit: 'ms',
+  })
+  const r = await fetchValidated(`${BASE}?${q}`, windFieldSchema, { signal })
+  if (!r.ok) return { ok: false, source: 'openmeteo', error: r.error }
+  const retrievedAt = toInstant(Date.now())
+  const data = r.data.flatMap((p, i): WindSample[] =>
+    p.current.wind_speed_10m == null || p.current.wind_direction_10m == null
+      ? []
+      : [
+          {
+            // The requested point, not the snapped cell, keeps the grid regular.
+            lat: pts[i]?.lat ?? p.latitude,
+            lon: pts[i]?.lon ?? p.longitude,
+            speed: p.current.wind_speed_10m,
+            direction: p.current.wind_direction_10m,
+            major: pts[i]?.major ?? false,
+          },
+        ],
+  )
+  return {
+    ok: true,
+    data,
     provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
   }
 }

@@ -1,8 +1,8 @@
 /**
  * Visual regression: the terminal itself is the product, so layout breakage
  * (A-01 / M-01 / W-01 / T-01 / D-01 …) is checked per breakpoint.
- * Deterministic: mock data, pinned clock, vector scope (no map tiles),
- * animations disabled. The only wall-clock value is masked.
+ * Deterministic: mock data, pinned clock, animations disabled. Masked: the
+ * wall-clock value and the map canvas (basemap tiles come from the network).
  */
 import { expect, mockUrl, test, waitForTerminal } from '../fixtures'
 
@@ -11,7 +11,7 @@ test('terminal layout', async ({ page }) => {
   await waitForTerminal(page)
   await expect(page).toHaveScreenshot('terminal.png', {
     fullPage: true,
-    mask: [page.getByTestId('last-update')],
+    mask: [page.getByTestId('last-update'), page.getByTestId('map-canvas')],
   })
 })
 
@@ -20,7 +20,7 @@ test('degraded state layout', async ({ page }) => {
   await expect(page.getByRole('banner')).toContainText('DEGRADED')
   await page.evaluate(() => document.fonts.ready)
   await expect(page).toHaveScreenshot('terminal-degraded.png', {
-    mask: [page.getByTestId('last-update')],
+    mask: [page.getByTestId('last-update'), page.getByTestId('map-canvas')],
   })
 })
 
@@ -29,6 +29,6 @@ test('tsunami scenario layout', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('TSUNAMI')
   await page.evaluate(() => document.fonts.ready)
   await expect(page).toHaveScreenshot('terminal-tsunami.png', {
-    mask: [page.getByTestId('last-update')],
+    mask: [page.getByTestId('last-update'), page.getByTestId('map-canvas')],
   })
 })

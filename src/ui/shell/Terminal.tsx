@@ -12,6 +12,7 @@ import { CurrentStatus } from '../panels/CurrentStatus'
 import { DailyForecast } from '../panels/DailyForecast'
 import { Environment } from '../panels/Environment'
 import { EventDetail } from '../panels/EventDetail'
+import { EVENT_DETAIL_ID } from '../panels/EventPopup'
 import { EventLog } from '../panels/EventLog'
 import { EventMonitor } from '../panels/EventMonitor'
 import { JmaWarning } from '../panels/JmaWarning'
@@ -31,7 +32,7 @@ const VIEWS: Array<{ id: MobileView; label: string }> = [
   { id: 'status', label: 'STATUS' },
   { id: 'events', label: 'EVENTS' },
   { id: 'timeline', label: 'TIMELINE' },
-  { id: 'map', label: 'SCOPE' },
+  { id: 'map', label: 'MAP' },
   { id: 'forecast', label: 'OUTLOOK' },
   { id: 'sys', label: 'SYS' },
 ]
@@ -118,7 +119,7 @@ export function Terminal() {
           <div className={`${s.area} ${s.space}`} data-view-group="sys">
             <SpaceWeather />
           </div>
-          <div className={`${s.area} ${s.detail}`} data-view-group="events">
+          <div id={EVENT_DETAIL_ID} className={`${s.area} ${s.detail}`} data-view-group="events">
             <EventDetail />
           </div>
         </div>

@@ -4,7 +4,7 @@
  */
 import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { FONT, MAP_COLORS } from '../style'
-import type { MapLayerDef, MapScene } from './types'
+import { pickPoint, type MapLayerDef, type MapScene } from './types'
 
 /** Intensity class colours (rank in INTENSITY_ORDER → colour). */
 const INTENSITY_COLORS: Array<[number, string]> = [
@@ -129,7 +129,7 @@ export const quakeLayer: MapLayerDef = {
     })
     map.on('click', 'quakes', (e: MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.id
-      if (id) handlers().onSelect(String(id))
+      if (id) handlers().onSelect(String(id), pickPoint(e))
     })
     map.on('mouseenter', 'quakes', () => (map.getCanvas().style.cursor = 'pointer'))
     map.on('mouseleave', 'quakes', () => (map.getCanvas().style.cursor = ''))

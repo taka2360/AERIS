@@ -6,7 +6,7 @@ import { useMemo, useSyncExternalStore } from 'react'
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { deriveAerisStatus, pressureTendency } from '@/domain/derive'
 import { aggregateStatus, type SourceHealth } from '@/domain/health'
-import type { SourceId, WeatherLocation } from '@/domain/model'
+import type { SourceId, WeatherLocation, WindGridTier } from '@/domain/model'
 import { unwrap } from '@/domain/result'
 import { mergeCurrent, primaryStation } from '@/services/current'
 import { healthFromSnapshot } from '@/services/health'
@@ -51,6 +51,7 @@ export const queryKeys = {
   forecast: (lat: number, lon: number) => ['forecast', lat, lon] as const,
   stations: (lat: number, lon: number) => ['stations', lat, lon] as const,
   windField: (lat: number, lon: number) => ['wind-field', lat, lon] as const,
+  windGrid: (tier: WindGridTier) => ['wind-grid', tier] as const,
   alerts: (class20: string) => ['alerts', class20] as const,
   official: (class10: string) => ['official-forecast', class10] as const,
   nowcast: () => ['nowcast-frames'] as const,
@@ -111,6 +112,21 @@ export function useWindField() {
     queryFn: async ({ signal }) => unwrap(await provider.windField({ lat, lon }, signal)),
     staleTime: 30 * MIN,
     refetchInterval: 30 * MIN,
+  })
+}
+
+/**
+ * Coarse wind for zoomed-out views. Fetched only while enabled (the view is at
+ * that zoom) and kept for hours: each grid point counts as one API call.
+ */
+export function useWindGrid(tier: WindGridTier, enabled: boolean) {
+  const provider = useWeatherProvider()
+  return useQuery({
+    queryKey: queryKeys.windGrid(tier),
+    queryFn: async ({ signal }) => unwrap(await provider.windGrid(tier, signal)),
+    enabled,
+    staleTime: (tier === 'globe' ? 3 : 2) * 60 * MIN,
+    refetchInterval: enabled ? (tier === 'globe' ? 3 : 2) * 60 * MIN : false,
   })
 }
 
