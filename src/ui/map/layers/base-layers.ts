@@ -2,8 +2,8 @@
  * The original SPATIAL SCOPE overlays — radar echo, range rings, wind and
  * AMeDAS stations — as registry definitions.
  */
-import { type GeoJSONSource, type MapLayerMouseEvent, type RasterTileSource } from 'maplibre-gl'
-import { ringsGeoJSON, stationsGeoJSON, windGeoJSON } from '../geo'
+import { type GeoJSONSource, type RasterTileSource } from 'maplibre-gl'
+import { ringsGeoJSON, windGeoJSON } from '../geo'
 import { jmaTiles, registerJmaProtocol } from '../jma-protocol'
 import { FONT, MAP_COLORS, type TilePaletteId } from '../style'
 import type { MapLayerDef, MapScene } from './types'
@@ -106,6 +106,7 @@ export const ringsLayer: MapLayerDef = {
   },
 }
 
+/** Wind arrows on the view-covering lattice (see domain/wind-lattice). */
 export const windLayer: MapLayerDef = {
   id: 'wind',
   toggle: 'wind',
@@ -124,6 +125,7 @@ export const windLayer: MapLayerDef = {
         'icon-rotation-alignment': 'map',
         'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.6, 15, 1.4],
         'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
       },
       paint: { 'icon-opacity': 0.6 },
     })
@@ -131,71 +133,6 @@ export const windLayer: MapLayerDef = {
   deps: (s) => [s.wind],
   update(map, s) {
     ;(map.getSource('wind') as GeoJSONSource | undefined)?.setData(windGeoJSON(s.wind))
-  },
-}
-
-const STATION_MIN_ZOOM = 6.5
-
-export const stationsLayer: MapLayerDef = {
-  id: 'stations',
-  toggle: 'stn',
-  styleLayers: ['stations', 'station-labels'],
-  add(map, s, handlers) {
-    map.addSource('stations', { type: 'geojson', data: stationsGeoJSON(s.stations) })
-    map.addLayer({
-      id: 'stations',
-      type: 'circle',
-      source: 'stations',
-      // The nearest dozen stations are a local readout; zoomed out they collapse
-      // into one clump over the location and only hide what is around it.
-      minzoom: STATION_MIN_ZOOM,
-      paint: {
-        'circle-radius': ['case', ['boolean', ['feature-state', 'focus'], false], 5, 3.5],
-        'circle-color': [
-          'case',
-          ['boolean', ['feature-state', 'focus'], false],
-          MAP_COLORS.amber,
-          MAP_COLORS.bg,
-        ],
-        'circle-stroke-color': MAP_COLORS.amber,
-        'circle-stroke-width': 1.2,
-      },
-    })
-    map.addLayer({
-      id: 'station-labels',
-      type: 'symbol',
-      source: 'stations',
-      minzoom: STATION_MIN_ZOOM,
-      layout: {
-        'text-field': ['get', 'temp'],
-        'text-font': FONT,
-        'text-size': 11,
-        'text-offset': [0.6, 0],
-        'text-anchor': 'left',
-      },
-      paint: {
-        'text-color': MAP_COLORS.text,
-        'text-halo-color': MAP_COLORS.bg,
-        'text-halo-width': 1.4,
-      },
-    })
-    map.on('mouseenter', 'stations', (e: MapLayerMouseEvent) => {
-      map.getCanvas().style.cursor = 'pointer'
-      const id = e.features?.[0]?.properties?.id
-      if (id) handlers().onFocus(String(id))
-    })
-    map.on('mouseleave', 'stations', () => {
-      map.getCanvas().style.cursor = ''
-    })
-    if (s.focusId)
-      map.setFeatureState({ source: 'stations', id: Number(s.focusId) }, { focus: true })
-  },
-  deps: (s) => [s.stations, s.focusId],
-  update(map, s) {
-    ;(map.getSource('stations') as GeoJSONSource | undefined)?.setData(stationsGeoJSON(s.stations))
-    map.removeFeatureState({ source: 'stations' })
-    if (s.focusId)
-      map.setFeatureState({ source: 'stations', id: Number(s.focusId) }, { focus: true })
   },
 }
 

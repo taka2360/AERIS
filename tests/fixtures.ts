@@ -7,19 +7,14 @@ export function mockUrl(extra = ''): string {
   return `/?mock&nolatency&clock=${encodeURIComponent(CLOCK)}${extra}`
 }
 
-type Options = { skipBoot: boolean; scopeMode: 'map' | 'scope' }
+type Options = { skipBoot: boolean }
 
 export const test = base.extend<Options>({
   skipBoot: [true, { option: true }],
-  scopeMode: ['scope', { option: true }],
-  page: async ({ page, skipBoot, scopeMode }, use) => {
-    await page.addInitScript(
-      ([skip, mode]) => {
-        if (skip) window.sessionStorage.setItem('aeris.booted', '1')
-        window.localStorage.setItem('aeris.scopeMode', mode as string)
-      },
-      [skipBoot, scopeMode] as const,
-    )
+  page: async ({ page, skipBoot }, use) => {
+    await page.addInitScript((skip) => {
+      if (skip) window.sessionStorage.setItem('aeris.booted', '1')
+    }, skipBoot)
     await use(page)
   },
 })

@@ -4,16 +4,16 @@
  * depends on, and updates only when those slices change. Draw order is the
  * order of the registry (first = bottom).
  */
-import type { Map as MapLibreMap } from 'maplibre-gl'
+import type { MapLayerMouseEvent, Map as MapLibreMap } from 'maplibre-gl'
 import type { TrackPoint } from '@/domain/earth/events'
-import type { StationObservation, WindSample } from '@/domain/model'
+import type { WindSample } from '@/domain/model'
 
 /** Everything the map can draw at one moment. Layers read only what they need. */
 export type MapScene = {
   center: { lat: number; lon: number }
   rangeKm: number
   rings: number[]
-  stations: StationObservation[]
+  /** Wind on the lattice covering the current view */
   wind: WindSample[]
   radarTileUrl: string | null
   lightningTileUrl: string | null
@@ -40,7 +40,6 @@ export type MapScene = {
   }>
   /** LIDEN strokes visible at the cursor time (age 0 → 1 over an hour) */
   strokes: Array<{ lat: number; lon: number; cg: boolean; age: number }>
-  focusId: string | null
   /** Earthquakes visible at the cursor time; age 0 = just happened → 1 = fading out */
   quakes: Array<{
     id: string
@@ -83,7 +82,6 @@ export type LayerToggle =
   | 'ltng'
   | 'torn'
   | 'strk'
-  | 'stn'
   | 'wind'
   | 'grid'
   | 'quake'
@@ -103,8 +101,15 @@ export type LayerToggle =
 export type LayerVisibility = Record<LayerToggle, boolean>
 
 export type LayerHandlers = {
-  onFocus: (id: string) => void
-  onSelect: (eventId: string) => void
+  /** A feature was clicked; `at` is where its popup should point ([lon, lat]). */
+  onSelect: (eventId: string, at: [number, number]) => void
+}
+
+/** A clicked point feature's own position (e.g. the epicentre), else the click. */
+export function pickPoint(e: MapLayerMouseEvent): [number, number] {
+  const g = e.features?.[0]?.geometry
+  if (g?.type === 'Point') return [g.coordinates[0]!, g.coordinates[1]!]
+  return [e.lngLat.lng, e.lngLat.lat]
 }
 
 export type MapLayerDef = {

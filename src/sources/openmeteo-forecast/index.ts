@@ -2,7 +2,7 @@ import type { GeoPoint, ModelForecast, WindSample } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import { toInstant } from '@/domain/time'
 import { fetchValidated } from '../http'
-import { adaptForecast, adaptWindField, MODEL_LABEL } from './adapter'
+import { adaptForecast, MODEL_LABEL } from './adapter'
 import { CURRENT_VARS, DAILY_VARS, forecastSchema, HOURLY_VARS, windFieldSchema } from './schema'
 
 const BASE = 'https://api.open-meteo.com/v1/forecast'
@@ -37,31 +37,41 @@ export async function fetchForecast(
   }
 }
 
-/** 5×5 grid (~±0.3°) of current wind. Each grid point counts as one API call. */
-export async function fetchWindField(
-  p: GeoPoint,
+/**
+ * Current wind at many points in one request (map arrows). Each point counts
+ * as one API call, so the caller fetches only points it has not cached.
+ * Open-Meteo snaps points to model cells but keeps request order; samples are
+ * returned at the requested coordinates so the arrows stay on their lattice.
+ */
+export async function fetchWindAt(
+  pts: GeoPoint[],
   signal?: AbortSignal,
 ): Promise<SourceResult<WindSample[]>> {
-  const lats: string[] = []
-  const lons: string[] = []
-  for (let iy = -2; iy <= 2; iy++) {
-    for (let ix = -2; ix <= 2; ix++) {
-      lats.push((p.lat + iy * 0.15).toFixed(2))
-      lons.push((p.lon + ix * 0.18).toFixed(2))
-    }
-  }
   const q = new URLSearchParams({
-    latitude: lats.join(','),
-    longitude: lons.join(','),
+    latitude: pts.map((p) => p.lat.toFixed(3)).join(','),
+    longitude: pts.map((p) => p.lon.toFixed(3)).join(','),
     current: 'wind_speed_10m,wind_direction_10m',
     wind_speed_unit: 'ms',
   })
+  // A single location comes back as an object, several as an array.
   const r = await fetchValidated(`${BASE}?${q}`, windFieldSchema, { signal })
   if (!r.ok) return { ok: false, source: 'openmeteo', error: r.error }
   const retrievedAt = toInstant(Date.now())
+  const data = r.data.flatMap((p, i): WindSample[] =>
+    p.current.wind_speed_10m == null || p.current.wind_direction_10m == null || !pts[i]
+      ? []
+      : [
+          {
+            lat: pts[i].lat,
+            lon: pts[i].lon,
+            speed: p.current.wind_speed_10m,
+            direction: p.current.wind_direction_10m,
+          },
+        ],
+  )
   return {
     ok: true,
-    data: adaptWindField(r.data),
+    data,
     provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
   }
 }

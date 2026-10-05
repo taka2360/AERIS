@@ -2,15 +2,17 @@
  * MapLibre view — loaded lazily (own chunk). The map instance is created once;
  * overlays come from the layer registry and update only when the scene slice
  * they depend on changes. Failure to create a WebGL context or repeated
- * basemap tile errors are reported upward so the panel can fall back to the
- * vector scope.
+ * basemap tile errors are reported upward so the panel can show the outage
+ * while the rest of the terminal keeps working.
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Map as MapLibreMap, Marker, ScaleControl, setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { setMapStatus } from '@/query/map-status'
+import type { ViewBounds } from '@/domain/wind-lattice'
 import { circleBounds } from './geo'
+import { LeaderPopup } from './LeaderPopup'
 import { JMA_ATTRIBUTION } from './layers/base-layers'
 import { depsChanged, MAP_LAYERS, OVERLAY_SOURCES } from './layers/registry'
 import type { LayerVisibility, MapScene } from './layers/types'
@@ -30,14 +32,21 @@ export const REGION_BOUNDS: [[number, number], [number, number]] = [
   [150, 46.5],
 ]
 
+/** A popup pinned to a map position by a leader line. */
+export type MapPopup = { key: string; at: [number, number]; content: ReactNode }
+
 export type MapViewProps = {
   scene: MapScene
   layers: LayerVisibility
   range: MapRange
-  onFocus: (id: string) => void
-  onSelect: (eventId: string) => void
+  onSelect: (eventId: string, at: [number, number]) => void
+  /** A click that hit no selectable feature */
+  onBackgroundClick: () => void
+  /** Visible bounds and zoom: while moving (throttled), after each move and once ready */
+  onView: (view: ViewBounds) => void
   onFailure: (reason: string) => void
   recenterToken: number
+  popup: MapPopup | null
 }
 
 const BASEMAP_ERROR_LIMIT = 8
@@ -73,6 +82,7 @@ export default function MapView(props: MapViewProps) {
   const mapRef = useRef<MapLibreMap | null>(null)
   const markerRef = useRef<Marker | null>(null)
   const loaded = useRef(false)
+  const [mapObj, setMapObj] = useState<MapLibreMap | null>(null)
   const lastDeps = useRef(new Map<string, unknown[]>())
   // Latest props for async map callbacks (load / hover), updated after each render.
   const latest = useRef(props)
@@ -106,7 +116,41 @@ export default function MapView(props: MapViewProps) {
       return
     }
     mapRef.current = map
+    setMapObj(map)
     map.touchZoomRotate.disableRotation()
+    const reportView = () => {
+      const b = map.getBounds()
+      latest.current.onView({
+        west: b.getWest(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        north: b.getNorth(),
+        zoom: map.getZoom(),
+      })
+    }
+    // Throttled while moving so cached arrows fill newly exposed areas at once.
+    let lastReport = 0
+    map.on('move', () => {
+      const t = performance.now()
+      if (t - lastReport < 150) return
+      lastReport = t
+      reportView()
+    })
+    map.on('moveend', reportView)
+
+    // Registered before any layer's own click handler, so it runs first: a click
+    // that no layer claims (no onSelect in the same turn) is a background click.
+    let picked = false
+    map.on('click', () => {
+      picked = false
+      setTimeout(() => {
+        if (!picked) latest.current.onBackgroundClick()
+      }, 0)
+    })
+    const onSelect = (id: string, at: [number, number]) => {
+      picked = true
+      latest.current.onSelect(id, at)
+    }
     map.addControl(new ScaleControl({ unit: 'metric', maxWidth: 90 }), 'bottom-right')
 
     let basemapErrors = 0
@@ -124,10 +168,7 @@ export default function MapView(props: MapViewProps) {
     map.once('style.load', () => {
       loaded.current = true
       const p = latest.current
-      const handlers = () => ({
-        onFocus: latest.current.onFocus,
-        onSelect: latest.current.onSelect,
-      })
+      const handlers = () => ({ onSelect })
       for (const def of MAP_LAYERS) {
         def.add(map, p.scene, handlers)
         deps.set(def.id, def.deps(p.scene))
@@ -138,6 +179,7 @@ export default function MapView(props: MapViewProps) {
       // The location may have changed (e.g. GPS fix) while the style was loading.
       frameView(map, p.range, p.scene)
       applyVisibility(map, p.layers)
+      reportView()
       setMapStatus({ state: 'online' })
     })
 
@@ -145,6 +187,7 @@ export default function MapView(props: MapViewProps) {
       loaded.current = false
       markerRef.current = null
       mapRef.current = null
+      setMapObj(null)
       deps.clear()
       map.remove()
       setMapStatus({ state: 'standby' })
@@ -183,5 +226,14 @@ export default function MapView(props: MapViewProps) {
     applyVisibility(map, layers)
   }, [layers])
 
-  return <div ref={container} className={s.map} role="presentation" />
+  return (
+    <div className={s.wrap}>
+      <div ref={container} className={s.map} role="presentation" data-testid="map-canvas" />
+      {mapObj && props.popup && (
+        <LeaderPopup key={props.popup.key} map={mapObj} at={props.popup.at}>
+          {props.popup.content}
+        </LeaderPopup>
+      )}
+    </div>
+  )
 }

@@ -5,7 +5,7 @@
  */
 import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { FONT, MAP_COLORS } from '../style'
-import type { MapLayerDef, MapScene } from './types'
+import { pickPoint, type MapLayerDef, type MapScene } from './types'
 
 function firesGeoJSON(s: MapScene) {
   return {
@@ -102,7 +102,7 @@ export const globalLayer: MapLayerDef = {
     })
     map.on('click', 'global-markers', (e: MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.id
-      if (id) handlers().onSelect(String(id))
+      if (id) handlers().onSelect(String(id), pickPoint(e))
     })
     map.on('mouseenter', 'global-markers', () => (map.getCanvas().style.cursor = 'pointer'))
     map.on('mouseleave', 'global-markers', () => (map.getCanvas().style.cursor = ''))

@@ -117,8 +117,6 @@ test('keyboard users can skip to content and use shortcuts', async ({ page }) =>
 })
 
 test.describe('time cursor', () => {
-  test.use({ scopeMode: 'map' })
-
   test('scrubbing pins every view to a past time until LIVE is pressed', async ({ page }) => {
     await page.goto(mockUrl())
     await waitForTerminal(page)
@@ -186,8 +184,10 @@ test.describe('tsunami scenario', () => {
   test('without bulletins the tsunami line reads NOMINAL', async ({ page }) => {
     await page.goto(mockUrl('&scenario=quiet'))
     await waitForTerminal(page)
-    const row = page.getByRole('region', { name: 'EVENT MONITOR' }).getByRole('listitem').first()
-    await expect(row).toContainText('TSUNAMI')
+    const row = page
+      .getByRole('region', { name: 'EVENT MONITOR' })
+      .getByRole('listitem')
+      .filter({ hasText: 'TSUNAMI' })
     await expect(row).toContainText('NOMINAL')
     await expect(page.getByRole('alert')).toHaveCount(0)
   })

@@ -1,9 +1,9 @@
 /**
- * M-01 — Spatial scope panel.
- *  MAP   : MapLibre basemap + JMA radar nowcast + stations + wind (lazy chunk)
- *  SCOPE : vector azimuthal scope (no basemap / WebGL needed)
- * The map is one subsystem among others: if it fails, the panel falls back to
- * SCOPE and the system reports BASEMAP DEGRADED — weather monitoring continues.
+ * M-01 — Spatial scope panel: MapLibre basemap + JMA radar nowcast + wind and
+ * event overlays (lazy chunk), with the nearest AMeDAS stations alongside.
+ * The map is one subsystem among others: if it fails, the panel says so and
+ * the system reports BASEMAP DEGRADED — weather monitoring continues.
+ * Clicking an event on the map opens a popup tied to it by a leader line.
  */
 import {
   Component,
@@ -42,12 +42,15 @@ import { activeWindow } from '@/domain/earth/temporal'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
 import { DEFAULT_LAYERS, LAYER_CATALOG } from './layers/catalog'
 import { LayerMenu } from './LayerMenu'
-import { useNowcastFrames, useResolvedLocation, useStations, useWindField } from '@/query/hooks'
+import { useNowcastFrames, useResolvedLocation, useStations } from '@/query/hooks'
+import { useViewportWind } from '@/query/viewport-wind'
+import type { ViewBounds } from '@/domain/wind-lattice'
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
-import type { MapLayers, MapRange, MapScene } from './MapView'
-import { RANGE_KM, RINGS, ScopeView } from './ScopeView'
+import type { MapLayers, MapPopup, MapRange, MapScene } from './MapView'
+import { NearestExtras } from './NearestExtras'
+import { EventPopup } from '../panels/EventPopup'
 import { legendColor, TILE_PALETTES } from './style'
 import { TimeScrubber, type ScrubSpan, type ScrubTick } from './TimeScrubber'
 import { CATEGORY_TAG } from '../panels/event-format'
@@ -55,8 +58,16 @@ import s from './SpatialScope.module.css'
 
 const MapView = lazy(() => import('./MapView'))
 
-type Mode = 'map' | 'scope'
-const MODE_KEY = 'aeris.scopeMode'
+/** Radius of the LOCAL view and of the nearest-station list, km */
+const RANGE_KM = 45
+const RINGS = [10, 20, 40]
+/**
+ * NEAREST is a local readout: it slides in when the view is zoomed in to about
+ * the LOCAL range and out when zoomed away. Two thresholds (hysteresis) keep
+ * it from flickering while the zoom hovers around one value.
+ */
+const SIDE_SHOW_ZOOM = 7.5
+const SIDE_HIDE_ZOOM = 6.8
 const RANGE_KEY = 'aeris.mapRange'
 const LAYERS_KEY = 'aeris.layers'
 
@@ -64,14 +75,17 @@ const LAYERS_KEY = 'aeris.layers'
 function loadLayers(): MapLayers {
   try {
     const raw = window.localStorage.getItem(LAYERS_KEY)
-    return { ...DEFAULT_LAYERS, ...(raw ? (JSON.parse(raw) as Partial<MapLayers>) : {}) }
+    const saved = raw ? (JSON.parse(raw) as Partial<MapLayers>) : {}
+    // Keep only known toggles (removed layers may linger in old saves).
+    const known = Object.fromEntries(
+      Object.entries(saved).filter(([k]) => k in DEFAULT_LAYERS),
+    ) as Partial<MapLayers>
+    return { ...DEFAULT_LAYERS, ...known }
   } catch {
     return DEFAULT_LAYERS
   }
 }
 
-/** Layers the vector scope can draw without a basemap. */
-const SCOPE_LAYERS = new Set(['echo', 'stn', 'wind', 'grid'])
 const RANGES: Array<{ id: MapRange; label: string; caption: string }> = [
   { id: 'local', label: 'LOCAL', caption: `RNG ${RANGE_KM}KM · WEB MERCATOR` },
   { id: 'region', label: 'REGION', caption: 'RNG JAPAN · WEB MERCATOR' },
@@ -120,7 +134,7 @@ function liveFrame(frames: ScopeFrame[], now: string): ScopeFrame | null {
   return best
 }
 
-/** Catches a failed lazy chunk / map crash and hands control back to SCOPE. */
+/** Catches a failed lazy chunk / map crash and reports it to the panel. */
 class MapBoundary extends Component<
   { onError: (msg: string) => void; children: ReactNode },
   { failed: boolean }
@@ -140,7 +154,6 @@ class MapBoundary extends Component<
 export const SpatialScope = memo(function SpatialScope({ active = true }: { active?: boolean }) {
   const { location } = useResolvedLocation()
   const stations = useStations()
-  const wind = useWindField()
   const nowcast = useNowcastFrames()
   const mapStatus = useMapStatus()
   const cursor = useTimeCursor()
@@ -150,7 +163,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const volc = useVolcanoes()
   const { selectedId, select } = useSelection()
 
-  const [mode, setMode] = useState<Mode>(() => load(MODE_KEY, ['map', 'scope'], 'map'))
   const [range, setRange] = useState<MapRange>(() =>
     load(RANGE_KEY, ['local', 'region', 'globe'], 'local'),
   )
@@ -163,6 +175,15 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   }
   const [focus, setFocus] = useState<string | null>(null)
   const [recenter, setRecenter] = useState(0)
+  const [view, setView] = useState<ViewBounds | null>(null)
+  const [sideOpen, setSideOpen] = useState(range === 'local')
+  const onView = (v: ViewBounds) => {
+    setView(v)
+    setSideOpen((open) =>
+      v.zoom >= SIDE_SHOW_ZOOM ? true : v.zoom < SIDE_HIDE_ZOOM ? false : open,
+    )
+  }
+  const [popup, setPopup] = useState<{ id: string; at: [number, number] } | null>(null)
 
   const thunder = useThunder()
   const strokeData = useStrokes()
@@ -293,18 +314,20 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     [strokeData.data, cursor.t],
   )
 
-  const showMap = mode === 'map' && !mapFailed && active
-  // NEAREST is a local readout: zoomed out to REGION/GLOBE the map takes the full width.
-  const showSide = !showMap || range === 'local'
+  const showMap = !mapFailed && active
+  // Without a map there is nothing to zoom: the station readout stays.
+  const showSide = !showMap || sideOpen
   useEffect(() => {
     if (!showMap && !mapFailed) setMapStatus({ state: 'standby' })
   }, [showMap, mapFailed])
+  const windSamples = useViewportWind(view, showMap && layers.wind)
+  // A selection made elsewhere (log, monitor, CLEAR) closes the map popup.
+  const popupOpen = popup && popup.id === selectedId ? popup : null
 
   const stationList = useMemo(
     () => (stations.data?.data ?? []).filter((st) => st.distanceKm <= RANGE_KM),
     [stations.data],
   )
-  const windSamples = useMemo(() => wind.data?.data ?? [], [wind.data])
   const center = useMemo(
     () => ({ lat: location.lat, lon: location.lon }),
     [location.lat, location.lon],
@@ -460,7 +483,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       center,
       rangeKm: RANGE_KM,
       rings: RINGS,
-      stations: stationList,
       wind: windSamples,
       radarTileUrl: radarUrl,
       lightningTileUrl: ltngShown?.tileUrlTemplate ?? null,
@@ -475,7 +497,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       fireDetections,
       globalMarkers,
       strokes,
-      focusId: focused?.id ?? null,
       quakes,
       selectedEventId: selectedId,
       intensityStations,
@@ -485,7 +506,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     }),
     [
       center,
-      stationList,
       windSamples,
       radarUrl,
       ltngShown?.tileUrlTemplate,
@@ -500,7 +520,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       fireDetections,
       globalMarkers,
       strokes,
-      focused?.id,
       quakes,
       selectedId,
       intensityStations,
@@ -510,11 +529,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     ],
   )
 
-  const changeMode = (m: Mode) => {
-    setMode(m)
-    if (m === 'map') setMapFailed(false)
-    save(MODE_KEY, m)
-  }
   const changeRange = (r: MapRange) => {
     setRange(r)
     save(RANGE_KEY, r)
@@ -527,44 +541,52 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     })
   }
 
+  const mapPopup = useMemo<MapPopup | null>(
+    () =>
+      popupOpen
+        ? {
+            key: popupOpen.id,
+            at: popupOpen.at,
+            content: (
+              <EventPopup id={popupOpen.id} at={popupOpen.at} onClose={() => setPopup(null)} />
+            ),
+          }
+        : null,
+    [popupOpen],
+  )
+  useEffect(() => {
+    if (!popupOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPopup(null)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [popupOpen])
+  const onMapSelect = (id: string, at: [number, number]) => {
+    select(id)
+    setPopup({ id, at })
+  }
+
   return (
     <Panel
       code="M-01"
       title="SPATIAL SCOPE"
       className={s.panel}
-      bodyClassName={showSide ? s.body : `${s.body} ${s.bodyWide}`}
+      bodyClassName={showSide ? s.body : `${s.body} ${s.sideClosed}`}
       meta={
         <>
-          <div className={s.toggles} role="group" aria-label="表示モード">
-            {(['map', 'scope'] as const).map((m) => (
+          <div className={s.toggles} role="group" aria-label="表示範囲">
+            {RANGES.map((r) => (
               <button
-                key={m}
+                key={r.id}
                 type="button"
                 className={s.toggle}
                 data-mode
-                aria-pressed={mode === m}
-                onClick={() => changeMode(m)}
+                aria-pressed={range === r.id}
+                onClick={() => changeRange(r.id)}
               >
-                {m.toUpperCase()}
+                {r.label}
               </button>
             ))}
           </div>
-          {mode === 'map' && (
-            <div className={s.toggles} role="group" aria-label="表示範囲">
-              {RANGES.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={s.toggle}
-                  data-mode
-                  aria-pressed={range === r.id}
-                  onClick={() => changeRange(r.id)}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          )}
           <button
             type="button"
             className={s.toggle}
@@ -578,14 +600,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       }
     >
       <div className={s.main}>
-        <div className={s.scopeWrap} data-mode={showMap ? 'map' : 'scope'}>
-          <LayerMenu
-            layers={layers}
-            setLayers={setLayers}
-            open={menuOpen}
-            setOpen={setMenuOpen}
-            available={(e) => showMap || SCOPE_LAYERS.has(e.id)}
-          />
+        <div className={s.scopeWrap} data-mode="map">
+          <LayerMenu layers={layers} setLayers={setLayers} open={menuOpen} setOpen={setMenuOpen} />
           {showMap ? (
             <MapBoundary onError={onMapFailure}>
               <Suspense
@@ -595,43 +611,36 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
                   scene={scene}
                   layers={layers}
                   range={range}
-                  onFocus={setFocus}
-                  onSelect={select}
+                  onSelect={onMapSelect}
+                  onBackgroundClick={() => setPopup(null)}
+                  onView={onView}
                   onFailure={onMapFailure}
                   recenterToken={recenter}
+                  popup={mapPopup}
                 />
               </Suspense>
             </MapBoundary>
-          ) : (
-            <ScopeView
-              center={center}
-              stations={stationList}
-              wind={windSamples}
-              layers={layers}
-              focusId={focused?.id ?? null}
-              onFocus={setFocus}
-            />
-          )}
+          ) : mapFailed ? (
+            <div className={s.mapDown} role="status">
+              <b>▲ BASEMAP UNAVAILABLE</b>
+              <span className="ja">
+                地図を表示できません(WebGL または地図タイルの障害)。他の監視は継続しています。
+              </span>
+              <button type="button" className={s.toggle} onClick={() => setMapFailed(false)}>
+                RETRY
+              </button>
+            </div>
+          ) : null}
 
           <div className={s.overlayTL} aria-hidden="true">
             <div>CTR {formatCoord(location.lat, location.lon)}</div>
-            <div>
-              {showMap
-                ? RANGES.find((r) => r.id === range)!.caption
-                : `RNG ${RANGE_KM}KM · AZIMUTHAL`}
-            </div>
-            {mapFailed && mode === 'map' && (
-              <div className={s.warn}>▲ BASEMAP UNAVAILABLE — VECTOR SCOPE</div>
-            )}
+            <div>{RANGES.find((r) => r.id === range)!.caption}</div>
           </div>
           <div className={s.overlayBL} aria-hidden="true">
             <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
-            <div>
-              STN {String(stationList.length).padStart(2, '0')} ·{' '}
-              {showMap ? 'ECHO SRC: JMA NOWCAST' : 'PRECIP AMeDAS 1H'}
-            </div>
+            <div>ECHO SRC: JMA NOWCAST</div>
           </div>
-          {showMap ? (
+          {showMap && (
             <div className={s.legend} aria-hidden="true">
               {legend.colors.map((c) => (
                 <span key={c.label}>
@@ -640,25 +649,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
                 </span>
               ))}
               <span className={s.legendUnit}>{legend.unit}</span>
-            </div>
-          ) : (
-            <div className={s.legend} aria-hidden="true">
-              <span>
-                <i style={{ background: 'var(--cyan-dim)' }} />
-                &lt;3
-              </span>
-              <span>
-                <i style={{ background: 'var(--cyan)' }} />
-                3+
-              </span>
-              <span>
-                <i style={{ background: 'var(--yellow)' }} />
-                10+
-              </span>
-              <span>
-                <i style={{ background: 'var(--red)' }} />
-                30+ mm/h
-              </span>
             </div>
           )}
           {showMap && (
@@ -680,8 +670,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
         )}
       </div>
 
-      {showSide && (
-        <div className={s.side}>
+      {/* Kept mounted so it can slide in and out; inert while closed. */}
+      <div className={s.side} inert={!showSide}>
+        <div className={s.sideInner}>
           <div className={s.sideHead}>OBS NETWORK · NEAREST</div>
           <table className={s.stnTable}>
             <caption className="visually-hidden">近傍のアメダス観測点</caption>
@@ -724,8 +715,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           {(stations.isError || stations.failureCount > 0) && (
             <div className={s.err}>■ OBS NETWORK UNAVAILABLE</div>
           )}
+          <NearestExtras stations={stationList} focused={focused} />
         </div>
-      )}
+      </div>
     </Panel>
   )
 })

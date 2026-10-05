@@ -1,5 +1,5 @@
 /** Pure geometry helpers for map overlays (GeoJSON). */
-import type { StationObservation, WindSample } from '@/domain/model'
+import type { WindSample } from '@/domain/model'
 
 const R = 6371
 
@@ -38,23 +38,6 @@ export function ringsGeoJSON(lat: number, lon: number, radiiKm: number[], steps 
         },
       ]
     }),
-  }
-}
-
-export function stationsGeoJSON(stations: StationObservation[]) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: stations.map((s) => ({
-      type: 'Feature' as const,
-      id: Number(s.id),
-      properties: {
-        id: s.id,
-        name: s.name,
-        temp: s.temperature == null ? '' : s.temperature.toFixed(1),
-        precip: s.precipitation1h ?? 0,
-      },
-      geometry: { type: 'Point' as const, coordinates: [s.lon, s.lat] },
-    })),
   }
 }
 

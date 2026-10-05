@@ -50,7 +50,6 @@ export const queryKeys = {
   location: (lat: number, lon: number) => ['location', lat, lon] as const,
   forecast: (lat: number, lon: number) => ['forecast', lat, lon] as const,
   stations: (lat: number, lon: number) => ['stations', lat, lon] as const,
-  windField: (lat: number, lon: number) => ['wind-field', lat, lon] as const,
   alerts: (class20: string) => ['alerts', class20] as const,
   official: (class10: string) => ['official-forecast', class10] as const,
   nowcast: () => ['nowcast-frames'] as const,
@@ -100,17 +99,6 @@ export function useStations() {
     staleTime: nominalPollMs('jma-amedas'),
     refetchInterval: nominalPollMs('jma-amedas'),
     meta: { persist: true },
-  })
-}
-
-export function useWindField() {
-  const provider = useWeatherProvider()
-  const { lat, lon } = useRoundedTarget()
-  return useQuery({
-    queryKey: queryKeys.windField(lat, lon),
-    queryFn: async ({ signal }) => unwrap(await provider.windField({ lat, lon }, signal)),
-    staleTime: 30 * MIN,
-    refetchInterval: 30 * MIN,
   })
 }
 

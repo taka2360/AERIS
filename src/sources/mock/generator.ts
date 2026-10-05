@@ -243,26 +243,30 @@ export function synthStations(
   }).sort((a, b) => a.distanceKm - b.distanceKm)
 }
 
-export function synthWindField(lat: number, lon: number, now: Instant): WindSample[] {
-  const samples: WindSample[] = []
+/**
+ * Wind anywhere: westerlies in mid-latitudes, trade winds in the tropics,
+ * polar easterlies, a slow wave so the field is not uniform, and a weak
+ * cyclonic swirl south-west of Tokyo for the local view.
+ */
+export function synthWindAt(lat: number, lon: number, now: Instant): WindSample {
   const t = epoch(now) / 3_600_000
-  for (let iy = -3; iy <= 3; iy++) {
-    for (let ix = -3; ix <= 3; ix++) {
-      const sLat = lat + iy * 0.12
-      const sLon = lon + ix * 0.15
-      // A weak cyclonic swirl centred to the south-west.
-      const cx = ix + 4
-      const cy = iy + 4
-      const ang = (Math.atan2(cy, cx) * 180) / Math.PI
-      samples.push({
-        lat: sLat,
-        lon: sLon,
-        speed: round1(3 + Math.hypot(cx, cy) * 0.5 + noise(ix * 13 + iy * 7 + Math.floor(t)) * 1.5),
-        direction: Math.round((ang + 180 + 90 + 360) % 360),
-      })
-    }
+  const a = Math.abs(lat)
+  // Direction the wind blows FROM (meteorological).
+  const base = a < 30 ? (lat >= 0 ? 60 : 120) : a < 60 ? (lat >= 0 ? 260 : 280) : 90
+  const wave = Math.sin((lon + t * 2) / 25) * 35 + Math.cos(lat / 9) * 15
+  const dx = lon - 139.2
+  const dy = lat - 35.2
+  const r = Math.hypot(dx, dy)
+  const swirl = Math.max(0, 1 - r / 1.5)
+  const swirlDir = (Math.atan2(dy, dx) * 180) / Math.PI + 180 + 90
+  const dir = base + wave + (((swirlDir - base - wave + 540) % 360) - 180) * swirl
+  const seed = Math.round(lat * 37 + lon * 11) + Math.floor(t)
+  return {
+    lat,
+    lon,
+    speed: round1(4 + (a >= 30 && a < 60 ? 4 : 1) + swirl * 2 + noise(seed) * 2),
+    direction: Math.round((dir + 720) % 360),
   }
-  return samples
 }
 
 export function synthAlerts(now: Instant, prov: Provenance): AlertBulletin {

@@ -3,11 +3,24 @@
  * cursor; the span shown is declared by the view (its data's coverage).
  * The track is amber over observed time and cyan over forecast time, with
  * optional ticks for events. LIVE returns every view to the present.
+ * The present is the centre of the track; the past half rewinds faster the
+ * further left (see scrub-scale.ts).
  */
 import { epoch, formatTime, minutesBetween, toInstant, type Instant } from '@/domain/time'
 import type { TemporalRole } from '@/domain/earth/common'
 import type { TimeCursor } from '@/query/time-cursor'
+import {
+  keyStep,
+  offsetToPosition,
+  positionPct,
+  positionToOffset,
+  scaleMarks,
+  scrubScale,
+} from './scrub-scale'
 import s from './SpatialScope.module.css'
+
+/** Slider resolution: positions are integers in [-RES, RES]. */
+const RES = 1000
 
 export type ScrubSpan = {
   start: Instant
@@ -41,11 +54,22 @@ export function TimeScrubber({
   ticks?: ScrubTick[]
 }) {
   if (!span) return <div className={s.radarBar}>{label} · NO FRAMES</div>
-  const total = minutesBetween(span.start, span.end)
-  const value = Math.min(total, Math.max(0, minutesBetween(span.start, cursor.t)))
-  const obsPct = (Math.max(0, minutesBetween(span.start, span.observedUntil)) / total) * 100
+  const now = cursor.now
+  const sc = scrubScale(minutesBetween(span.start, now), minutesBetween(now, span.end))
+  const pctOf = (t: Instant) => positionPct(sc, offsetToPosition(sc, minutesBetween(now, t)))
+  const value = Math.round(offsetToPosition(sc, minutesBetween(now, cursor.t)) * RES)
+  const obsPct = pctOf(span.observedUntil)
+  const nowPct = positionPct(sc, 0)
   const offset = shown ? Math.round(minutesBetween(cursor.now, shown.validTime) / 5) * 5 : 0
   const outOfSpan = epoch(cursor.t) < epoch(span.start) || epoch(cursor.t) > epoch(span.end)
+  // Times snap to the span's step (5 min) so frames line up.
+  const goOffset = (min: number) => {
+    setPlaying(false)
+    const clamped = Math.max(-sc.pastMin, Math.min(sc.futureMin, min))
+    const snapped = Math.round(clamped / span.stepMin) * span.stepMin
+    cursor.scrubTo(toInstant(epoch(now) + snapped * 60_000))
+  }
+  const curOffset = minutesBetween(now, cursor.t)
 
   return (
     <div className={s.radarBar} data-mode={cursor.mode}>
@@ -80,31 +104,58 @@ export function TimeScrubber({
         <input
           type="range"
           className={s.slider}
-          min={0}
-          max={total}
-          step={span.stepMin}
+          min={sc.min * RES}
+          max={sc.max * RES}
+          step={1}
           value={value}
-          onChange={(e) => {
-            setPlaying(false)
-            cursor.scrubTo(toInstant(epoch(span.start) + Number(e.target.value) * 60_000))
+          onChange={(e) => goOffset(positionToOffset(sc, Number(e.target.value) / RES))}
+          onKeyDown={(e) => {
+            // Steps in time, not in track position: the curved past would make
+            // fixed position steps vanish near now and leap far back.
+            const step = keyStep(curOffset, span.stepMin)
+            const to =
+              e.key === 'ArrowLeft' || e.key === 'ArrowDown'
+                ? curOffset - step
+                : e.key === 'ArrowRight' || e.key === 'ArrowUp'
+                  ? curOffset + step
+                  : e.key === 'Home'
+                    ? -sc.pastMin
+                    : e.key === 'End'
+                      ? sc.futureMin
+                      : null
+            if (to == null) return
+            e.preventDefault()
+            goOffset(to)
           }}
           aria-label="地図の時刻"
           aria-valuetext={`${formatTime(cursor.t, false)} ${cursor.mode === 'live' ? '現在' : '指定時刻'}`}
-          style={{ ['--obs' as string]: `${obsPct}%` }}
+          style={{ ['--obs' as string]: `${obsPct}%`, ['--now' as string]: `${nowPct}%` }}
         />
+        <i className={s.nowMark} style={{ left: `${nowPct}%` }} aria-hidden="true" />
         {ticks.map((k, i) => {
-          const m = minutesBetween(span.start, k.t)
-          if (m < 0 || m > total) return null
+          if (epoch(k.t) < epoch(span.start) || epoch(k.t) > epoch(span.end)) return null
           return (
             <i
               key={i}
               className={s.tick}
               data-tone={k.tone}
-              style={{ left: `${(m / total) * 100}%` }}
+              style={{ left: `${pctOf(k.t)}%` }}
               aria-hidden="true"
             />
           )
         })}
+        <span className={s.scale} aria-hidden="true">
+          {scaleMarks(sc).map((m) => (
+            <span
+              key={m.offset}
+              data-now={m.offset === 0 || undefined}
+              data-minor={m.minor || undefined}
+              style={{ left: `${positionPct(sc, offsetToPosition(sc, m.offset))}%` }}
+            >
+              {m.label}
+            </span>
+          ))}
+        </span>
       </span>
       {cursor.mode === 'scrub' && (
         <button type="button" className={s.live} onClick={cursor.goLive}>

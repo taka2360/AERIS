@@ -14,10 +14,10 @@ test('handheld mode shows one view at a time and never scrolls sideways', async 
   await expect(page.getByRole('region', { name: '24H ATMOSPHERIC TIMELINE' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'CURRENT ATMOSPHERIC STATUS' })).toBeHidden()
 
-  await nav.getByRole('button', { name: 'SCOPE' }).click()
+  await nav.getByRole('button', { name: 'MAP' }).click()
   await expect(page.getByRole('region', { name: 'SPATIAL SCOPE' })).toBeVisible()
 
-  for (const view of ['STATUS', 'TIMELINE', 'SCOPE', 'OUTLOOK', 'SYS']) {
+  for (const view of ['STATUS', 'TIMELINE', 'MAP', 'OUTLOOK', 'SYS']) {
     await nav.getByRole('button', { name: view }).click()
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

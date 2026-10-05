@@ -9,11 +9,9 @@ import type {
   ModelForecast,
   Provenance,
   WeatherCondition,
-  WindSample,
 } from '@/domain/model'
 import { jstDateKey, type Instant } from '@/domain/time'
-import type { z } from 'zod'
-import type { ForecastResponse, windFieldSchema } from './schema'
+import type { ForecastResponse } from './schema'
 
 export const MODEL_LABEL = 'OPEN-METEO · JMA BLEND'
 
@@ -124,15 +122,4 @@ export function adaptForecast(r: ForecastResponse, retrievedAt: Instant): ModelF
     hourly: { points, provenance: { ...prov, kind: 'forecast', validFrom: currentTime } },
     daily: { days, provenance: { ...prov, kind: 'forecast' } },
   }
-}
-
-export function adaptWindField(r: z.infer<typeof windFieldSchema>): WindSample[] {
-  return r
-    .filter((p) => p.current.wind_speed_10m != null && p.current.wind_direction_10m != null)
-    .map((p) => ({
-      lat: p.latitude,
-      lon: p.longitude,
-      speed: p.current.wind_speed_10m!,
-      direction: p.current.wind_direction_10m!,
-    }))
 }

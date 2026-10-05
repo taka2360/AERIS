@@ -5,7 +5,7 @@
  */
 import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { FONT, MAP_COLORS } from '../style'
-import type { MapLayerDef, MapScene } from './types'
+import { pickPoint, type MapLayerDef, type MapScene } from './types'
 
 const RANK_COLOR = ['#7a6f55', '#a89a78', '#ffe14a', '#ffb000', '#ff5536', '#c18bff']
 
@@ -89,7 +89,7 @@ export const volcanoLayer: MapLayerDef = {
     })
     map.on('click', 'volcanoes', (e: MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.id
-      if (id) handlers().onSelect(String(id))
+      if (id) handlers().onSelect(String(id), pickPoint(e))
     })
     map.on('mouseenter', 'volcanoes', () => (map.getCanvas().style.cursor = 'pointer'))
     map.on('mouseleave', 'volcanoes', () => (map.getCanvas().style.cursor = ''))
