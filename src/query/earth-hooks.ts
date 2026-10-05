@@ -7,7 +7,13 @@ import { useQuery, type Query } from '@tanstack/react-query'
 import type { SourceObservation } from '@/domain/earth/common'
 import { intensityRank } from '@/domain/earth/derive'
 import type { EarthquakeEvent, NaturalEvent } from '@/domain/earth/events'
-import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
+import {
+  type CycloneReport,
+  type QuakeSolution,
+  type SpaceWeather,
+  type TsunamiReport,
+  tsunamiKindRank,
+} from '@/domain/earth/reports'
 import { unwrap } from '@/domain/result'
 import { minutesBetween, type Instant } from '@/domain/time'
 import {
@@ -30,9 +36,7 @@ import {
   tsunamiStatus,
   type SystemReading,
 } from '@/domain/earth/status'
-import { tsunamiKindRank } from '@/sources/jma-tsunami'
 import { airIndex } from '@/domain/earth/air'
-export type { AirKey } from '@/sources/openmeteo-air'
 import { useAlerts, useResolvedLocation } from './hooks'
 import type { Provenance, SourceId } from '@/domain/model'
 import { fuseQuakes } from '@/services/fusion/earthquake'
@@ -48,8 +52,6 @@ import {
   nhcEvent,
   relateStorms,
 } from '@/services/fusion/global'
-import type { CycloneReport } from '@/sources/jma-typhoon'
-import type { SpaceWeather } from '@/sources/swpc'
 import { pollInterval, type EarthSignals } from '@/services/poll-policy'
 import { nominalPollMs, sourceSpec } from '@/sources/registry'
 import type {

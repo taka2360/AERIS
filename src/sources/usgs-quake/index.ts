@@ -7,7 +7,7 @@ import { normalizeLon, type SourceObservation } from '@/domain/earth/common'
 import type { QuakeSolution } from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
 import { toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { fetchSourceResult } from '../http'
 
 const BASE = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary'
 
@@ -83,19 +83,21 @@ export async function fetchUsgsQuakes(
   feed: UsgsFeed = '4.5_week',
   signal?: AbortSignal,
 ): Promise<SourceResult<SourceObservation<QuakeSolution>[]>> {
-  const r = await fetchValidated(`${BASE}/${feed}.geojson`, feedSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'usgs-quake', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  return {
-    ok: true,
-    data: adaptFeed(r.data, retrievedAt),
-    provenance: {
-      source: 'usgs-quake',
-      kind: 'observation',
-      label: `USGS ${feed}`,
-      issuedAt: toInstant(r.data.metadata.generated),
-      retrievedAt,
-      sourceRole: 'observation',
-    },
-  }
+  return fetchSourceResult(
+    'usgs-quake',
+    `${BASE}/${feed}.geojson`,
+    feedSchema,
+    (raw, retrievedAt) => ({
+      data: adaptFeed(raw, retrievedAt),
+      provenance: {
+        source: 'usgs-quake',
+        kind: 'observation',
+        label: `USGS ${feed}`,
+        issuedAt: toInstant(raw.metadata.generated),
+        retrievedAt,
+        sourceRole: 'observation',
+      },
+    }),
+    { signal },
+  )
 }

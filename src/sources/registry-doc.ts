@@ -3,7 +3,7 @@
  * never drift from what the code actually does. Type-only imports keep this
  * loadable by Node directly (scripts/gen-data-sources.ts).
  */
-import type { SourceDomain, SourceSpec } from './registry'
+import type { SourceDomain, SourceSpec } from '../domain/source-spec'
 
 const DOMAIN_TITLE: Record<SourceDomain, string> = {
   weather: '気象コア',

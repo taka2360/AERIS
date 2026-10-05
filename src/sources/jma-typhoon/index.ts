@@ -4,8 +4,9 @@
  * specifications (specifications.json). One issuance = one ForecastIssue.
  */
 import { z } from 'zod'
+import type { CycloneReport } from '@/domain/earth/reports'
 import { normalizeLon, type SourceObservation } from '@/domain/earth/common'
-import type { CycloneDetail, TrackPoint } from '@/domain/earth/events'
+import type { TrackPoint } from '@/domain/earth/events'
 import type { SourceResult } from '@/domain/result'
 import { toInstant, type Instant } from '@/domain/time'
 import { fetchValidated } from '../http'
@@ -62,22 +63,6 @@ export const specSchema = z.array(
     galeWarning: z.array(range).optional(),
   }),
 )
-
-/** Cyclone report as JMA stated it for one issuance. */
-export type CycloneReport = {
-  id: string
-  number?: string
-  name?: string
-  nameEn?: string
-  issuedAt: Instant
-  category?: string
-  categoryLabel?: string
-  intensityClass?: string
-  sizeClass?: string
-  location?: string
-  maxGustMs?: number
-  detail: CycloneDetail
-}
 
 const num = (v: string | undefined) => {
   const n = v == null ? NaN : Number.parseFloat(v)

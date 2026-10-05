@@ -4,10 +4,11 @@
  * impact assessment; each event keeps its dated geometry trail.
  */
 import { z } from 'zod'
+import type { EonetEvent } from '@/domain/earth/reports'
 import { normalizeLon, type SourceObservation } from '@/domain/earth/common'
 import type { SourceResult } from '@/domain/result'
 import { toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { fetchSourceResult } from '../http'
 
 const URL_OPEN = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=30'
 
@@ -33,27 +34,6 @@ export const eonetSchema = z.object({
     }),
   ),
 })
-
-export type EonetPoint = {
-  at: Instant
-  lat: number
-  lon: number
-  magnitude?: { value: number; unit: string }
-}
-
-export type EonetEvent = {
-  id: string
-  title: string
-  description?: string
-  link?: string
-  category: string
-  categoryTitle: string
-  /** Agencies that reported it (EONET does not observe by itself) */
-  reporters: string[]
-  closedAt?: Instant
-  /** Dated positions; polygons are reduced to their first vertex */
-  track: EonetPoint[]
-}
 
 function firstPosition(c: unknown): [number, number] | null {
   if (!Array.isArray(c)) return null
@@ -115,18 +95,20 @@ export function eonetObservation(
 export async function fetchEonet(
   signal?: AbortSignal,
 ): Promise<SourceResult<SourceObservation<EonetEvent>[]>> {
-  const r = await fetchValidated(URL_OPEN, eonetSchema, { signal, timeoutMs: 25_000 })
-  if (!r.ok) return { ok: false, source: 'eonet', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  return {
-    ok: true,
-    data: adaptEonet(r.data).map((e) => eonetObservation(e, retrievedAt)),
-    provenance: {
-      source: 'eonet',
-      kind: 'observation',
-      label: 'NASA EONET',
-      retrievedAt,
-      sourceRole: 'aggregation',
-    },
-  }
+  return fetchSourceResult(
+    'eonet',
+    URL_OPEN,
+    eonetSchema,
+    (raw, retrievedAt) => ({
+      data: adaptEonet(raw).map((e) => eonetObservation(e, retrievedAt)),
+      provenance: {
+        source: 'eonet',
+        kind: 'observation',
+        label: 'NASA EONET',
+        retrievedAt,
+        sourceRole: 'aggregation',
+      },
+    }),
+    { signal, timeoutMs: 25_000 },
+  )
 }

@@ -5,7 +5,7 @@
  */
 import type { SpaceWeatherEvent } from '@/domain/earth/events'
 import type { Provenance } from '@/domain/model'
-import type { SpaceWeather, SwpcAlert } from '@/sources/swpc'
+import type { SpaceWeather, SwpcAlert } from '@/domain/earth/reports'
 
 function kindOf(a: SwpcAlert): SpaceWeatherEvent['detail']['kind'] {
   if (a.scale?.startsWith('G') || /K-index|Geomagnetic/i.test(a.title)) return 'geomagnetic-storm'

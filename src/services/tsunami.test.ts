@@ -5,6 +5,7 @@ import {
   tsunamiRelevance,
   tsunamiStatus,
 } from '@/domain/earth/status'
+import { tsunamiKindRank } from '@/domain/earth/reports'
 import {
   adaptAreas,
   adaptBulletins,
@@ -12,7 +13,6 @@ import {
   detailSchema,
   listSchema,
   reportObservation,
-  tsunamiKindRank,
 } from '@/sources/jma-tsunami'
 import detailFixture from '@/sources/jma-tsunami/fixtures/detail-VTSE41.json'
 import listFixture from '@/sources/jma-tsunami/fixtures/list.json'

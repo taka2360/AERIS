@@ -13,6 +13,7 @@
 ## 依存の向き(ESLint で強制)
 
 `ui → query → services → domain ← sources`。`ui` から `sources` を import しない。`domain` は React・外部 API 非依存。
+`query` / `services` も `sources` を import しない(例外は宣言データの `@/sources/registry` のみ)。ソースが述べた内容の正規化済み型は `domain/earth/reports.ts` に置き、アダプタがそれを返す。`providers/` と `main.tsx` は合成ルートで `sources` と `services` の両方を知ってよい。
 
 ## 規約(コードから読み取れないもの)
 

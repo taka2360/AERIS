@@ -8,8 +8,8 @@ import type { SourceObservation } from '@/domain/earth/common'
 import type { IntensityObservation } from '@/domain/earth/events'
 import type { QuakeSolution } from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
-import { epoch, toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { epoch, type Instant } from '@/domain/time'
+import { fetchSourceResult, fetchValidated } from '../http'
 
 const BASE = 'https://www.jma.go.jp/bosai/quake/data'
 
@@ -183,22 +183,23 @@ export function adaptDetail(
 export async function fetchJmaQuakes(
   signal?: AbortSignal,
 ): Promise<SourceResult<SourceObservation<QuakeSolution>[]>> {
-  const r = await fetchValidated(`${BASE}/list.json`, listSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'jma-quake', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  const data = adaptList(r.data, retrievedAt)
-  return {
-    ok: true,
-    data,
-    provenance: {
-      source: 'jma-quake',
-      kind: 'official',
-      label: '気象庁 地震情報',
-      issuedAt: r.data[0]?.rdt,
-      retrievedAt,
-      sourceRole: 'observation',
-    },
-  }
+  return fetchSourceResult(
+    'jma-quake',
+    `${BASE}/list.json`,
+    listSchema,
+    (raw, retrievedAt) => ({
+      data: adaptList(raw, retrievedAt),
+      provenance: {
+        source: 'jma-quake',
+        kind: 'official',
+        label: '気象庁 地震情報',
+        issuedAt: raw[0]?.rdt,
+        retrievedAt,
+        sourceRole: 'observation',
+      },
+    }),
+    { signal },
+  )
 }
 
 export async function fetchJmaQuakeDetail(

@@ -34,6 +34,27 @@ export default tseslint.config(
     },
   },
   {
+    // query and services read source *data* only through domain types. The one
+    // exception is the registry: declarative metadata (poll cadence, freshness)
+    // that it alone owns. Composition roots (providers/, main.tsx) are out of scope.
+    files: ['src/query/**/*.{ts,tsx}', 'src/services/**/*.ts'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/sources/*', '!@/sources/registry', '**/sources/*', '!**/sources/registry'],
+              message:
+                'query/services must not depend on source adapters. Use domain types; only @/sources/registry (declarative metadata) is allowed.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/domain/**/*.ts'],
     rules: {
       'no-restricted-imports': [

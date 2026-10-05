@@ -7,53 +7,8 @@
  * This file must stay free of runtime imports (scripts/gen-data-sources.ts
  * loads it directly with Node).
  */
-import type { DataQuality, Derivation, SourceRole, TemporalRole } from '../domain/earth/common'
+import type { SourceSpec } from '../domain/source-spec'
 import type { SourceId } from '../domain/model'
-
-export type SourceDomain =
-  | 'weather'
-  | 'seismic'
-  | 'tsunami'
-  | 'volcano'
-  | 'atmosphere'
-  | 'hydro'
-  | 'ocean'
-  | 'environment'
-  | 'space'
-  | 'global'
-  | 'map'
-  | 'geocode'
-  | 'internal'
-
-/** Declarative condition for switching to the active polling rate. */
-export type ActiveWhen =
-  | { signal: 'tsunami-assessment'; minRank: number }
-  | { signal: 'recent-earthquake'; minIntensityRank: number; withinMin: number }
-  | { signal: 'cyclone-active' }
-  | { signal: 'geomagnetic'; minKp: number }
-
-export type SourceSpec = {
-  id: SourceId
-  label: string
-  owner: string
-  domain: SourceDomain
-  status: 'active' | 'planned' | 'unavailable'
-  endpoints: string[]
-  license: string
-  attribution: { text: string; url?: string }
-  redistribution: string
-  apiKey: 'none' | 'relay-secret'
-  /** Reachable directly from the browser */
-  cors: boolean
-  rateLimit?: string
-  sourceRole: SourceRole
-  defaultRole: TemporalRole
-  derivation: Derivation
-  defaultQuality?: DataQuality
-  freshness: { expectedIntervalMin: number; staleAfterMin: number }
-  poll: { nominalMs: number; activeMs?: number; activeWhen?: ActiveWhen }
-  notes?: string
-}
 
 const MIN = 60_000
 

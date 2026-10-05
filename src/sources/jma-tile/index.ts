@@ -8,6 +8,7 @@
  *   snow  snowd / snowf03h (analysis + forecast)
  */
 import { z } from 'zod'
+import type { KikikuruSeries, SnowSeries } from '@/domain/earth/reports'
 import type { RasterFieldKind, RasterFieldSeries, RasterFrame } from '@/domain/earth/fields'
 import type { Derivation, TemporalRole } from '@/domain/earth/common'
 import type { LightningStroke } from '@/domain/earth/events'
@@ -231,13 +232,6 @@ export async function fetchThunderSeries(
   }
 }
 
-export type KikikuruSeries = {
-  land: RasterFieldSeries
-  inundation: RasterFieldSeries
-  /** 洪水キキクル: vector tiles (.pbf, source-layer 'flood', property 'level') */
-  flood: RasterFieldSeries
-}
-
 /** The three キキクル share one time list; flood is a vector-tile product. */
 export function buildKikikuru(entries: TargetTime[], retrievedAt: Instant): KikikuruSeries {
   const land = buildSeries(FIELD_SPECS['kikikuru-land'], entries, retrievedAt)
@@ -264,8 +258,6 @@ export async function fetchKikikuru(signal?: AbortSignal): Promise<SourceResult<
   const k = buildKikikuru(r.data, r.provenance.retrievedAt)
   return { ok: true, data: k, provenance: k.land.provenance }
 }
-
-export type SnowSeries = { depth: RasterFieldSeries; snowfall: RasterFieldSeries }
 
 export async function fetchSnow(signal?: AbortSignal): Promise<SourceResult<SnowSeries>> {
   const r = await fetchTargetTimes(SNOW, 'jma-snow', signal)

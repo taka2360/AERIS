@@ -5,8 +5,8 @@
 import { z } from 'zod'
 import type { AlertBulletin, WeatherAlert } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
-import { epoch, toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { epoch, type Instant } from '@/domain/time'
+import { fetchSourceResult } from '../http'
 import { kindOf, KIND_DEFINITIONS_VERSION } from './kinds'
 
 const kind = z.object({ code: z.string().optional(), status: z.string() })
@@ -96,8 +96,14 @@ export async function fetchWarnings(
   signal?: AbortSignal,
 ): Promise<SourceResult<AlertBulletin>> {
   const url = `https://www.jma.go.jp/bosai/warning/data/r8/${office}.json`
-  const r = await fetchValidated(url, warningSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'jma-warning', error: r.error }
-  const data = adaptWarnings(r.data, class20, areaName, toInstant(Date.now()))
-  return { ok: true, data, provenance: data.provenance }
+  return fetchSourceResult(
+    'jma-warning',
+    url,
+    warningSchema,
+    (raw, retrievedAt) => {
+      const data = adaptWarnings(raw, class20, areaName, retrievedAt)
+      return { data, provenance: data.provenance }
+    },
+    { signal },
+  )
 }

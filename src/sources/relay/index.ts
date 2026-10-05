@@ -4,11 +4,11 @@
  * VITE_RELAY_BASE the channels report NOT CONFIGURED (they are optional).
  */
 import { z } from 'zod'
-import type { ActiveFireDetection } from '@/domain/earth/events'
+import type { FirmsFeed, NhcFeed } from '@/domain/earth/reports'
 import type { SourceId } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
-import { toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { toInstant } from '@/domain/time'
+import { fetchSourceResult } from '../http'
 
 export const relayBase = (): string | null =>
   (import.meta.env.VITE_RELAY_BASE as string | undefined)?.replace(/\/$/, '') || null
@@ -37,8 +37,6 @@ const firmsSchema = z.object({
   ),
 })
 
-export type FirmsFeed = { fetchedAt: Instant; total: number; detections: ActiveFireDetection[] }
-
 const CONF = { l: 'low', n: 'nominal', h: 'high' } as const
 
 export function adaptFirms(raw: z.infer<typeof firmsSchema>): FirmsFeed {
@@ -64,28 +62,29 @@ export async function fetchFirms(
 ): Promise<SourceResult<FirmsFeed>> {
   const base = relayBase()
   if (!base) return notConfigured('relay-firms')
-  const r = await fetchValidated(
+  return fetchSourceResult(
+    'relay-firms',
     `${base}/firms?bbox=${bbox.join(',')}&hours=24&limit=3000`,
     firmsSchema,
+    (raw, retrievedAt) => {
+      const data = adaptFirms(raw)
+      return {
+        data,
+        provenance: {
+          source: 'relay-firms',
+          kind: 'observation',
+          label: 'NASA FIRMS VIIRS (via relay)',
+          observedAt: data.fetchedAt,
+          retrievedAt,
+          role: 'observed',
+          derivation: 'measured',
+          quality: 'preliminary',
+          sourceRole: 'observation',
+        },
+      }
+    },
     { signal, timeoutMs: 20_000 },
   )
-  if (!r.ok) return { ok: false, source: 'relay-firms', error: r.error }
-  const data = adaptFirms(r.data)
-  return {
-    ok: true,
-    data,
-    provenance: {
-      source: 'relay-firms',
-      kind: 'observation',
-      label: 'NASA FIRMS VIIRS (via relay)',
-      observedAt: data.fetchedAt,
-      retrievedAt: toInstant(Date.now()),
-      role: 'observed',
-      derivation: 'measured',
-      quality: 'preliminary',
-      sourceRole: 'observation',
-    },
-  }
 }
 
 const nhcSchema = z.object({
@@ -106,26 +105,28 @@ const nhcSchema = z.object({
   ),
 })
 
-export type NhcStorm = z.infer<typeof nhcSchema>['storms'][number]
-export type NhcFeed = { fetchedAt: Instant; storms: NhcStorm[] }
-
 export async function fetchNhc(signal?: AbortSignal): Promise<SourceResult<NhcFeed>> {
   const base = relayBase()
   if (!base) return notConfigured('relay-nhc')
-  const r = await fetchValidated(`${base}/nhc`, nhcSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'relay-nhc', error: r.error }
-  const fetchedAt = toInstant(Date.parse(r.data.fetchedAt))
-  return {
-    ok: true,
-    data: { fetchedAt, storms: r.data.storms },
-    provenance: {
-      source: 'relay-nhc',
-      kind: 'official',
-      label: 'NOAA NHC (via relay)',
-      observedAt: fetchedAt,
-      retrievedAt: toInstant(Date.now()),
-      role: 'analysis',
-      sourceRole: 'forecast',
+  return fetchSourceResult(
+    'relay-nhc',
+    `${base}/nhc`,
+    nhcSchema,
+    (raw, retrievedAt) => {
+      const fetchedAt = toInstant(Date.parse(raw.fetchedAt))
+      return {
+        data: { fetchedAt, storms: raw.storms },
+        provenance: {
+          source: 'relay-nhc',
+          kind: 'official',
+          label: 'NOAA NHC (via relay)',
+          observedAt: fetchedAt,
+          retrievedAt,
+          role: 'analysis',
+          sourceRole: 'forecast',
+        },
+      }
     },
-  }
+    { signal },
+  )
 }

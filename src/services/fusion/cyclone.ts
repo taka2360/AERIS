@@ -4,7 +4,7 @@
  */
 import { refKey, type EventMeasure, type SourceObservation } from '@/domain/earth/common'
 import type { CycloneEvent } from '@/domain/earth/events'
-import type { CycloneReport } from '@/sources/jma-typhoon'
+import type { CycloneReport } from '@/domain/earth/reports'
 
 /** '2627' → '台風第27号' (JMA numbers are YYNN). */
 export function typhoonTitle(r: CycloneReport): string {

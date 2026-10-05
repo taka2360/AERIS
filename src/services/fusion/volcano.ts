@@ -5,7 +5,7 @@
 import type { HazardAssessment } from '@/domain/earth/assessments'
 import { refKey, type SourceObservation } from '@/domain/earth/common'
 import type { VolcanoEvent } from '@/domain/earth/events'
-import { alertLevelOf, volcanoRank, type VolcanoReport } from '@/sources/jma-volcano'
+import { alertLevelOf, volcanoRank, type VolcanoReport } from '@/domain/earth/reports'
 
 export function volcanoAssessment(obs: SourceObservation<VolcanoReport>): HazardAssessment {
   const r = obs.data

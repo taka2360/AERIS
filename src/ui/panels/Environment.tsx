@@ -16,7 +16,7 @@ import {
   useRiver,
   useSnow,
 } from '@/query/earth-hooks'
-import type { AirKey } from '@/query/earth-hooks'
+import type { AirKey } from '@/domain/earth/reports'
 import { useCurrentConditions } from '@/query/hooks'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'

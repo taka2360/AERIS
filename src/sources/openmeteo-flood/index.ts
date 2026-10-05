@@ -4,15 +4,14 @@
  * reanalysis, today onwards forecast — and the nearest river may be wrong.
  */
 import { z } from 'zod'
+import type { DischargeKey } from '@/domain/earth/reports'
 import type { PointSeries } from '@/domain/earth/fields'
 import type { GeoPoint } from '@/domain/earth/common'
 import type { SourceResult } from '@/domain/result'
-import { jstDateKey, toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { jstDateKey, type Instant } from '@/domain/time'
+import { fetchSourceResult } from '../http'
 
 const BASE = 'https://flood-api.open-meteo.com/v1/flood'
-
-export type DischargeKey = 'discharge' | 'median' | 'max' | 'p75'
 
 export const floodSchema = z.object({
   latitude: z.number(),
@@ -69,9 +68,14 @@ export async function fetchRiverDischarge(
     `${BASE}?latitude=${p.lat}&longitude=${p.lon}` +
     '&daily=river_discharge,river_discharge_median,river_discharge_max,river_discharge_p75' +
     '&past_days=7&forecast_days=14'
-  const r = await fetchValidated(url, floodSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'openmeteo-flood', error: r.error }
-  const now = toInstant(Date.now())
-  const s = adaptFlood(r.data, now, now)
-  return { ok: true, data: s, provenance: s.provenance }
+  return fetchSourceResult(
+    'openmeteo-flood',
+    url,
+    floodSchema,
+    (raw, now) => {
+      const s = adaptFlood(raw, now, now)
+      return { data: s, provenance: s.provenance }
+    },
+    { signal },
+  )
 }

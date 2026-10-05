@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { volcanoStatus } from '@/domain/earth/status'
-import {
-  adaptSites,
-  adaptWarnings,
-  listSchema,
-  volcanoRank,
-  warningSchema,
-} from '@/sources/jma-volcano'
+import { volcanoRank } from '@/domain/earth/reports'
+import { adaptSites, adaptWarnings, listSchema, warningSchema } from '@/sources/jma-volcano'
 import listFixture from '@/sources/jma-volcano/fixtures/volcano_list.json'
 import warningFixture from '@/sources/jma-volcano/fixtures/warning.json'
 import { synthVolcanoes } from '@/sources/mock/earth'

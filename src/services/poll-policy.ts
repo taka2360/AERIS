@@ -4,7 +4,7 @@
  * condition as data; this module evaluates it against current signals.
  */
 import { minutesBetween, type Instant } from '@/domain/time'
-import type { ActiveWhen, SourceSpec } from '@/sources/registry'
+import type { ActiveWhen, SourceSpec } from '@/domain/source-spec'
 
 /** Facts derived from current data that may warrant faster polling. */
 export type EarthSignals = {

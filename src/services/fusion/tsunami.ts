@@ -6,8 +6,7 @@
 import type { HazardAssessment } from '@/domain/earth/assessments'
 import { refKey, type SourceObservation } from '@/domain/earth/common'
 import type { EarthquakeEvent, TsunamiEvent } from '@/domain/earth/events'
-import type { TsunamiReport } from '@/domain/earth/reports'
-import { tsunamiKindRank } from '@/sources/jma-tsunami'
+import { type TsunamiReport, tsunamiKindRank } from '@/domain/earth/reports'
 
 /** Japan's centre, used when a bulletin carries no hypocentre (e.g. distant source). */
 const JAPAN: [number, number] = [137.5, 36.5]
