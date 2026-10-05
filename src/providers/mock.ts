@@ -15,8 +15,7 @@ import {
   synthNowcastFrames,
   synthOfficialForecast,
   synthStations,
-  synthWindField,
-  synthWindGrid,
+  synthWindAt,
 } from '@/sources/mock/generator'
 import { SCENARIOS, type Scenario } from '@/sources/mock/scenario'
 import { createMockEarthProvider } from './mock-earth'
@@ -114,10 +113,10 @@ export function createMockProvider(opts: MockOptions = {}): WeatherProvider {
       ),
     nowcastFrames: (signal) =>
       run('jma-nowcast', 'observation', 'MOCK NOWCAST', signal, () => synthNowcastFrames(now())),
-    windField: (p, signal) =>
-      run('openmeteo', 'model', 'MOCK MODEL', signal, () => synthWindField(p.lat, p.lon, now())),
-    windGrid: (tier, signal) =>
-      run('openmeteo', 'model', 'MOCK MODEL', signal, () => synthWindGrid(tier, now())),
+    windAt: (pts, signal) =>
+      run('openmeteo', 'model', 'MOCK MODEL', signal, () =>
+        pts.map((p) => synthWindAt(p.lat, p.lon, now())),
+      ),
     resolveLocation: (p, signal) =>
       run('gsi-geocoder', 'official', 'MOCK GSI', signal, (): WeatherLocation => {
         const nearest = PLACES.reduce((a, b) =>

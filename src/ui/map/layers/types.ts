@@ -13,12 +13,8 @@ export type MapScene = {
   center: { lat: number; lon: number }
   rangeKm: number
   rings: number[]
-  /** Wind near the location (fine grid) */
+  /** Wind on the lattice covering the current view */
   wind: WindSample[]
-  /** Wind over Japan and its seas (coarse grid, REGION zoom) */
-  windRegion: WindSample[]
-  /** Wind over the whole Earth (very coarse grid, GLOBE zoom) */
-  windGlobe: WindSample[]
   radarTileUrl: string | null
   lightningTileUrl: string | null
   tornadoTileUrl: string | null

@@ -1,10 +1,13 @@
 /**
  * A popup tied to a map position by an elbow leader line. The line draws out
  * from the target, then the box unfolds from where the line meets it. The
- * target is re-projected on every map move, so the popup follows pans/zooms.
- * The box goes to whichever side has room (right and up preferred).
+ * box goes to whichever side has room (right and up preferred).
+ *
+ * Positioning is done straight on the DOM inside MapLibre's 'move' event —
+ * the same frame the map is drawn in. Going through React state (or an extra
+ * animation frame) leaves the popup one frame behind the map while panning.
  */
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import s from './MapView.module.css'
 
@@ -16,14 +19,6 @@ const RUN = 30
 const JOIN = 12
 const MARGIN = 6
 
-type View = { x: number; y: number; w: number; h: number }
-
-function project(map: MapLibreMap, at: [number, number]): View {
-  const p = map.project(at)
-  const c = map.getContainer()
-  return { x: p.x, y: p.y, w: c.clientWidth, h: c.clientHeight }
-}
-
 export function LeaderPopup({
   map,
   at,
@@ -33,61 +28,75 @@ export function LeaderPopup({
   at: [number, number]
   children: ReactNode
 }) {
-  const [view, setView] = useState<View>(() => project(map, at))
-  const boxRef = useRef<HTMLDivElement>(null)
-  const [boxH, setBoxH] = useState(140)
+  const layer = useRef<HTMLDivElement>(null)
+  const svg = useRef<SVGSVGElement>(null)
+  const pulse = useRef<SVGCircleElement>(null)
+  const dot = useRef<SVGCircleElement>(null)
+  const line = useRef<SVGPolylineElement>(null)
+  const end = useRef<SVGCircleElement>(null)
+  const box = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
-    let raf = 0
-    const update = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => setView(project(map, at)))
+    const els = [layer, svg, pulse, dot, line, end, box].map((r) => r.current)
+    if (els.some((e) => !e)) return
+    const place = () => {
+      const p = map.project(at)
+      const c = map.getContainer()
+      const w = c.clientWidth
+      const h = c.clientHeight
+      const boxH = box.current!.offsetHeight || 140
+      const { x, y } = p
+      // Off-screen target (panned away or behind the globe): hide, keep state.
+      const visible = x >= -8 && x <= w + 8 && y >= -8 && y <= h + 8
+      layer.current!.toggleAttribute('data-hidden', !visible)
+      if (!visible) return
+      const dirX = x + DIAG + RUN + BOX_W + MARGIN <= w || x < w / 2 ? 1 : -1
+      const dirY = y - DIAG - JOIN < MARGIN ? 1 : -1
+      const p1x = x + dirX * DIAG
+      const p1y = y + dirY * DIAG
+      const p2x = p1x + dirX * RUN
+      const left = Math.max(MARGIN, Math.min(w - BOX_W - MARGIN, dirX > 0 ? p2x : p2x - BOX_W))
+      const top = Math.max(MARGIN, Math.min(h - boxH - MARGIN, p1y - JOIN))
+
+      svg.current!.setAttribute('width', String(w))
+      svg.current!.setAttribute('height', String(h))
+      for (const c of [pulse.current!, dot.current!]) {
+        c.setAttribute('cx', String(x))
+        c.setAttribute('cy', String(y))
+      }
+      line.current!.setAttribute('points', `${x},${y} ${p1x},${p1y} ${p2x},${p1y}`)
+      end.current!.setAttribute('cx', String(p2x))
+      end.current!.setAttribute('cy', String(p1y))
+      const b = box.current!
+      b.style.left = `${left}px`
+      b.style.top = `${top}px`
+      b.dataset.dir = dirX > 0 ? 'right' : 'left'
     }
-    update()
-    map.on('move', update)
-    map.on('resize', update)
+    place()
+    map.on('move', place)
+    map.on('resize', place)
+    // Content height changes (data arriving) move the box's clamp.
+    const ro = new ResizeObserver(place)
+    ro.observe(box.current!)
     return () => {
-      cancelAnimationFrame(raf)
-      map.off('move', update)
-      map.off('resize', update)
+      map.off('move', place)
+      map.off('resize', place)
+      ro.disconnect()
     }
   }, [map, at])
 
-  useLayoutEffect(() => {
-    const el = boxRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => setBoxH(el.offsetHeight))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  const { x, y, w, h } = view
-  // Off-screen target (panned away or behind the globe): hide, keep state.
-  const visible = x >= -8 && x <= w + 8 && y >= -8 && y <= h + 8
-  const dirX = x + DIAG + RUN + BOX_W + MARGIN <= w || x < w / 2 ? 1 : -1
-  const dirY = y - DIAG - JOIN < MARGIN ? 1 : -1
-  const p1 = { x: x + dirX * DIAG, y: y + dirY * DIAG }
-  const p2 = { x: p1.x + dirX * RUN, y: p1.y }
-  const left = Math.max(MARGIN, Math.min(w - BOX_W - MARGIN, dirX > 0 ? p2.x : p2.x - BOX_W))
-  const top = Math.max(MARGIN, Math.min(h - boxH - MARGIN, p2.y - JOIN))
-
   return (
-    <div className={s.popupLayer} data-hidden={!visible || undefined}>
-      <svg className={s.leader} width={w} height={h} aria-hidden="true">
-        <circle className={s.leaderPulse} cx={x} cy={y} r={9} />
-        <circle className={s.leaderDot} cx={x} cy={y} r={2.5} />
-        <polyline
-          className={s.leaderLine}
-          points={`${x},${y} ${p1.x},${p1.y} ${p2.x},${p2.y}`}
-          pathLength={1}
-        />
-        <circle className={s.leaderEnd} cx={p2.x} cy={p2.y} r={2} />
+    <div ref={layer} className={s.popupLayer}>
+      <svg ref={svg} className={s.leader} aria-hidden="true">
+        <circle ref={pulse} className={s.leaderPulse} r={9} />
+        <circle ref={dot} className={s.leaderDot} r={2.5} />
+        <polyline ref={line} className={s.leaderLine} pathLength={1} />
+        <circle ref={end} className={s.leaderEnd} r={2} />
       </svg>
       <div
-        ref={boxRef}
+        ref={box}
         className={s.popup}
-        data-dir={dirX > 0 ? 'right' : 'left'}
-        style={{ left, top, width: BOX_W }}
+        style={{ width: BOX_W }}
         role="dialog"
         aria-label="選択したイベント"
       >

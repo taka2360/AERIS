@@ -14,7 +14,7 @@ import { lookupArea } from '@/sources/jma-area'
 import { fetchOfficialForecast } from '@/sources/jma-forecast'
 import { fetchNowcastFrames } from '@/sources/jma-nowcast'
 import { fetchWarnings } from '@/sources/jma-warning'
-import { fetchForecast, fetchWindField, fetchWindGrid } from '@/sources/openmeteo-forecast'
+import { fetchForecast, fetchWindAt } from '@/sources/openmeteo-forecast'
 import { searchPlacesOpenMeteo } from '@/sources/openmeteo-geocoder'
 import { createLiveEarthProvider } from './live-earth'
 
@@ -33,8 +33,7 @@ export function createLiveProvider(): WeatherProvider {
     earth: createLiveEarthProvider(),
     forecast: (p, signal) => fetchForecast(roundPoint(p), signal),
     stations: (p, signal) => fetchStations(roundPoint(p), signal),
-    windField: (p, signal) => fetchWindField(roundPoint(p), signal),
-    windGrid: (tier, signal) => fetchWindGrid(tier, signal),
+    windAt: (pts, signal) => fetchWindAt(pts, signal),
     nowcastFrames: (signal) => fetchNowcastFrames(signal),
 
     alerts: async (loc, signal) => {

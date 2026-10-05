@@ -12,7 +12,6 @@ import type {
   OfficialForecast,
   StationObservation,
   WeatherLocation,
-  WindGridTier,
   WindSample,
 } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
@@ -35,9 +34,11 @@ export interface WeatherProvider {
     signal?: AbortSignal,
   ): Promise<SourceResult<OfficialForecast>>
   nowcastFrames(signal?: AbortSignal): Promise<SourceResult<NowcastFrame[]>>
-  windField(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<WindSample[]>>
-  /** Coarse wind over Japan or the Earth, for zoomed-out map views */
-  windGrid(tier: WindGridTier, signal?: AbortSignal): Promise<SourceResult<WindSample[]>>
+  /**
+   * Current wind at the given points (map arrows). Samples come back at the
+   * requested coordinates; points without data are left out.
+   */
+  windAt(points: GeoPoint[], signal?: AbortSignal): Promise<SourceResult<WindSample[]>>
   resolveLocation(
     point: GeoPoint & { origin: WeatherLocation['origin'] },
     signal?: AbortSignal,

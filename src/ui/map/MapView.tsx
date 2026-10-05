@@ -10,6 +10,7 @@ import { Map as MapLibreMap, Marker, ScaleControl, setWorkerUrl } from 'maplibre
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { setMapStatus } from '@/query/map-status'
+import type { ViewBounds } from '@/domain/wind-lattice'
 import { circleBounds } from './geo'
 import { LeaderPopup } from './LeaderPopup'
 import { JMA_ATTRIBUTION } from './layers/base-layers'
@@ -41,8 +42,8 @@ export type MapViewProps = {
   onSelect: (eventId: string, at: [number, number]) => void
   /** A click that hit no selectable feature */
   onBackgroundClick: () => void
-  /** Zoom level after each zoom (and once the map is ready) */
-  onZoom: (zoom: number) => void
+  /** Visible bounds and zoom: while moving (throttled), after each move and once ready */
+  onView: (view: ViewBounds) => void
   onFailure: (reason: string) => void
   recenterToken: number
   popup: MapPopup | null
@@ -117,7 +118,25 @@ export default function MapView(props: MapViewProps) {
     mapRef.current = map
     setMapObj(map)
     map.touchZoomRotate.disableRotation()
-    map.on('zoomend', () => latest.current.onZoom(map.getZoom()))
+    const reportView = () => {
+      const b = map.getBounds()
+      latest.current.onView({
+        west: b.getWest(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        north: b.getNorth(),
+        zoom: map.getZoom(),
+      })
+    }
+    // Throttled while moving so cached arrows fill newly exposed areas at once.
+    let lastReport = 0
+    map.on('move', () => {
+      const t = performance.now()
+      if (t - lastReport < 150) return
+      lastReport = t
+      reportView()
+    })
+    map.on('moveend', reportView)
 
     // Registered before any layer's own click handler, so it runs first: a click
     // that no layer claims (no onSelect in the same turn) is a background click.
@@ -160,7 +179,7 @@ export default function MapView(props: MapViewProps) {
       // The location may have changed (e.g. GPS fix) while the style was loading.
       frameView(map, p.range, p.scene)
       applyVisibility(map, p.layers)
-      latest.current.onZoom(map.getZoom())
+      reportView()
       setMapStatus({ state: 'online' })
     })
 

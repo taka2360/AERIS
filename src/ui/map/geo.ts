@@ -47,7 +47,7 @@ export function windGeoJSON(samples: WindSample[]) {
     features: samples.map((w, i) => ({
       type: 'Feature' as const,
       id: i,
-      properties: { speed: w.speed, direction: w.direction, major: w.major ?? false },
+      properties: { speed: w.speed, direction: w.direction },
       geometry: { type: 'Point' as const, coordinates: [w.lon, w.lat] },
     })),
   }

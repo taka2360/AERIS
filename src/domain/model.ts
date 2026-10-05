@@ -228,38 +228,7 @@ export type NowcastFrame = {
 }
 
 /** Wind vector sample at a grid point, for map rendering */
-export type WindSample = {
-  lat: number
-  lon: number
-  speed: number
-  direction: number
-  /** On the thinned (every other point) subset of a coarse grid */
-  major?: boolean
-}
-
-/** Coarse wind grids for zoomed-out views. */
-export type WindGridTier = 'region' | 'globe'
-
-/** Grid definition per tier: [start, end, step] in degrees for lat and lon. */
-export const WIND_GRIDS: Record<
-  WindGridTier,
-  { lat: [number, number, number]; lon: [number, number, number] }
-> = {
-  // Japan and its seas, 2° (≈ 220 km): 12 × 15 points.
-  region: { lat: [24, 46, 2], lon: [122, 150, 2] },
-  // The whole Earth, 15° × 20°: 10 × 18 points.
-  globe: { lat: [-60, 75, 15], lon: [-180, 160, 20] },
-}
-
-/** Grid points of a tier; every other row and column is flagged as major. */
-export function windGridPoints(tier: WindGridTier): Array<GeoPoint & { major: boolean }> {
-  const g = WIND_GRIDS[tier]
-  const pts: Array<GeoPoint & { major: boolean }> = []
-  for (let i = 0, lat = g.lat[0]; lat <= g.lat[1]; i++, lat += g.lat[2])
-    for (let j = 0, lon = g.lon[0]; lon <= g.lon[1]; j++, lon += g.lon[2])
-      pts.push({ lat, lon, major: i % 2 === 0 && j % 2 === 0 })
-  return pts
-}
+export type WindSample = { lat: number; lon: number; speed: number; direction: number }
 
 export type GeoPoint = { lat: number; lon: number }
 

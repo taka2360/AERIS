@@ -6,7 +6,6 @@ import { type GeoJSONSource, type RasterTileSource } from 'maplibre-gl'
 import { ringsGeoJSON, windGeoJSON } from '../geo'
 import { jmaTiles, registerJmaProtocol } from '../jma-protocol'
 import { FONT, MAP_COLORS, type TilePaletteId } from '../style'
-import type { WindSample } from '@/domain/model'
 import type { MapLayerDef, MapScene } from './types'
 
 export const JMA_ATTRIBUTION = '<a href="https://www.jma.go.jp/" target="_blank">気象庁</a>'
@@ -107,75 +106,33 @@ export const ringsLayer: MapLayerDef = {
   },
 }
 
-/**
- * Zoom bands of the wind grids (exclusive upper bound). Each grid is shown
- * only where its spacing reads as a field: the fine local grid covers ±0.3°
- * and would leave the rest of a zoomed-out view empty.
- */
-export const WIND_ZOOM = { globeUntil: 3, regionMajorUntil: 5, regionUntil: 7.5 } as const
-
-const WIND_TIERS: Array<{
-  id: string
-  pick: (s: MapScene) => WindSample[]
-  minzoom?: number
-  maxzoom?: number
-  /** Thin the grid to every other point (spacing ×2) */
-  major?: boolean
-}> = [
-  { id: 'wind-globe', pick: (s) => s.windGlobe, maxzoom: WIND_ZOOM.globeUntil },
-  {
-    id: 'wind-region-major',
-    pick: (s) => s.windRegion,
-    minzoom: WIND_ZOOM.globeUntil,
-    maxzoom: WIND_ZOOM.regionMajorUntil,
-    major: true,
-  },
-  {
-    id: 'wind-region',
-    pick: (s) => s.windRegion,
-    minzoom: WIND_ZOOM.regionMajorUntil,
-    maxzoom: WIND_ZOOM.regionUntil,
-  },
-  { id: 'wind', pick: (s) => s.wind, minzoom: WIND_ZOOM.regionUntil },
-]
-
-const windSourceId = (tier: string) => (tier === 'wind-region-major' ? 'wind-region' : tier)
-
+/** Wind arrows on the view-covering lattice (see domain/wind-lattice). */
 export const windLayer: MapLayerDef = {
   id: 'wind',
   toggle: 'wind',
-  styleLayers: WIND_TIERS.map((w) => w.id),
+  styleLayers: ['wind'],
   add(map, s) {
     if (!map.hasImage('wind-arrow')) map.addImage('wind-arrow', arrowImage(), { pixelRatio: 2 })
-    for (const tier of WIND_TIERS) {
-      const source = windSourceId(tier.id)
-      if (!map.getSource(source))
-        map.addSource(source, { type: 'geojson', data: windGeoJSON(tier.pick(s)) })
-      map.addLayer({
-        id: tier.id,
-        type: 'symbol',
-        source,
-        ...(tier.minzoom != null && { minzoom: tier.minzoom }),
-        ...(tier.maxzoom != null && { maxzoom: tier.maxzoom }),
-        ...(tier.major && { filter: ['==', ['get', 'major'], true] }),
-        layout: {
-          'icon-image': 'wind-arrow',
-          // Arrow points where the wind blows TO.
-          'icon-rotate': ['+', ['get', 'direction'], 180],
-          'icon-rotation-alignment': 'map',
-          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.6, 15, 1.4],
-          'icon-allow-overlap': true,
-        },
-        paint: { 'icon-opacity': 0.6 },
-      })
-    }
+    map.addSource('wind', { type: 'geojson', data: windGeoJSON(s.wind) })
+    map.addLayer({
+      id: 'wind',
+      type: 'symbol',
+      source: 'wind',
+      layout: {
+        'icon-image': 'wind-arrow',
+        // Arrow points where the wind blows TO.
+        'icon-rotate': ['+', ['get', 'direction'], 180],
+        'icon-rotation-alignment': 'map',
+        'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.6, 15, 1.4],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
+      paint: { 'icon-opacity': 0.6 },
+    })
   },
-  deps: (s) => [s.wind, s.windRegion, s.windGlobe],
+  deps: (s) => [s.wind],
   update(map, s) {
-    for (const tier of WIND_TIERS) {
-      if (tier.id === 'wind-region-major') continue
-      ;(map.getSource(tier.id) as GeoJSONSource | undefined)?.setData(windGeoJSON(tier.pick(s)))
-    }
+    ;(map.getSource('wind') as GeoJSONSource | undefined)?.setData(windGeoJSON(s.wind))
   },
 }
 

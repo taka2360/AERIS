@@ -1,44 +1,96 @@
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(236px, 26%, 340px);
-  gap: var(--s4);
+  column-gap: var(--s4);
   padding: var(--s3) var(--s4);
+  transition:
+    grid-template-columns 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    column-gap 320ms ease;
 }
-.bodyWide {
-  grid-template-columns: minmax(0, 1fr);
+/* NEAREST slid away: the map takes the width. */
+.sideClosed {
+  grid-template-columns: minmax(0, 1fr) 0px;
+  column-gap: 0;
 }
-/* The scope is width-bound in a narrow centre column (1280–1600px screens):
-   move NEAREST under it instead of beside it. */
 .panel {
   container-type: inline-size;
 }
+
+/* ── NEAREST drawer ─────────────────────────────── */
+.side {
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--rule);
+  padding-left: var(--s4);
+  transition:
+    opacity 260ms ease,
+    padding 320ms ease,
+    border-color 320ms ease;
+}
+/* Fixed minimum width: the content slides with the drawer instead of reflowing. */
+.sideInner {
+  display: flex;
+  flex-direction: column;
+  min-width: 236px;
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.sideClosed .side {
+  opacity: 0;
+  padding-left: 0;
+  border-left-color: transparent;
+}
+.sideClosed .sideInner {
+  transform: translateX(24px);
+}
+
+/* The scope is width-bound in a narrow centre column (1280–1600px screens):
+   NEAREST goes under the map and folds up instead of sliding sideways. */
 @container (max-width: 760px) {
-  .body {
+  .body,
+  .body.sideClosed {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
   }
   .side {
-    border-left: 0 !important;
-    padding-left: 0 !important;
+    display: grid;
+    grid-template-rows: 1fr;
+    border-left: 0;
+    padding-left: 0;
     border-top: 1px solid var(--rule);
     padding-top: var(--s3);
+    transition:
+      grid-template-rows 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      opacity 260ms ease,
+      padding 320ms ease,
+      border-color 320ms ease;
+  }
+  .sideInner {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sideClosed .side {
+    grid-template-rows: 0fr;
+    padding-top: 0;
+    border-top-color: transparent;
+  }
+  .sideClosed .sideInner {
+    transform: translateY(-8px);
   }
 }
 /* Stacked: table and FOCUS/NETWORK side by side, so the map keeps its height. */
 @container (min-width: 520px) and (max-width: 760px) {
-  .body .side {
+  .body .sideInner {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
     grid-template-rows: auto 1fr;
     column-gap: var(--s5);
   }
-  .side > .sideHead {
+  .sideInner > .sideHead,
+  .sideInner > .stnTable {
     grid-column: 1;
   }
-  .side > .stnTable {
-    grid-column: 1;
-  }
-  .side > .extras {
+  .sideInner > .extras {
     grid-column: 2;
     grid-row: 1 / span 3;
     margin-top: 0;
@@ -53,6 +105,13 @@
 @container (max-width: 700px) {
   .scale span[data-minor] {
     display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .body,
+  .side,
+  .sideInner {
+    transition: none;
   }
 }
 
@@ -230,27 +289,9 @@
   border-radius: 0;
 }
 @media (max-width: 767px) {
-  .body {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .scopeWrap {
     min-height: min(100vw, 460px);
   }
-  .side {
-    border-left: 0 !important;
-    padding-left: 0 !important;
-    border-top: 1px solid var(--rule);
-    padding-top: var(--s3);
-  }
-}
-.wind line {
-  stroke: var(--cyan);
-  stroke-width: 0.25;
-  opacity: 0.5;
-}
-.wind path {
-  fill: var(--cyan);
-  opacity: 0.5;
 }
 .overlayTL,
 .overlayBL {
@@ -293,12 +334,6 @@
 }
 
 /* ── Station table ─────────────────────────────── */
-.side {
-  min-width: 0;
-  border-left: 1px solid var(--rule);
-  padding-left: var(--s4);
-  overflow: hidden;
-}
 .sideHead {
   font-size: var(--fs-micro);
   color: var(--amber);
@@ -495,10 +530,6 @@
 }
 
 /* ── Below the station table: focus station + network spread ── */
-.side {
-  display: flex;
-  flex-direction: column;
-}
 .extras {
   display: flex;
   flex-direction: column;

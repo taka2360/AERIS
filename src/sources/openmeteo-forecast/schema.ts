@@ -105,11 +105,14 @@ export const forecastSchema = z.object({
 
 export type ForecastResponse = z.infer<typeof forecastSchema>
 
-/** Multi-location response for the wind field (array when >1 coordinate). */
-export const windFieldSchema = z.array(
-  z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-    current: z.object({ wind_speed_10m: num, wind_direction_10m: num }),
-  }),
+/** Multi-location wind response: an array, or a bare object for one coordinate. */
+export const windFieldSchema = z.preprocess(
+  (v) => (Array.isArray(v) ? v : [v]),
+  z.array(
+    z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+      current: z.object({ wind_speed_10m: num, wind_direction_10m: num }),
+    }),
+  ),
 )

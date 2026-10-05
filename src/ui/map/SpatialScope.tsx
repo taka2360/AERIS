@@ -42,18 +42,13 @@ import { activeWindow } from '@/domain/earth/temporal'
 import { intensityLabel, intensityRank, quakeSeverity } from '@/domain/earth/derive'
 import { DEFAULT_LAYERS, LAYER_CATALOG } from './layers/catalog'
 import { LayerMenu } from './LayerMenu'
-import {
-  useNowcastFrames,
-  useResolvedLocation,
-  useStations,
-  useWindField,
-  useWindGrid,
-} from '@/query/hooks'
+import { useNowcastFrames, useResolvedLocation, useStations } from '@/query/hooks'
+import { useViewportWind } from '@/query/viewport-wind'
+import type { ViewBounds } from '@/domain/wind-lattice'
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
 import type { MapLayers, MapPopup, MapRange, MapScene } from './MapView'
-import { WIND_ZOOM } from './layers/base-layers'
 import { NearestExtras } from './NearestExtras'
 import { EventPopup } from '../panels/EventPopup'
 import { legendColor, TILE_PALETTES } from './style'
@@ -66,6 +61,13 @@ const MapView = lazy(() => import('./MapView'))
 /** Radius of the LOCAL view and of the nearest-station list, km */
 const RANGE_KM = 45
 const RINGS = [10, 20, 40]
+/**
+ * NEAREST is a local readout: it slides in when the view is zoomed in to about
+ * the LOCAL range and out when zoomed away. Two thresholds (hysteresis) keep
+ * it from flickering while the zoom hovers around one value.
+ */
+const SIDE_SHOW_ZOOM = 7.5
+const SIDE_HIDE_ZOOM = 6.8
 const RANGE_KEY = 'aeris.mapRange'
 const LAYERS_KEY = 'aeris.layers'
 
@@ -152,7 +154,6 @@ class MapBoundary extends Component<
 export const SpatialScope = memo(function SpatialScope({ active = true }: { active?: boolean }) {
   const { location } = useResolvedLocation()
   const stations = useStations()
-  const wind = useWindField()
   const nowcast = useNowcastFrames()
   const mapStatus = useMapStatus()
   const cursor = useTimeCursor()
@@ -174,7 +175,14 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   }
   const [focus, setFocus] = useState<string | null>(null)
   const [recenter, setRecenter] = useState(0)
-  const [zoom, setZoom] = useState<number | null>(null)
+  const [view, setView] = useState<ViewBounds | null>(null)
+  const [sideOpen, setSideOpen] = useState(range === 'local')
+  const onView = (v: ViewBounds) => {
+    setView(v)
+    setSideOpen((open) =>
+      v.zoom >= SIDE_SHOW_ZOOM ? true : v.zoom < SIDE_HIDE_ZOOM ? false : open,
+    )
+  }
   const [popup, setPopup] = useState<{ id: string; at: [number, number] } | null>(null)
 
   const thunder = useThunder()
@@ -307,24 +315,12 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   )
 
   const showMap = !mapFailed && active
-  // Zoom tier of what is on screen (the range buttons and the mouse wheel alike).
-  const tier: MapRange =
-    zoom == null
-      ? range
-      : zoom >= WIND_ZOOM.regionUntil
-        ? 'local'
-        : zoom >= WIND_ZOOM.globeUntil
-          ? 'region'
-          : 'globe'
-  // NEAREST is a local readout: zoomed out, the map takes the full width.
-  const showSide = tier === 'local'
+  // Without a map there is nothing to zoom: the station readout stays.
+  const showSide = !showMap || sideOpen
   useEffect(() => {
     if (!showMap && !mapFailed) setMapStatus({ state: 'standby' })
   }, [showMap, mapFailed])
-  const windRegion = useWindGrid('region', showMap && layers.wind && tier === 'region')
-  const windGlobe = useWindGrid('globe', showMap && layers.wind && tier === 'globe')
-  const windRegionSamples = useMemo(() => windRegion.data?.data ?? [], [windRegion.data])
-  const windGlobeSamples = useMemo(() => windGlobe.data?.data ?? [], [windGlobe.data])
+  const windSamples = useViewportWind(view, showMap && layers.wind)
   // A selection made elsewhere (log, monitor, CLEAR) closes the map popup.
   const popupOpen = popup && popup.id === selectedId ? popup : null
 
@@ -332,7 +328,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     () => (stations.data?.data ?? []).filter((st) => st.distanceKm <= RANGE_KM),
     [stations.data],
   )
-  const windSamples = useMemo(() => wind.data?.data ?? [], [wind.data])
   const center = useMemo(
     () => ({ lat: location.lat, lon: location.lon }),
     [location.lat, location.lon],
@@ -489,8 +484,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       rangeKm: RANGE_KM,
       rings: RINGS,
       wind: windSamples,
-      windRegion: windRegionSamples,
-      windGlobe: windGlobeSamples,
       radarTileUrl: radarUrl,
       lightningTileUrl: ltngShown?.tileUrlTemplate ?? null,
       tornadoTileUrl: tornShown?.tileUrlTemplate ?? null,
@@ -514,8 +507,6 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     [
       center,
       windSamples,
-      windRegionSamples,
-      windGlobeSamples,
       radarUrl,
       ltngShown?.tileUrlTemplate,
       tornShown?.tileUrlTemplate,
@@ -579,7 +570,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       code="M-01"
       title="SPATIAL SCOPE"
       className={s.panel}
-      bodyClassName={showSide ? s.body : `${s.body} ${s.bodyWide}`}
+      bodyClassName={showSide ? s.body : `${s.body} ${s.sideClosed}`}
       meta={
         <>
           <div className={s.toggles} role="group" aria-label="表示範囲">
@@ -622,7 +613,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
                   range={range}
                   onSelect={onMapSelect}
                   onBackgroundClick={() => setPopup(null)}
-                  onZoom={setZoom}
+                  onView={onView}
                   onFailure={onMapFailure}
                   recenterToken={recenter}
                   popup={mapPopup}
@@ -679,8 +670,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
         )}
       </div>
 
-      {showSide && (
-        <div className={s.side}>
+      {/* Kept mounted so it can slide in and out; inert while closed. */}
+      <div className={s.side} inert={!showSide}>
+        <div className={s.sideInner}>
           <div className={s.sideHead}>OBS NETWORK · NEAREST</div>
           <table className={s.stnTable}>
             <caption className="visually-hidden">近傍のアメダス観測点</caption>
@@ -725,7 +717,7 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
           )}
           <NearestExtras stations={stationList} focused={focused} />
         </div>
-      )}
+      </div>
     </Panel>
   )
 })
