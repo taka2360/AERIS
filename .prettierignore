@@ -2,3 +2,4 @@ dist
 coverage
 pnpm-lock.yaml
 src/sources/**/fixtures/*.json
+docs/DATA_SOURCES.md

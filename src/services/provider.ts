@@ -16,11 +16,14 @@ import type {
 } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import type { Instant } from '@/domain/time'
+import type { EarthProvider } from './earth/provider'
 
 export type { GeoPoint, ModelForecast, PlaceCandidate } from '@/domain/model'
 
 export interface WeatherProvider {
   readonly id: 'mock' | 'live'
+  /** Earth-observation sources (seismic, tsunami, …) */
+  readonly earth: EarthProvider
   /** Clock used to interpret data (mock may pin it for reproducible screenshots) */
   now(): Instant
   forecast(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<ModelForecast>>

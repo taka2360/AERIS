@@ -24,6 +24,20 @@ export function healthFromSnapshot(
   snap: RequestSnapshot,
   opts: { now: Instant; maxAgeMin: number; browserOnline: boolean },
 ): SourceHealth {
+  // Optional sources that are not set up are on standby, not failing.
+  if (
+    snap.error instanceof SourceFailure &&
+    snap.error.detail.kind === 'not_configured' &&
+    !snap.hasData
+  )
+    return {
+      source,
+      connectivity: 'unknown',
+      freshness: 'none',
+      validity: 'unknown',
+      fetching: false,
+      errorMessage: 'NOT CONFIGURED',
+    }
   const lastAttemptFailed =
     (snap.failureCount ?? 0) > 0 ||
     (snap.error != null && snap.errorUpdatedAt >= snap.dataUpdatedAt)

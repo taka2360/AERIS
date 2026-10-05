@@ -4,7 +4,14 @@
  */
 import type { Provenance, SourceId } from './model'
 
-export type SourceErrorKind = 'timeout' | 'network' | 'http' | 'invalid_response' | 'aborted'
+export type SourceErrorKind =
+  | 'timeout'
+  | 'network'
+  | 'http'
+  | 'invalid_response'
+  | 'aborted'
+  /** An optional source (e.g. the relay) is not set up in this deployment */
+  | 'not_configured'
 
 export type SourceError = {
   kind: SourceErrorKind

@@ -10,19 +10,26 @@ import { SpatialScope } from '../map/SpatialScope'
 import { AerisStatus } from '../panels/AerisStatus'
 import { CurrentStatus } from '../panels/CurrentStatus'
 import { DailyForecast } from '../panels/DailyForecast'
+import { Environment } from '../panels/Environment'
+import { EventDetail } from '../panels/EventDetail'
+import { EventLog } from '../panels/EventLog'
+import { EventMonitor } from '../panels/EventMonitor'
 import { JmaWarning } from '../panels/JmaWarning'
 import { OfficialForecast } from '../panels/OfficialForecast'
 import { Solar } from '../panels/Solar'
+import { SpaceWeather } from '../panels/SpaceWeather'
 import { AlertBand } from './AlertBand'
 import { BootSequence } from './BootSequence'
 import { SystemPanel } from './SystemPanel'
+import { TimeCursorBand } from './TimeCursorBand'
 import { TopBar } from './TopBar'
 import s from './Terminal.module.css'
 
-export type MobileView = 'status' | 'timeline' | 'map' | 'forecast' | 'sys'
+export type MobileView = 'status' | 'events' | 'timeline' | 'map' | 'forecast' | 'sys'
 
 const VIEWS: Array<{ id: MobileView; label: string }> = [
   { id: 'status', label: 'STATUS' },
+  { id: 'events', label: 'EVENTS' },
   { id: 'timeline', label: 'TIMELINE' },
   { id: 'map', label: 'SCOPE' },
   { id: 'forecast', label: 'OUTLOOK' },
@@ -79,6 +86,7 @@ export function Terminal() {
       <BootSequence />
       <TopBar searchOpen={searchOpen} setSearchOpen={setSearchOpen} />
       <AlertBand />
+      <TimeCursorBand />
       <main id="main" className={s.grid}>
         <div className={`${s.area} ${s.left}`} data-view-group="status">
           <CurrentStatus />
@@ -90,14 +98,27 @@ export function Terminal() {
         </div>
         <div className={`${s.area} ${s.right}`} data-view-group="status">
           <JmaWarning />
+          <EventMonitor />
           <AerisStatus />
           <Solar />
         </div>
         <div className={`${s.area} ${s.timeline}`} data-view-group="timeline">
           <Timeline />
         </div>
+        <div className={`${s.area} ${s.env}`} data-view-group="status">
+          <Environment />
+        </div>
+        <div className={`${s.area} ${s.log}`} data-view-group="events">
+          <EventLog />
+        </div>
+        <div className={`${s.area} ${s.detail}`} data-view-group="events">
+          <EventDetail />
+        </div>
         <div className={`${s.area} ${s.daily}`} data-view-group="forecast">
           <DailyForecast />
+        </div>
+        <div className={`${s.area} ${s.space}`} data-view-group="sys">
+          <SpaceWeather />
         </div>
         <div className={`${s.area} ${s.sys}`} data-view-group="sys">
           <SystemPanel />

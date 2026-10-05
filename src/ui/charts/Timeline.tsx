@@ -22,6 +22,7 @@ import {
   dateKeyToInstant,
 } from '@/domain/time'
 import { useMinuteClock } from '@/query/clock'
+import { useTimeCursor } from '@/query/time-cursor'
 import { useForecast } from '@/query/hooks'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
@@ -146,6 +147,7 @@ export const Timeline = memo(function Timeline() {
   const now = useMinuteClock()
   const plotRef = useRef<HTMLDivElement>(null)
   const [cursor, setCursor] = useState<number | null>(null)
+  const time = useTimeCursor()
 
   const model = useMemo(
     () =>
@@ -177,6 +179,8 @@ export const Timeline = memo(function Timeline() {
     } else if (e.key === 'Home') setCursor(0)
     else if (e.key === 'End') setCursor(n - 1)
     else if (e.key === 'Escape') setCursor(null)
+    // Pin the whole terminal (map, events) to the hour under the cursor.
+    else if (e.key === 'Enter') time.scrubTo(model.points[idx]!.time)
     else return
     e.preventDefault()
   }
@@ -198,6 +202,14 @@ export const Timeline = memo(function Timeline() {
   const ordered = TRACK_ORDER.map((id) => layouts[id]!)
   const point = model.points[idx]!
   const offsetH = idx - model.nowPoint
+  // Where the global time cursor sits on this axis while scrubbing.
+  const pinned =
+    time.mode === 'scrub'
+      ? (() => {
+          const i = model.points.findIndex((p) => p.time >= time.t)
+          return i >= 0 ? i : null
+        })()
+      : null
   const totalHeight = ordered.reduce((a, l) => a + l.height, 0)
 
   return (
@@ -210,6 +222,7 @@ export const Timeline = memo(function Timeline() {
           <span className={s.legendPast}>━ ANALYSIS</span>
           <span className={s.legendFuture}>┅ FORECAST</span>
           <span>T−06H … T+24H</span>
+          <span className={s.hint}>ENTER / DBL-CLICK: 地図をこの時刻へ</span>
         </>
       }
       bodyClassName={s.body}
@@ -221,7 +234,7 @@ export const Timeline = memo(function Timeline() {
           className={s.plots}
           role="slider"
           tabIndex={0}
-          aria-label="時刻カーソル(←→で1時間、PageUp/Downで6時間移動、Escで現在)"
+          aria-label="時刻カーソル(←→で1時間、PageUp/Downで6時間移動、Escで現在、Enterで地図をこの時刻へ)"
           aria-valuemin={0}
           aria-valuemax={n - 1}
           aria-valuenow={idx}
@@ -238,6 +251,7 @@ export const Timeline = memo(function Timeline() {
           onPointerLeave={(e) => {
             if (e.pointerType === 'mouse') setCursor(null)
           }}
+          onDoubleClick={() => time.scrubTo(model.points[idx]!.time)}
         >
           <div className={s.axis} aria-hidden="true">
             {model.points.map((p, i) =>
@@ -317,6 +331,11 @@ export const Timeline = memo(function Timeline() {
             >
               <span>{formatTime(point.time, false)}</span>
             </div>
+            {pinned != null && (
+              <div className={s.pinned} style={{ left: pct(pinned, n) }} aria-hidden="true">
+                <span>SCRUB</span>
+              </div>
+            )}
           </div>
         </div>
         <Readout point={point} offsetH={offsetH} isPast={idx < model.nowIndex} />

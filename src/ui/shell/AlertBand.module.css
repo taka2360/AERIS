@@ -53,3 +53,58 @@
   font-size: var(--fs-micro);
   color: var(--text-dim);
 }
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.link:hover,
+.link:focus-visible {
+  text-decoration: underline dotted;
+}
+.tsunami {
+  --band: var(--red);
+  padding: 6px var(--s5);
+  font-size: var(--fs-data);
+  font-weight: 700;
+  color: #fff;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 85, 54, 0.45) 0 10px,
+    rgba(255, 85, 54, 0.28) 10px 20px
+  );
+  border-bottom: 2px solid var(--red);
+}
+.tsunami[data-rank='4'] {
+  --band: var(--purple);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(193, 139, 255, 0.5) 0 10px,
+    rgba(193, 139, 255, 0.3) 10px 20px
+  );
+  border-bottom-color: var(--purple);
+}
+.tsunami[data-rank='2'] {
+  --band: var(--yellow);
+  color: var(--text);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 225, 74, 0.22) 0 10px,
+    rgba(255, 225, 74, 0.1) 10px 20px
+  );
+  border-bottom-color: var(--yellow);
+}
+.tsunami .tag {
+  font-size: var(--fs-label);
+  padding: 1px 6px;
+}
+.tsunami .list {
+  color: inherit;
+}
+.tsunami .time {
+  color: inherit;
+  opacity: 0.85;
+}

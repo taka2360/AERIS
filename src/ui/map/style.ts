@@ -155,35 +155,93 @@ export function buildBaseStyle(): StyleSpecification {
 }
 
 /**
- * JMA hrpns tiles use a fixed 8-colour palette. AERIS repaints each tile into
- * its own palette (same bands, same order) so heavy rain still reads as
- * "hotter", while light rain no longer floods the dark display.
- * [JMA rgb] → [AERIS rgba]
+ * JMA classification tiles use fixed palettes. AERIS repaints each tile into
+ * its own palette (same classes, same order) so higher classes still read as
+ * "hotter", while low classes no longer flood the dark display.
+ * [JMA rgb] → [AERIS rgba]. Colours not listed become transparent.
  */
-export const RADAR_PALETTE: Array<{
-  min: number
+export type TileColor = {
   jma: [number, number, number]
   rgba: [number, number, number, number]
-}> = [
-  { min: 0, jma: [242, 242, 255], rgba: [69, 224, 232, 40] },
-  { min: 1, jma: [160, 210, 255], rgba: [42, 140, 146, 120] },
-  { min: 5, jma: [33, 140, 255], rgba: [69, 224, 232, 170] },
-  { min: 10, jma: [0, 65, 255], rgba: [90, 130, 255, 200] },
-  { min: 20, jma: [250, 245, 0], rgba: [255, 225, 74, 220] },
-  { min: 30, jma: [255, 153, 0], rgba: [255, 176, 0, 230] },
-  { min: 50, jma: [255, 40, 0], rgba: [255, 85, 54, 240] },
-  { min: 80, jma: [180, 0, 104], rgba: [193, 139, 255, 250] },
-]
+  /** Legend text for the class */
+  label: string
+}
 
-const PALETTE_LOOKUP = new Map(
-  RADAR_PALETTE.map((p) => [(p.jma[0] << 16) | (p.jma[1] << 8) | p.jma[2], p.rgba]),
+export type TilePaletteId = 'precip' | 'thunder' | 'tornado' | 'kikikuru' | 'snow' | 'snowfall'
+
+export const TILE_PALETTES: Record<TilePaletteId, TileColor[]> = {
+  precip: [
+    { jma: [242, 242, 255], rgba: [69, 224, 232, 40], label: '0+' },
+    { jma: [160, 210, 255], rgba: [42, 140, 146, 120], label: '1+' },
+    { jma: [33, 140, 255], rgba: [69, 224, 232, 170], label: '5+' },
+    { jma: [0, 65, 255], rgba: [90, 130, 255, 200], label: '10+' },
+    { jma: [250, 245, 0], rgba: [255, 225, 74, 220], label: '20+' },
+    { jma: [255, 153, 0], rgba: [255, 176, 0, 230], label: '30+' },
+    { jma: [255, 40, 0], rgba: [255, 85, 54, 240], label: '50+' },
+    { jma: [180, 0, 104], rgba: [193, 139, 255, 250], label: '80+' },
+  ],
+  thunder: [
+    { jma: [255, 245, 0], rgba: [255, 225, 74, 110], label: '1' },
+    { jma: [255, 170, 0], rgba: [255, 176, 0, 170], label: '2' },
+    { jma: [255, 40, 0], rgba: [255, 85, 54, 215], label: '3' },
+    { jma: [200, 0, 255], rgba: [193, 139, 255, 245], label: '4' },
+  ],
+  tornado: [
+    { jma: [250, 245, 0], rgba: [255, 176, 0, 170], label: '1' },
+    { jma: [255, 40, 0], rgba: [255, 85, 54, 235], label: '2' },
+  ],
+  kikikuru: [
+    // 今後の情報等に留意 is the background level: not drawn.
+    { jma: [255, 255, 255], rgba: [0, 0, 0, 0], label: '留意' },
+    { jma: [242, 231, 0], rgba: [255, 225, 74, 120], label: '注意' },
+    { jma: [255, 40, 0], rgba: [255, 85, 54, 175], label: '警戒' },
+    { jma: [170, 0, 170], rgba: [193, 139, 255, 215], label: '危険' },
+    { jma: [12, 0, 12], rgba: [255, 60, 200, 245], label: '災害切迫' },
+  ],
+  snow: [
+    { jma: [160, 210, 255], rgba: [200, 230, 240, 50], label: '<5' },
+    { jma: [33, 140, 255], rgba: [150, 220, 235, 100], label: '5+' },
+    { jma: [0, 65, 255], rgba: [69, 224, 232, 140], label: '20+' },
+    { jma: [255, 245, 0], rgba: [255, 225, 74, 170], label: '50+' },
+    { jma: [255, 153, 0], rgba: [255, 176, 0, 200], label: '100+' },
+    { jma: [255, 40, 0], rgba: [255, 85, 54, 220], label: '150+' },
+    { jma: [180, 0, 104], rgba: [193, 139, 255, 240], label: '200+' },
+  ],
+  snowfall: [
+    { jma: [240, 240, 248], rgba: [200, 230, 240, 40], label: '<3' },
+    { jma: [160, 210, 255], rgba: [200, 230, 240, 80], label: '3+' },
+    { jma: [33, 140, 255], rgba: [150, 220, 235, 120], label: '5+' },
+    { jma: [0, 65, 255], rgba: [69, 224, 232, 150], label: '10+' },
+    { jma: [255, 245, 0], rgba: [255, 225, 74, 180], label: '15+' },
+    { jma: [255, 153, 0], rgba: [255, 176, 0, 200], label: '20+' },
+    { jma: [255, 40, 0], rgba: [255, 85, 54, 220], label: '25+' },
+    { jma: [180, 0, 104], rgba: [193, 139, 255, 240], label: '30+' },
+  ],
+}
+
+/** Precipitation palette with mm/h lower bounds (legend + tests). */
+export const RADAR_PALETTE: Array<TileColor & { min: number }> = TILE_PALETTES.precip.map(
+  (c, i) => ({ ...c, min: [0, 1, 5, 10, 20, 30, 50, 80][i]! }),
 )
 
-/** Repaint RGBA pixels in place. Unknown colours become transparent. */
-export function recolorRadarPixels(px: Uint8ClampedArray): void {
+const lookups = new WeakMap<TileColor[], Map<number, TileColor['rgba']>>()
+
+function lookupOf(palette: TileColor[]) {
+  let m = lookups.get(palette)
+  if (!m) {
+    m = new Map(palette.map((p) => [(p.jma[0] << 16) | (p.jma[1] << 8) | p.jma[2], p.rgba]))
+    lookups.set(palette, m)
+  }
+  return m
+}
+
+/** Repaint RGBA pixels in place by exact match. Unknown colours become transparent. */
+export function recolorPixels(px: Uint8ClampedArray, palette: TileColor[]): void {
+  const lookup = lookupOf(palette)
   for (let i = 0; i < px.length; i += 4) {
     if (px[i + 3] === 0) continue
-    const c = PALETTE_LOOKUP.get((px[i]! << 16) | (px[i + 1]! << 8) | px[i + 2]!)
+    const c =
+      px[i + 3] === 255 ? lookup.get((px[i]! << 16) | (px[i + 1]! << 8) | px[i + 2]!) : undefined
     if (c) {
       px[i] = c[0]
       px[i + 1] = c[1]
@@ -193,6 +251,10 @@ export function recolorRadarPixels(px: Uint8ClampedArray): void {
       px[i + 3] = 0
     }
   }
+}
+
+export function recolorRadarPixels(px: Uint8ClampedArray): void {
+  recolorPixels(px, TILE_PALETTES.precip)
 }
 
 export const legendColor = (rgba: [number, number, number, number]) =>

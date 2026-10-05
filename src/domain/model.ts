@@ -3,6 +3,13 @@
  * UI depends only on these types — never on an external API's JSON shape.
  * Every value carries provenance: where it came from and what kind of data it is.
  */
+import type {
+  DataQuality,
+  DecodeStatus,
+  Derivation,
+  SourceRole,
+  TemporalRole,
+} from './earth/common'
 import type { Instant } from './time'
 
 export type SourceId =
@@ -17,6 +24,28 @@ export type SourceId =
   | 'gsi-search'
   | 'basemap'
   | 'mock'
+  // Earth observation
+  | 'jma-quake'
+  | 'usgs-quake'
+  | 'jma-tsunami'
+  | 'jma-volcano'
+  | 'jma-typhoon'
+  | 'jma-thunder'
+  | 'jma-risk'
+  | 'jma-snow'
+  | 'jma-information'
+  | 'swpc'
+  | 'eonet'
+  | 'gdacs'
+  | 'openmeteo-marine'
+  | 'openmeteo-air'
+  | 'openmeteo-flood'
+  | 'noaa-tides'
+  | 'relay-firms'
+  | 'relay-nhc'
+  | 'relay-hydro'
+  /** Values AERIS itself derived from other sources */
+  | 'aeris'
 
 /** observation = measured; model = NWP analysis; forecast = future; official = issued by an authority */
 export type DataKind = 'observation' | 'model' | 'forecast' | 'official'
@@ -33,6 +62,12 @@ export type Provenance = {
   retrievedAt: Instant
   /** Distance from the target location to the observing station */
   distanceKm?: number
+  // Earth-observation axes (optional; see domain/earth/common.ts)
+  role?: TemporalRole
+  derivation?: Derivation
+  quality?: DataQuality
+  decode?: DecodeStatus
+  sourceRole?: SourceRole
 }
 
 export type Sourced<T> = { value: T; provenance: Provenance }

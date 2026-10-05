@@ -11,10 +11,37 @@ import { unwrap } from '@/domain/result'
 import { mergeCurrent, primaryStation } from '@/services/current'
 import { healthFromSnapshot } from '@/services/health'
 import { roundPoint } from '@/services/provider'
+import {
+  nominalPollMs,
+  SOURCES,
+  sourceSpec,
+  staleAfterMin,
+  type SourceDomain,
+  type SourceSpec,
+} from '@/sources/registry'
 import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
 import { useMapStatus, type MapStatus } from './map-status'
+import {
+  useCycloneReports,
+  useInformation,
+  useKikikuru,
+  useRiver,
+  useAir,
+  useMarine,
+  useSnow,
+  useSpaceWeather,
+  useEonet,
+  useGdacs,
+  useFirms,
+  useNhc,
+  useVolcanoFeed,
+  useJmaQuakes,
+  useStrokes,
+  useTsunamiReports,
+  useUsgsQuakes,
+} from './earth-hooks'
 import { useWeatherProvider } from './provider-context'
 
 const MIN = 60_000
@@ -58,8 +85,8 @@ export function useForecast() {
   return useQuery({
     queryKey: queryKeys.forecast(lat, lon),
     queryFn: async ({ signal }) => unwrap(await provider.forecast({ lat, lon }, signal)),
-    staleTime: 10 * MIN,
-    refetchInterval: 10 * MIN,
+    staleTime: nominalPollMs('openmeteo'),
+    refetchInterval: nominalPollMs('openmeteo'),
     meta: { persist: true },
   })
 }
@@ -70,8 +97,8 @@ export function useStations() {
   return useQuery({
     queryKey: queryKeys.stations(lat, lon),
     queryFn: async ({ signal }) => unwrap(await provider.stations({ lat, lon }, signal)),
-    staleTime: 5 * MIN,
-    refetchInterval: 5 * MIN,
+    staleTime: nominalPollMs('jma-amedas'),
+    refetchInterval: nominalPollMs('jma-amedas'),
     meta: { persist: true },
   })
 }
@@ -95,8 +122,8 @@ export function useAlerts() {
     queryKey: queryKeys.alerts(code ?? 'none'),
     queryFn: async ({ signal }) => unwrap(await provider.alerts(location, signal)),
     enabled: !!code,
-    staleTime: 3 * MIN,
-    refetchInterval: 3 * MIN,
+    staleTime: nominalPollMs('jma-warning'),
+    refetchInterval: nominalPollMs('jma-warning'),
     meta: { persist: true },
   })
 }
@@ -109,8 +136,8 @@ export function useOfficialForecast() {
     queryKey: queryKeys.official(code ?? 'none'),
     queryFn: async ({ signal }) => unwrap(await provider.officialForecast(location, signal)),
     enabled: !!code,
-    staleTime: 30 * MIN,
-    refetchInterval: 30 * MIN,
+    staleTime: nominalPollMs('jma-forecast'),
+    refetchInterval: nominalPollMs('jma-forecast'),
     meta: { persist: true },
   })
 }
@@ -120,8 +147,8 @@ export function useNowcastFrames() {
   return useQuery({
     queryKey: queryKeys.nowcast(),
     queryFn: async ({ signal }) => unwrap(await provider.nowcastFrames(signal)),
-    staleTime: 5 * MIN,
-    refetchInterval: 5 * MIN,
+    staleTime: nominalPollMs('jma-nowcast'),
+    refetchInterval: nominalPollMs('jma-nowcast'),
   })
 }
 
@@ -196,16 +223,17 @@ export function useBrowserOnline(): boolean {
   )
 }
 
-/** Data-time based freshness limits per channel (minutes). */
-const MAX_AGE_MIN: Partial<Record<SourceId, number>> = {
-  openmeteo: 180,
-  'jma-amedas': 40,
-  'jma-warning': 30,
-  'jma-forecast': 24 * 60,
-  'jma-nowcast': 20,
+export type Channel = { id: string; label: string; domain: SourceDomain; health: SourceHealth }
+
+/** Attach the registry domain of the channel's source. */
+function channel(id: string, label: string, health: SourceHealth): Channel {
+  return { id, label, domain: sourceSpec(health.source)?.domain ?? 'internal', health }
 }
 
-export type Channel = { id: string; label: string; health: SourceHealth }
+/** Data-source contracts (licence, attribution …) for display. */
+export function useSourceContracts(): SourceSpec[] {
+  return SOURCES
+}
 
 function snapshot<T>(q: UseQueryResult<T>, dataTime?: string) {
   return {
@@ -270,59 +298,222 @@ export function useSystemHealth() {
   const mapStatus = useMapStatus()
   const online = useBrowserOnline()
   const now = useMinuteClock()
+  const jmaQuakes = useJmaQuakes()
+  const usgsQuakes = useUsgsQuakes()
+  const tsunami = useTsunamiReports()
+  const cyclones = useCycloneReports()
+  const strokes = useStrokes()
+  const information = useInformation()
+  const volcanoes = useVolcanoFeed()
+  const kikikuru = useKikikuru()
+  const river = useRiver()
+  const air = useAir()
+  const marine = useMarine()
+  const snow = useSnow()
+  const space = useSpaceWeather()
+  const eonet = useEonet()
+  const gdacs = useGdacs()
+  const firms = useFirms()
+  const nhc = useNhc()
 
   return useMemo(() => {
-    const opts = (s: SourceId) => ({ now, maxAgeMin: MAX_AGE_MIN[s] ?? 60, browserOnline: online })
+    const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
     const latestFrame = nowcast.data?.data.filter((f) => f.kind === 'observation').at(-1)?.validTime
     const channels: Channel[] = [
-      {
-        id: 'model',
-        label: 'FORECAST MODEL',
-        health: healthFromSnapshot(
+      channel(
+        'model',
+        'FORECAST MODEL',
+        healthFromSnapshot(
           'openmeteo',
           // Model "current" time — freshness is judged on data time, not fetch time.
           snapshot(forecast, forecast.data?.data.hourly.provenance.validFrom),
           opts('openmeteo'),
         ),
-      },
-      {
-        id: 'amedas',
-        label: 'AMeDAS OBS',
-        health: healthFromSnapshot(
+      ),
+      channel(
+        'amedas',
+        'AMeDAS OBS',
+        healthFromSnapshot(
           'jma-amedas',
           snapshot(stations, stations.data?.data[0]?.observedAt),
           opts('jma-amedas'),
         ),
-      },
-      {
-        id: 'warning',
-        label: 'JMA WARNING',
-        health: healthFromSnapshot(
+      ),
+      channel(
+        'warning',
+        'JMA WARNING',
+        healthFromSnapshot(
           'jma-warning',
           // Bulletins can be days old while still current; judge on when we last checked.
           snapshot(alerts, alerts.data?.provenance.retrievedAt),
           opts('jma-warning'),
         ),
-      },
-      {
-        id: 'official',
-        label: 'JMA FORECAST',
-        health: healthFromSnapshot(
+      ),
+      channel(
+        'official',
+        'JMA FORECAST',
+        healthFromSnapshot(
           'jma-forecast',
           snapshot(official, official.data?.data.provenance.issuedAt),
           opts('jma-forecast'),
         ),
-      },
-      {
-        id: 'nowcast',
-        label: 'RADAR NOWCAST',
-        health: healthFromSnapshot(
-          'jma-nowcast',
-          snapshot(nowcast, latestFrame),
-          opts('jma-nowcast'),
+      ),
+      channel(
+        'nowcast',
+        'RADAR NOWCAST',
+        healthFromSnapshot('jma-nowcast', snapshot(nowcast, latestFrame), opts('jma-nowcast')),
+      ),
+      channel('basemap', 'BASEMAP', basemapHealth(mapStatus)),
+      // Event feeds are quiet most of the time: judge on when we last checked.
+      channel(
+        'jma-quake',
+        'JMA SEISMIC',
+        healthFromSnapshot(
+          'jma-quake',
+          snapshot(jmaQuakes, jmaQuakes.data?.provenance.retrievedAt),
+          opts('jma-quake'),
         ),
-      },
-      { id: 'basemap', label: 'BASEMAP', health: basemapHealth(mapStatus) },
+      ),
+      channel(
+        'jma-tsunami',
+        'JMA TSUNAMI',
+        healthFromSnapshot(
+          'jma-tsunami',
+          snapshot(tsunami, tsunami.data?.provenance.retrievedAt),
+          opts('jma-tsunami'),
+        ),
+      ),
+      channel(
+        'jma-typhoon',
+        'JMA TYPHOON',
+        healthFromSnapshot(
+          'jma-typhoon',
+          snapshot(cyclones, cyclones.data?.provenance.retrievedAt),
+          opts('jma-typhoon'),
+        ),
+      ),
+      channel(
+        'jma-thunder',
+        'JMA LIDEN',
+        healthFromSnapshot(
+          'jma-thunder',
+          snapshot(strokes, strokes.data?.provenance.observedAt),
+          opts('jma-thunder'),
+        ),
+      ),
+      channel(
+        'jma-information',
+        'JMA INFORMATION',
+        healthFromSnapshot(
+          'jma-information',
+          snapshot(information, information.data?.provenance.retrievedAt),
+          opts('jma-information'),
+        ),
+      ),
+      channel(
+        'jma-volcano',
+        'JMA VOLCANO',
+        healthFromSnapshot(
+          'jma-volcano',
+          snapshot(volcanoes, volcanoes.data?.provenance.retrievedAt),
+          opts('jma-volcano'),
+        ),
+      ),
+      channel(
+        'jma-risk',
+        'KIKIKURU',
+        healthFromSnapshot(
+          'jma-risk',
+          snapshot(kikikuru, kikikuru.data?.land.provenance.observedAt),
+          opts('jma-risk'),
+        ),
+      ),
+      channel(
+        'openmeteo-flood',
+        'GloFAS RIVER',
+        healthFromSnapshot(
+          'openmeteo-flood',
+          snapshot(river, river.data?.provenance.retrievedAt),
+          opts('openmeteo-flood'),
+        ),
+      ),
+      channel(
+        'openmeteo-air',
+        'CAMS AIR',
+        healthFromSnapshot(
+          'openmeteo-air',
+          snapshot(air, air.data?.data.at),
+          opts('openmeteo-air'),
+        ),
+      ),
+      channel(
+        'openmeteo-marine',
+        'MARINE MODEL',
+        healthFromSnapshot(
+          'openmeteo-marine',
+          snapshot(marine, marine.data?.data.at),
+          opts('openmeteo-marine'),
+        ),
+      ),
+      channel(
+        'jma-snow',
+        'SNOW ANALYSIS',
+        healthFromSnapshot(
+          'jma-snow',
+          snapshot(snow, snow.data?.depth.provenance.observedAt),
+          opts('jma-snow'),
+        ),
+      ),
+      channel(
+        'swpc',
+        'NOAA SWPC',
+        healthFromSnapshot(
+          'swpc',
+          snapshot(space, space.data?.data.solarWind.at ?? undefined),
+          opts('swpc'),
+        ),
+      ),
+      channel(
+        'eonet',
+        'NASA EONET',
+        healthFromSnapshot(
+          'eonet',
+          snapshot(eonet, eonet.data?.provenance.retrievedAt),
+          opts('eonet'),
+        ),
+      ),
+      channel(
+        'gdacs',
+        'GDACS',
+        healthFromSnapshot(
+          'gdacs',
+          snapshot(gdacs, gdacs.data?.provenance.retrievedAt),
+          opts('gdacs'),
+        ),
+      ),
+      channel(
+        'relay-firms',
+        'FIRMS (RELAY)',
+        healthFromSnapshot(
+          'relay-firms',
+          snapshot(firms, firms.data?.data.fetchedAt),
+          opts('relay-firms'),
+        ),
+      ),
+      channel(
+        'relay-nhc',
+        'NHC (RELAY)',
+        healthFromSnapshot('relay-nhc', snapshot(nhc, nhc.data?.data.fetchedAt), opts('relay-nhc')),
+      ),
+      channel(
+        'usgs-quake',
+        'USGS SEISMIC',
+        healthFromSnapshot(
+          'usgs-quake',
+          snapshot(usgsQuakes, usgsQuakes.data?.provenance.retrievedAt),
+          opts('usgs-quake'),
+        ),
+      ),
     ]
     const overall = aggregateStatus(
       channels.map((c) => c.health),
@@ -334,7 +525,33 @@ export function useSystemHealth() {
       .sort()
       .at(-1)
     return { channels, overall, lastUpdate, online }
-  }, [forecast, stations, alerts, official, nowcast, mapStatus, online, now])
+  }, [
+    forecast,
+    stations,
+    alerts,
+    official,
+    nowcast,
+    mapStatus,
+    online,
+    now,
+    jmaQuakes,
+    usgsQuakes,
+    tsunami,
+    cyclones,
+    strokes,
+    information,
+    volcanoes,
+    kikikuru,
+    river,
+    air,
+    marine,
+    snow,
+    space,
+    eonet,
+    gdacs,
+    firms,
+    nhc,
+  ])
 }
 
 // ─── System controls ───────────────────────────────────────────────────────
