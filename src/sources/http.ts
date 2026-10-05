@@ -3,7 +3,9 @@
  * and schema validation. Never throws — failures come back as SourceError.
  */
 import type { z } from 'zod'
-import type { SourceError } from '@/domain/result'
+import type { Provenance, SourceId } from '@/domain/model'
+import type { SourceError, SourceResult } from '@/domain/result'
+import { toInstant, type Instant } from '@/domain/time'
 
 export type Fetched<T> = { ok: true; data: T } | { ok: false; error: SourceError }
 
@@ -84,6 +86,30 @@ export async function fetchValidated<S extends z.ZodType>(
     }
   }
   return { ok: true, data: parsed.data }
+}
+
+export type SourceFetchOptions = FetchOptions & {
+  /** Clock for `retrievedAt`; defaults to the real clock. Read once per fetch. */
+  now?: () => Instant
+}
+
+/**
+ * fetch → Zod validation → `build` → SourceResult envelope, for the common
+ * single-request adapter. Anything else (pagination, source-specific status
+ * handling, multi-request composition, coordinate rounding) stays in the adapter.
+ */
+export async function fetchSourceResult<S extends z.ZodType, T>(
+  source: SourceId,
+  url: string,
+  schema: S,
+  build: (raw: z.infer<S>, retrievedAt: Instant) => { data: T; provenance: Provenance },
+  opts: SourceFetchOptions = {},
+): Promise<SourceResult<T>> {
+  const { now, ...fetchOpts } = opts
+  const r = await fetchValidated(url, schema, fetchOpts)
+  if (!r.ok) return { ok: false, source, error: r.error }
+  const { data, provenance } = build(r.data, now ? now() : toInstant(Date.now()))
+  return { ok: true, data, provenance }
 }
 
 /** Memoise a slow-changing resource (e.g. station tables) in memory with a TTL. */

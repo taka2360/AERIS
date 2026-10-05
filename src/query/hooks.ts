@@ -11,14 +11,8 @@ import { unwrap } from '@/domain/result'
 import { mergeCurrent, primaryStation } from '@/services/current'
 import { healthFromSnapshot } from '@/services/health'
 import { roundPoint } from '@/services/provider'
-import {
-  nominalPollMs,
-  SOURCES,
-  sourceSpec,
-  staleAfterMin,
-  type SourceDomain,
-  type SourceSpec,
-} from '@/sources/registry'
+import type { SourceDomain, SourceSpec } from '@/domain/source-spec'
+import { nominalPollMs, SOURCES, sourceSpec, staleAfterMin } from '@/sources/registry'
 import { clearPersistedCache } from './client'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'

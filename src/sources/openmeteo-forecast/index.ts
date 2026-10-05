@@ -1,7 +1,6 @@
 import type { GeoPoint, ModelForecast, WindSample } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
-import { toInstant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { fetchSourceResult } from '../http'
 import { adaptForecast, MODEL_LABEL } from './adapter'
 import { CURRENT_VARS, DAILY_VARS, forecastSchema, HOURLY_VARS, windFieldSchema } from './schema'
 
@@ -26,15 +25,16 @@ export async function fetchForecast(
   p: GeoPoint,
   signal?: AbortSignal,
 ): Promise<SourceResult<ModelForecast>> {
-  const r = await fetchValidated(forecastUrl(p), forecastSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'openmeteo', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  const data = adaptForecast(r.data, retrievedAt)
-  return {
-    ok: true,
-    data,
-    provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
-  }
+  return fetchSourceResult(
+    'openmeteo',
+    forecastUrl(p),
+    forecastSchema,
+    (raw, retrievedAt) => ({
+      data: adaptForecast(raw, retrievedAt),
+      provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
+    }),
+    { signal },
+  )
 }
 
 /**
@@ -54,24 +54,25 @@ export async function fetchWindAt(
     wind_speed_unit: 'ms',
   })
   // A single location comes back as an object, several as an array.
-  const r = await fetchValidated(`${BASE}?${q}`, windFieldSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'openmeteo', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  const data = r.data.flatMap((p, i): WindSample[] =>
-    p.current.wind_speed_10m == null || p.current.wind_direction_10m == null || !pts[i]
-      ? []
-      : [
-          {
-            lat: pts[i].lat,
-            lon: pts[i].lon,
-            speed: p.current.wind_speed_10m,
-            direction: p.current.wind_direction_10m,
-          },
-        ],
+  return fetchSourceResult(
+    'openmeteo',
+    `${BASE}?${q}`,
+    windFieldSchema,
+    (raw, retrievedAt) => ({
+      data: raw.flatMap((p, i): WindSample[] =>
+        p.current.wind_speed_10m == null || p.current.wind_direction_10m == null || !pts[i]
+          ? []
+          : [
+              {
+                lat: pts[i].lat,
+                lon: pts[i].lon,
+                speed: p.current.wind_speed_10m,
+                direction: p.current.wind_direction_10m,
+              },
+            ],
+      ),
+      provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
+    }),
+    { signal },
   )
-  return {
-    ok: true,
-    data,
-    provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
-  }
 }

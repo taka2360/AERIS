@@ -5,7 +5,24 @@
  * grows without bound.
  */
 import type { SourceObservation } from '@/domain/earth/common'
-import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
+import type {
+  AirQuality,
+  AuroraGrid,
+  CycloneReport,
+  DischargeKey,
+  EonetEvent,
+  FirmsFeed,
+  GdacsAssessment,
+  KikikuruSeries,
+  MarineGrid,
+  MarineState,
+  NhcFeed,
+  QuakeSolution,
+  SnowSeries,
+  SpaceWeather,
+  TsunamiReport,
+  VolcanoFeed,
+} from '@/domain/earth/reports'
 import type { SourceResult } from '@/domain/result'
 import type { LightningStroke } from '@/domain/earth/events'
 import type { HazardAssessment } from '@/domain/earth/assessments'
@@ -19,18 +36,6 @@ import type {
 } from '@/domain/earth/fields'
 import type { GeoPoint } from '@/domain/earth/common'
 import type { Instant } from '@/domain/time'
-import type { CycloneReport } from '@/sources/jma-typhoon'
-import type { VolcanoFeed } from '@/sources/jma-volcano'
-import type { KikikuruSeries, SnowSeries } from '@/sources/jma-tile'
-import type { AirQuality } from '@/sources/openmeteo-air'
-import type { MarineGrid, MarineState } from '@/sources/openmeteo-marine'
-import type { AuroraGrid, SpaceWeather } from '@/sources/swpc'
-import type { EonetEvent } from '@/sources/eonet'
-import type { GdacsAssessment } from '@/sources/gdacs'
-import type { FirmsFeed, NhcFeed } from '@/sources/relay'
-import type { DischargeKey } from '@/sources/openmeteo-flood'
-
-export type { Scenario } from '@/sources/mock/scenario'
 
 type Obs<T> = SourceObservation<T>
 

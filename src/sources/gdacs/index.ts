@@ -4,11 +4,11 @@
  * earthquake that USGS / JMA measured.
  */
 import { z } from 'zod'
-import type { HazardAssessment } from '@/domain/earth/assessments'
+import type { GdacsAssessment } from '@/domain/earth/reports'
 import { normalizeLon } from '@/domain/earth/common'
 import type { SourceResult } from '@/domain/result'
 import { toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { fetchSourceResult } from '../http'
 
 const URL_LIST =
   'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=EQ;TC;FL;VO;WF;DR&alertlevel=Green;Orange;Red'
@@ -46,10 +46,6 @@ export const GDACS_RANK: Record<string, number> = { Green: 1, Orange: 2, Red: 3 
 
 /** GDACS times have no zone and are UTC. */
 const utc = (t: string): Instant => toInstant(Date.parse(/[zZ]$/.test(t) ? t : `${t}Z`))
-
-export type GdacsAssessment = HazardAssessment & {
-  values: { eventtype: string; lat: number; lon: number; severity?: string; report?: string }
-}
 
 export function adaptGdacs(
   raw: z.infer<typeof gdacsSchema>,
@@ -95,18 +91,20 @@ export function adaptGdacs(
 }
 
 export async function fetchGdacs(signal?: AbortSignal): Promise<SourceResult<GdacsAssessment[]>> {
-  const r = await fetchValidated(URL_LIST, gdacsSchema, { signal, timeoutMs: 25_000 })
-  if (!r.ok) return { ok: false, source: 'gdacs', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  return {
-    ok: true,
-    data: adaptGdacs(r.data, retrievedAt),
-    provenance: {
-      source: 'gdacs',
-      kind: 'official',
-      label: 'GDACS',
-      retrievedAt,
-      sourceRole: 'assessment',
-    },
-  }
+  return fetchSourceResult(
+    'gdacs',
+    URL_LIST,
+    gdacsSchema,
+    (raw, retrievedAt) => ({
+      data: adaptGdacs(raw, retrievedAt),
+      provenance: {
+        source: 'gdacs',
+        kind: 'official',
+        label: 'GDACS',
+        retrievedAt,
+        sourceRole: 'assessment',
+      },
+    }),
+    { signal, timeoutMs: 25_000 },
+  )
 }

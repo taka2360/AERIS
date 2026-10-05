@@ -6,8 +6,8 @@
 import { z } from 'zod'
 import type { HazardAssessment } from '@/domain/earth/assessments'
 import type { SourceResult } from '@/domain/result'
-import { epoch, toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { epoch, type Instant } from '@/domain/time'
+import { fetchSourceResult } from '../http'
 
 const URL_LIST = 'https://www.jma.go.jp/bosai/information/data/r8/information.json'
 
@@ -93,18 +93,20 @@ export function adaptInformation(
 export async function fetchInformation(
   signal?: AbortSignal,
 ): Promise<SourceResult<HazardAssessment[]>> {
-  const r = await fetchValidated(URL_LIST, listSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'jma-information', error: r.error }
-  const retrievedAt = toInstant(Date.now())
-  return {
-    ok: true,
-    data: adaptInformation(r.data, retrievedAt),
-    provenance: {
-      source: 'jma-information',
-      kind: 'official',
-      label: '気象庁 気象情報',
-      retrievedAt,
-      sourceRole: 'warning',
-    },
-  }
+  return fetchSourceResult(
+    'jma-information',
+    URL_LIST,
+    listSchema,
+    (raw, retrievedAt) => ({
+      data: adaptInformation(raw, retrievedAt),
+      provenance: {
+        source: 'jma-information',
+        kind: 'official',
+        label: '気象庁 気象情報',
+        retrievedAt,
+        sourceRole: 'warning',
+      },
+    }),
+    { signal },
+  )
 }

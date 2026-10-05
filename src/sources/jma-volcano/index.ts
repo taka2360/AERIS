@@ -5,6 +5,7 @@
  * AERIS does not invent a level for them.
  */
 import { z } from 'zod'
+import type { VolcanoFeed, VolcanoReport } from '@/domain/earth/reports'
 import type { SourceObservation } from '@/domain/earth/common'
 import type { VolcanoSite } from '@/domain/earth/events'
 import type { SourceResult } from '@/domain/result'
@@ -38,32 +39,6 @@ export const warningSchema = z.array(
     volcanoInfos: z.array(z.object({ type: z.string(), items: z.array(item) })),
   }),
 )
-
-/** One volcano's latest bulletin as JMA stated it. */
-export type VolcanoReport = {
-  site: VolcanoSite
-  issuedAt: Instant
-  levelCode: string
-  levelName: string
-  lastCode?: string
-  condition?: string
-  /** 'municipality: response' lines */
-  municipalities: string[]
-}
-
-/** JMA code → AERIS rank (eruption alert level codes map to their level). */
-export function volcanoRank(code: string): number {
-  const n = Number(code)
-  if (n >= 11 && n <= 15) return n - 10
-  if (code === '21') return 4 // 噴火警報(居住地域)
-  if (code === '22' || code === '36') return 2 // 火口周辺 / 周辺海域
-  return 1
-}
-
-export function alertLevelOf(code: string): number | undefined {
-  const n = Number(code)
-  return n >= 11 && n <= 15 ? n - 10 : undefined
-}
 
 /** Volcanoes with a position; aggregate catalogue entries are skipped. */
 export function adaptSites(list: z.infer<typeof listSchema>): VolcanoSite[] {
@@ -137,8 +112,6 @@ const loadSites = memoized(24 * 3600_000, async (signal) => {
   const r = await fetchValidated(`${BASE}/const/volcano_list.json`, listSchema, { signal })
   return r.ok ? { ok: true as const, data: adaptSites(r.data) } : r
 })
-
-export type VolcanoFeed = { sites: VolcanoSite[]; reports: SourceObservation<VolcanoReport>[] }
 
 export async function fetchVolcanoes(signal?: AbortSignal): Promise<SourceResult<VolcanoFeed>> {
   const [sites, warnings] = await Promise.all([

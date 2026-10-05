@@ -9,6 +9,7 @@
  *   OVATION aurora probability (forecast model, on demand)
  */
 import { z } from 'zod'
+import type { AuroraGrid, SpaceWeather, SwpcAlert } from '@/domain/earth/reports'
 import { normalizeLon } from '@/domain/earth/common'
 import type { SourceResult } from '@/domain/result'
 import { toInstant, type Instant } from '@/domain/time'
@@ -56,48 +57,6 @@ const scalesSchema = z.record(z.string(), scaleEntry)
 const alertsSchema = z.array(
   z.object({ product_id: z.string(), issue_datetime: z.string(), message: z.string() }),
 )
-
-export type SwpcAlert = {
-  id: string
-  productId: string
-  issuedAt: Instant
-  /** 'ALERT' | 'WARNING' | 'WATCH' | 'SUMMARY' | … */
-  kind: string
-  title: string
-  /** NOAA scale named in the message, e.g. 'G1' */
-  scale?: string
-}
-
-export type SpaceWeather = {
-  solarWind: { speed: number | null; bt: number | null; bz: number | null; at: Instant | null }
-  /** Propagated L1 solar wind, past hour (speed km/s, bz nT) */
-  windSeries: Array<{ t: Instant; speed: number | null; bz: number | null }>
-  kp: {
-    /** 1-minute estimate (EST) */
-    estimated: number | null
-    estimatedAt: Instant | null
-    /** 3-hourly planetary Kp (observed, may be provisional) */
-    series: Array<{ t: Instant; kp: number }>
-  }
-  xray: {
-    current: string | null
-    at: Instant | null
-    maxClass: string | null
-    maxAt: Instant | null
-  }
-  /** NOAA scales: current (index 0) and predicted days (1–3) */
-  scales: {
-    current: { G: number; S: number; R: number }
-    predicted: Array<{
-      date: string
-      G: number | null
-      rMinorProb: number | null
-      sProb: number | null
-    }>
-    at: Instant | null
-  }
-  alerts: SwpcAlert[]
-}
 
 const n = (v: string | null | undefined) => (v == null || v === '' ? null : Number(v))
 
@@ -239,13 +198,6 @@ const ovationSchema = z.object({
   'Forecast Time': z.string(),
   coordinates: z.array(z.tuple([z.number(), z.number(), z.number()])),
 })
-
-export type AuroraGrid = {
-  observedAt: Instant
-  forecastFor: Instant
-  /** [lon in -180..180, lat, probability %] for cells with probability ≥ minProb */
-  cells: Array<[number, number, number]>
-}
 
 export const ovationSchemaParse = (raw: unknown) => ovationSchema.parse(raw)
 

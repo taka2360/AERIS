@@ -18,9 +18,7 @@ import type {
   WildfireEvent,
 } from '@/domain/earth/events'
 import { epoch, minutesBetween, toInstant, type Instant } from '@/domain/time'
-import type { EonetEvent } from '@/sources/eonet'
-import type { GdacsAssessment } from '@/sources/gdacs'
-import type { NhcStorm } from '@/sources/relay'
+import type { EonetEvent, GdacsAssessment, NhcStorm } from '@/domain/earth/reports'
 
 const EONET_CATEGORY: Record<string, NaturalEvent['category']> = {
   severeStorms: 'severe-storm',

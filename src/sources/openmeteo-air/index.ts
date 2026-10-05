@@ -4,27 +4,14 @@
  * station measurements; pollen is not available for Japan.
  */
 import { z } from 'zod'
+import { AIR_KEYS, type AirKey, type AirQuality } from '@/domain/earth/reports'
 import type { GeoPoint } from '@/domain/earth/common'
-import type { PointSeries } from '@/domain/earth/fields'
 import type { SourceResult } from '@/domain/result'
-import { toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { type Instant } from '@/domain/time'
+import { fetchSourceResult } from '../http'
 import { localToInstant } from '../openmeteo-forecast/adapter'
 
 const BASE = 'https://air-quality-api.open-meteo.com/v1/air-quality'
-
-export const AIR_KEYS = [
-  'pm2_5',
-  'pm10',
-  'ozone',
-  'nitrogen_dioxide',
-  'sulphur_dioxide',
-  'carbon_monoxide',
-  'dust',
-  'aerosol_optical_depth',
-  'uv_index',
-] as const
-export type AirKey = (typeof AIR_KEYS)[number]
 
 const nums = z.array(z.number().nullable())
 
@@ -36,14 +23,6 @@ export const airSchema = z.object({
   current: z.object({ time: z.string() }).catchall(z.number().nullable()),
   hourly: z.object({ time: z.array(z.string()), pm2_5: nums, dust: nums.optional() }),
 })
-
-export type AirQuality = {
-  at: Instant
-  current: Partial<Record<AirKey, number | null>>
-  units: Partial<Record<AirKey, string>>
-  /** Hourly PM2.5 / dust: past day as analysis, then forecast */
-  series: PointSeries<'pm2_5' | 'dust'>
-}
 
 export function adaptAir(
   raw: z.infer<typeof airSchema>,
@@ -97,9 +76,14 @@ export async function fetchAirQuality(
   const url =
     `${BASE}?latitude=${p.lat}&longitude=${p.lon}&current=${AIR_KEYS.join(',')}` +
     '&hourly=pm2_5,dust&past_days=1&forecast_days=3&timezone=Asia%2FTokyo'
-  const r = await fetchValidated(url, airSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'openmeteo-air', error: r.error }
-  const now = toInstant(Date.now())
-  const data = adaptAir(r.data, now, now)
-  return { ok: true, data, provenance: data.series.provenance }
+  return fetchSourceResult(
+    'openmeteo-air',
+    url,
+    airSchema,
+    (raw, now) => {
+      const data = adaptAir(raw, now, now)
+      return { data, provenance: data.series.provenance }
+    },
+    { signal },
+  )
 }

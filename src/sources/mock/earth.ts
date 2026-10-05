@@ -13,50 +13,45 @@ import type {
   RasterFieldSeries,
   RasterFrame,
 } from '@/domain/earth/fields'
-import type { QuakeSolution, TsunamiReport } from '@/domain/earth/reports'
+import type {
+  AirQuality,
+  AuroraGrid,
+  CycloneReport,
+  DischargeKey,
+  EonetEvent,
+  FirmsFeed,
+  GdacsAssessment,
+  KikikuruSeries,
+  MarineGrid,
+  MarineState,
+  NhcFeed,
+  QuakeSolution,
+  SnowSeries,
+  SpaceWeather,
+  TsunamiReport,
+  VolcanoFeed,
+} from '@/domain/earth/reports'
 import type { Provenance } from '@/domain/model'
 import { addMinutes, epoch, jstDateKey, toInstant, type Instant } from '@/domain/time'
 import { adaptAreas, areasSchema, reportObservation, type TsunamiAreaLines } from '../jma-tsunami'
 import tsunamiAreasFixture from '../jma-tsunami/fixtures/areas-subset.json'
-import { cycloneObservation, type CycloneReport } from '../jma-typhoon'
-import {
-  buildKikikuru,
-  buildSeries,
-  FIELD_SPECS,
-  type KikikuruSeries,
-  type SnowSeries,
-  type TargetTime,
-} from '../jma-tile'
-import type { DischargeKey } from '../openmeteo-flood'
-import { adaptAir, airSchema, type AirQuality } from '../openmeteo-air'
+import { cycloneObservation } from '../jma-typhoon'
+import { buildKikikuru, buildSeries, FIELD_SPECS, type TargetTime } from '../jma-tile'
+import { adaptAir, airSchema } from '../openmeteo-air'
 import airFixture from '../openmeteo-air/fixtures/air-tokyo.json'
-import {
-  adaptMarine,
-  GRID_LATS,
-  GRID_LONS,
-  marineSchema,
-  type MarineGrid,
-  type MarineState,
-} from '../openmeteo-marine'
+import { adaptMarine, GRID_LATS, GRID_LONS, marineSchema } from '../openmeteo-marine'
 import marineFixture from '../openmeteo-marine/fixtures/marine-tokyo.json'
-import {
-  adaptOvation,
-  adaptSpaceWeather,
-  ovationSchemaParse,
-  type AuroraGrid,
-  type SpaceWeather,
-} from '../swpc'
+import { adaptOvation, adaptSpaceWeather, ovationSchemaParse } from '../swpc'
 import swAlerts from '../swpc/fixtures/alerts.json'
 import swFlares from '../swpc/fixtures/xray-flares-latest.json'
 import swKp from '../swpc/fixtures/noaa-planetary-k-index.json'
 import swKp1m from '../swpc/fixtures/planetary_k_index_1m.json'
 import swPropagated from '../swpc/fixtures/propagated-solar-wind-1-hour.json'
 import ovationFixture from '../swpc/fixtures/ovation-subset.json'
-import { adaptEonet, eonetObservation, eonetSchema, type EonetEvent } from '../eonet'
+import { adaptEonet, eonetObservation, eonetSchema } from '../eonet'
 import eonetFixture from '../eonet/fixtures/events-open.json'
-import { adaptGdacs, gdacsSchema, type GdacsAssessment } from '../gdacs'
+import { adaptGdacs, gdacsSchema } from '../gdacs'
 import gdacsFixture from '../gdacs/fixtures/events.json'
-import type { FirmsFeed, NhcFeed } from '../relay'
 import { PALETTES } from '../jma-tile/palettes'
 import { adaptInformation } from '../jma-information'
 import {
@@ -65,7 +60,6 @@ import {
   listSchema as volcanoListSchema,
   volcanoObservation,
   warningSchema as volcanoWarningSchema,
-  type VolcanoFeed,
 } from '../jma-volcano'
 import volcanoListFixture from '../jma-volcano/fixtures/volcano_list.json'
 import volcanoWarningFixture from '../jma-volcano/fixtures/warning.json'

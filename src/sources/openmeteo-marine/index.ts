@@ -4,29 +4,20 @@
  * coasts and the cell may lie some distance from the monitoring location.
  */
 import { z } from 'zod'
+import {
+  MARINE_KEYS,
+  type MarineGrid,
+  type MarineKey,
+  type MarineState,
+} from '@/domain/earth/reports'
 import type { GeoPoint } from '@/domain/earth/common'
-import type { PointSeries } from '@/domain/earth/fields'
 import type { SourceResult } from '@/domain/result'
 import { haversineKm } from '@/domain/derive'
 import { toInstant, type Instant } from '@/domain/time'
-import { fetchValidated } from '../http'
+import { fetchSourceResult } from '../http'
 import { localToInstant } from '../openmeteo-forecast/adapter'
 
 const BASE = 'https://marine-api.open-meteo.com/v1/marine'
-
-export const MARINE_KEYS = [
-  'wave_height',
-  'wave_direction',
-  'wave_period',
-  'swell_wave_height',
-  'swell_wave_direction',
-  'swell_wave_period',
-  'sea_surface_temperature',
-  'ocean_current_velocity',
-  'ocean_current_direction',
-  'sea_level_height_msl',
-] as const
-export type MarineKey = (typeof MARINE_KEYS)[number]
 
 const nums = z.array(z.number().nullable())
 
@@ -42,14 +33,6 @@ export const marineSchema = z.object({
     sea_level_height_msl: nums.optional(),
   }),
 })
-
-export type MarineState = {
-  at: Instant
-  /** Distance from the monitoring location to the model sea cell */
-  cellDistanceKm: number
-  current: Partial<Record<MarineKey, number | null>>
-  series: PointSeries<'wave_height' | 'sst' | 'sea_level'>
-}
 
 export function adaptMarine(
   raw: z.infer<typeof marineSchema>,
@@ -108,23 +91,19 @@ export async function fetchMarine(
     `${BASE}?latitude=${p.lat}&longitude=${p.lon}&current=${MARINE_KEYS.join(',')}` +
     '&hourly=wave_height,sea_surface_temperature,sea_level_height_msl' +
     '&past_days=1&forecast_days=2&timezone=Asia%2FTokyo'
-  const r = await fetchValidated(url, marineSchema, { signal })
-  if (!r.ok) return { ok: false, source: 'openmeteo-marine', error: r.error }
-  const now = toInstant(Date.now())
-  const data = adaptMarine(r.data, p, now, now)
-  return { ok: true, data, provenance: data.series.provenance }
+  return fetchSourceResult(
+    'openmeteo-marine',
+    url,
+    marineSchema,
+    (raw, now) => {
+      const data = adaptMarine(raw, p, now, now)
+      return { data, provenance: data.series.provenance }
+    },
+    { signal },
+  )
 }
 
 // ── Regional grid (map layer) ───────────────────────────────────────────────
-
-export type MarineCell = {
-  lat: number
-  lon: number
-  wave: number
-  dir: number | null
-  sst: number | null
-}
-export type MarineGrid = { at: Instant; cells: MarineCell[] }
 
 /** Japan's seas on a 3° grid: one multi-location request (~80 points). */
 export const GRID_LATS = [24, 27, 30, 33, 36, 39, 42, 45]
@@ -179,21 +158,26 @@ export async function fetchMarineGrid(signal?: AbortSignal): Promise<SourceResul
   const url =
     `${BASE}?latitude=${lats.join(',')}&longitude=${lons.join(',')}` +
     '&current=wave_height,wave_direction,sea_surface_temperature'
-  const r = await fetchValidated(url, gridSchema, { signal, timeoutMs: 20_000 })
-  if (!r.ok) return { ok: false, source: 'openmeteo-marine', error: r.error }
-  const data = adaptGrid(r.data)
-  return {
-    ok: true,
-    data,
-    provenance: {
-      source: 'openmeteo-marine',
-      kind: 'model',
-      label: 'Open-Meteo Marine grid',
-      observedAt: data.at,
-      retrievedAt: toInstant(Date.now()),
-      role: 'analysis',
-      derivation: 'modeled',
-      sourceRole: 'forecast',
+  return fetchSourceResult(
+    'openmeteo-marine',
+    url,
+    gridSchema,
+    (raw, retrievedAt) => {
+      const data = adaptGrid(raw)
+      return {
+        data,
+        provenance: {
+          source: 'openmeteo-marine',
+          kind: 'model',
+          label: 'Open-Meteo Marine grid',
+          observedAt: data.at,
+          retrievedAt,
+          role: 'analysis',
+          derivation: 'modeled',
+          sourceRole: 'forecast',
+        },
+      }
     },
-  }
+    { signal, timeoutMs: 20_000 },
+  )
 }

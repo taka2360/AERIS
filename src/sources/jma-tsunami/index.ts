@@ -100,15 +100,6 @@ export const detailSchema = z.object({
 
 export type Detail = z.infer<typeof detailSchema>
 
-/** Ordinal of a JMA tsunami kind: 4 大津波警報 … 1 予報, 0 none / cleared. */
-export function tsunamiKindRank(code: string): number {
-  if (code === '52' || code === '53') return 4
-  if (code === '51') return 3
-  if (code === '62') return 2
-  if (code === '71' || code === '72' || code === '73') return 1
-  return 0
-}
-
 /** Merge the bulletins of one event into one report (newest bulletin wins per part). */
 export function adaptBulletins(eventId: string, details: Detail[]): TsunamiReport {
   const sorted = [...details].sort(
