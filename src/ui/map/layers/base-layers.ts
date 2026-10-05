@@ -134,6 +134,8 @@ export const windLayer: MapLayerDef = {
   },
 }
 
+const STATION_MIN_ZOOM = 6.5
+
 export const stationsLayer: MapLayerDef = {
   id: 'stations',
   toggle: 'stn',
@@ -144,6 +146,9 @@ export const stationsLayer: MapLayerDef = {
       id: 'stations',
       type: 'circle',
       source: 'stations',
+      // The nearest dozen stations are a local readout; zoomed out they collapse
+      // into one clump over the location and only hide what is around it.
+      minzoom: STATION_MIN_ZOOM,
       paint: {
         'circle-radius': ['case', ['boolean', ['feature-state', 'focus'], false], 5, 3.5],
         'circle-color': [
@@ -160,6 +165,7 @@ export const stationsLayer: MapLayerDef = {
       id: 'station-labels',
       type: 'symbol',
       source: 'stations',
+      minzoom: STATION_MIN_ZOOM,
       layout: {
         'text-field': ['get', 'temp'],
         'text-font': FONT,

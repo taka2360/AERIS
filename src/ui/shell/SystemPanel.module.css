@@ -12,8 +12,8 @@
 }
 
 .overall {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 2px var(--s4);
   align-items: center;
   padding-bottom: var(--s3);
@@ -29,16 +29,29 @@
   color: var(--text);
 }
 .offline {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
   font-size: var(--fs-micro);
   color: var(--red);
   letter-spacing: var(--track);
 }
 
+/* Domains flow top-to-bottom through as many columns as the width allows,
+   so short groups pack together instead of leaving row-aligned holes. */
+.channelGrid {
+  column-width: 230px;
+  column-gap: var(--s5);
+}
+.channelGrid > table {
+  break-inside: avoid;
+  margin-bottom: var(--s3);
+}
 .channels {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-micro);
+}
+.channels th {
+  width: 100%;
 }
 .channels th,
 .channels td {
@@ -82,12 +95,17 @@
   color: var(--text);
   font-weight: 400;
 }
-.group th {
-  padding-top: 5px;
+.group {
+  padding: 0 0 2px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-faint);
   font-size: 0.625rem;
   color: var(--amber-dim);
   letter-spacing: var(--track-wide);
 }
 .sources a {
   color: inherit;
+}
+.overall .label:not(:first-child) {
+  margin-left: var(--s4);
 }

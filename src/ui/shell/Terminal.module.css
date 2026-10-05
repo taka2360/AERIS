@@ -23,9 +23,9 @@
   grid-template-areas:
     'left center right'
     'tl tl tl'
-    'env env space'
-    'log log detail'
-    'daily daily sys';
+    'main main side'
+    'daily daily daily'
+    'sys sys sys';
 }
 
 .area {
@@ -56,6 +56,27 @@
 }
 .right > :last-child {
   flex: 1 1 auto;
+}
+
+/* Lower half: two columns that stack independently; the last panel of each
+   absorbs the difference (event log rows / event detail). */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.stack > .area {
+  flex: 0 0 auto;
+}
+.stack > .area:last-child {
+  flex: 1 1 auto;
+}
+.lowerMain {
+  grid-area: main;
+}
+.lowerSide {
+  grid-area: side;
 }
 .timeline {
   grid-area: tl;
@@ -104,9 +125,12 @@
       'tl tl'
       'env env'
       'log log'
-      'detail detail'
+      'space detail'
       'daily daily'
-      'space sys';
+      'sys sys';
+  }
+  .stack {
+    display: contents;
   }
   .center {
     min-height: 480px;
@@ -124,6 +148,9 @@
   }
   .area {
     grid-area: auto;
+  }
+  .stack {
+    display: contents;
   }
   .root[data-view='status'] [data-view-group]:not([data-view-group='status']),
   .root[data-view='events'] [data-view-group]:not([data-view-group='events']),

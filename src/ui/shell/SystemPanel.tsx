@@ -63,30 +63,27 @@ export const SystemPanel = memo(function SystemPanel() {
         </span>
         {!online && <span className={s.offline}>■ BROWSER OFFLINE — SHOWING CACHED DATA</span>}
       </div>
-      <table className={s.channels}>
-        <caption className="visually-hidden">データソース別の状態</caption>
+      <div className={s.channelGrid} role="group" aria-label="データソース別の状態">
         {groupByDomain(channels).map(([domain, list]) => (
-          <tbody key={domain}>
-            <tr className={s.group}>
-              <th scope="rowgroup" colSpan={4}>
-                {DOMAIN_LABEL[domain]}
-              </th>
-            </tr>
-            {list.map((c) => (
-              <tr key={c.id}>
-                <th scope="row">{c.label}</th>
-                <td>
-                  <StatusLamp status={linkStatusOf(c.health)} />
-                </td>
-                <td className={s.time}>
-                  {c.health.dataTime ? formatTime(c.health.dataTime, false) : '--:--'}
-                </td>
-                <td className={s.err}>{c.health.errorMessage ?? ''}</td>
-              </tr>
-            ))}
-          </tbody>
+          <table key={domain} className={s.channels}>
+            <caption className={s.group}>{DOMAIN_LABEL[domain]}</caption>
+            <tbody>
+              {list.map((c) => (
+                <tr key={c.id}>
+                  <th scope="row">{c.label}</th>
+                  <td>
+                    <StatusLamp status={linkStatusOf(c.health)} />
+                  </td>
+                  <td className={s.time}>
+                    {c.health.dataTime ? formatTime(c.health.dataTime, false) : '--:--'}
+                  </td>
+                  <td className={s.err}>{c.health.errorMessage ?? ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ))}
-      </table>
+      </div>
       <div className={s.actions}>
         <KeyButton onClick={() => refresh()} hotkey="R">
           REFRESH

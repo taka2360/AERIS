@@ -272,10 +272,12 @@ test('environment panel: air quality index with references and ocean model value
   await waitForTerminal(page)
   const air = page.getByRole('region', { name: '大気環境' })
   await expect(air).toContainText('MODERATE')
-  await expect(air).toContainText('WHO 24h')
+  // Compact ratios in the cell; the full reference (period, standard) is in the tooltip.
+  await expect(air).toContainText('WHO ×')
+  await expect(air.locator('[title^="WHO 24h"]').first()).toBeVisible()
   await expect(air).toContainText('MODEL')
   const ocean = page.getByRole('region', { name: '海洋' })
-  await expect(ocean).toContainText('6.8 m')
+  await expect(ocean).toContainText('6.8m')
   const row = page
     .getByRole('region', { name: 'EVENT MONITOR' })
     .getByRole('listitem')

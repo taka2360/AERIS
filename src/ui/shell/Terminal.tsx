@@ -90,6 +90,8 @@ export function Terminal() {
       <main id="main" className={s.grid}>
         <div className={`${s.area} ${s.left}`} data-view-group="status">
           <CurrentStatus />
+          <AerisStatus />
+          <Solar />
           <OfficialForecast />
         </div>
         <div className={`${s.area} ${s.center}`} data-view-group="map">
@@ -99,26 +101,29 @@ export function Terminal() {
         <div className={`${s.area} ${s.right}`} data-view-group="status">
           <JmaWarning />
           <EventMonitor />
-          <AerisStatus />
-          <Solar />
         </div>
         <div className={`${s.area} ${s.timeline}`} data-view-group="timeline">
           <Timeline />
         </div>
-        <div className={`${s.area} ${s.env}`} data-view-group="status">
-          <Environment />
+        {/* Two independent stacks, so a tall panel never leaves a hole beside a short one. */}
+        <div className={`${s.stack} ${s.lowerMain}`}>
+          <div className={`${s.area} ${s.env}`} data-view-group="status">
+            <Environment />
+          </div>
+          <div className={`${s.area} ${s.log}`} data-view-group="events">
+            <EventLog />
+          </div>
         </div>
-        <div className={`${s.area} ${s.log}`} data-view-group="events">
-          <EventLog />
-        </div>
-        <div className={`${s.area} ${s.detail}`} data-view-group="events">
-          <EventDetail />
+        <div className={`${s.stack} ${s.lowerSide}`}>
+          <div className={`${s.area} ${s.space}`} data-view-group="sys">
+            <SpaceWeather />
+          </div>
+          <div className={`${s.area} ${s.detail}`} data-view-group="events">
+            <EventDetail />
+          </div>
         </div>
         <div className={`${s.area} ${s.daily}`} data-view-group="forecast">
           <DailyForecast />
-        </div>
-        <div className={`${s.area} ${s.space}`} data-view-group="sys">
-          <SpaceWeather />
         </div>
         <div className={`${s.area} ${s.sys}`} data-view-group="sys">
           <SystemPanel />

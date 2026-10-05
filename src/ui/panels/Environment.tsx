@@ -88,57 +88,58 @@ function HydroChain() {
 
   return (
     <div className={s.chain} role="group" aria-label="雨から河川への連鎖">
-      <div className={s.node}>
-        <span className={s.nodeHead}>RAIN 1H</span>
-        <span className={s.value}>
-          {fmt(rain?.value ?? null)}
-          <small>mm</small>
-        </span>
-        <ProvTag provenance={rain?.provenance} />
-      </div>
-      <span className={s.arrow} aria-hidden="true">
-        →
-      </span>
-      <div className={s.node}>
-        <span className={s.nodeHead}>キキクル</span>
-        <Kiki label="浸水" sample={inund} />
-        <Kiki label="土砂" sample={land} />
-        <span className={s.tag}>JMA ASSESSMENT</span>
-      </div>
-      <span className={s.arrow} aria-hidden="true">
-        →
-      </span>
-      <div className={s.node}>
-        <span className={s.nodeHead}>RIVER FLOW</span>
-        {river.data ? (
-          <>
-            <span className={s.value}>
-              {sum.today != null ? Math.round(sum.today) : '--'}
-              <small>m³/s</small>
-            </span>
-            <Sparkline values={pts.map((p) => p.values.discharge ?? null)} split={split} />
-            {sum.peakAt && (
-              <span className={s.dim}>
-                PEAK {sum.peak != null ? Math.round(sum.peak) : '--'} ·{' '}
-                {formatShortDate(sum.peakAt)}
+      <div className={s.chainGrid}>
+        <div className={s.node}>
+          <span className={s.nodeHead}>
+            <i>1</i>RAIN 1H
+          </span>
+          <span className={s.value}>
+            {fmt(rain?.value ?? null)}
+            <small>mm</small>
+          </span>
+          <ProvTag provenance={rain?.provenance} />
+        </div>
+        <div className={s.node}>
+          <span className={s.nodeHead}>
+            <i>2</i>キキクル
+          </span>
+          <Kiki label="浸水" sample={inund} />
+          <Kiki label="土砂" sample={land} />
+          <span className={s.tag}>JMA ASSESSMENT</span>
+        </div>
+        <div className={s.node}>
+          <span className={s.nodeHead}>
+            <i>3</i>RIVER FLOW
+          </span>
+          {river.data ? (
+            <>
+              <span className={s.value}>
+                {sum.today != null ? Math.round(sum.today) : '--'}
+                <small>m³/s</small>
               </span>
-            )}
-            <QualityTags provenance={river.data.data.provenance} />
-            <span className={s.note}>GloFAS 5km · 最寄り河川の推定</span>
-          </>
-        ) : river.isError ? (
-          <DataStateBadge state="unavailable" />
-        ) : (
-          <span className={s.dim}>--</span>
-        )}
-      </div>
-      <span className={s.arrow} aria-hidden="true">
-        →
-      </span>
-      <div className={s.node}>
-        <span className={s.nodeHead}>RIVER GAUGE</span>
-        <DataStateBadge state="not-available" />
-        <span className={s.note}>水位観測の中継は利用条件確認中</span>
+              <Sparkline values={pts.map((p) => p.values.discharge ?? null)} split={split} />
+              {sum.peakAt && (
+                <span className={s.dim}>
+                  PEAK {sum.peak != null ? Math.round(sum.peak) : '--'} ·{' '}
+                  {formatShortDate(sum.peakAt)}
+                </span>
+              )}
+              <QualityTags provenance={river.data.data.provenance} />
+              <span className={s.note}>GloFAS 5km · 最寄り河川の推定</span>
+            </>
+          ) : river.isError ? (
+            <DataStateBadge state="unavailable" />
+          ) : (
+            <span className={s.dim}>--</span>
+          )}
+        </div>
+        <div className={s.node}>
+          <span className={s.nodeHead}>
+            <i>4</i>RIVER GAUGE
+          </span>
+          <DataStateBadge state="not-available" />
+          <span className={s.note}>水位観測の中継は利用条件確認中</span>
+        </div>
       </div>
     </div>
   )
@@ -156,12 +157,25 @@ const POLLUTANTS: Array<{ key: AirKey; label: string; ref?: keyof typeof REFEREN
   { key: 'uv_index', label: 'UV' },
 ]
 
+/** Ratio to a reference value; above 1 is highlighted. */
+function Ratio({ label, title, value }: { label: string; title: string; value: number }) {
+  return (
+    <span
+      className={s.ratio}
+      title={`${title} の ${value.toFixed(1)} 倍`}
+      data-over={value >= 1 || undefined}
+    >
+      {label} <b>×{value.toFixed(1)}</b>
+    </span>
+  )
+}
+
 function AirSection() {
   const air = useAir()
   const a = air.data?.data
   const index = a ? airIndex(a.current) : null
   return (
-    <section className={s.section} aria-label="大気環境">
+    <section className={`${s.section} ${s.air}`} aria-label="大気環境">
       <h3 className={s.sectionHead}>
         AIR QUALITY
         {index ? (
@@ -189,9 +203,9 @@ function AirSection() {
                     <small>{a.units[p.key] ?? ''}</small>
                   </span>
                   {ref && v != null && (
-                    <span className={s.note}>
-                      {ref.whoLabel} ×{(v / ref.who).toFixed(1)} · {ref.jpLabel} ×
-                      {(v / ref.jp).toFixed(1)}
+                    <span className={s.ratios}>
+                      <Ratio label="WHO" title={ref.whoLabel} value={v / ref.who} />
+                      <Ratio label="JP" title={ref.jpLabel} value={v / ref.jp} />
                     </span>
                   )}
                 </div>
@@ -199,8 +213,8 @@ function AirSection() {
             })}
           </div>
           <span className={s.note}>
-            AERIS 指標({index?.rule})。CAMS モデルの1時間値を日平均等の基準と比べた目安 · 花粉:
-            日本域のデータなし
+            ×は基準値に対する倍率(WHO 指針値 / JP 環境基準)。AERIS 指標({index?.rule})は CAMS
+            モデルの1時間値を日平均等の基準と比べた目安 · 花粉: 日本域のデータなし
           </span>
         </>
       )}
@@ -215,39 +229,21 @@ function OceanSection() {
   const marine = useMarine()
   const m = marine.data?.data
   const c = m?.current
-  const cells: Array<[string, string]> = c
+  const num = (v: number | null | undefined, digits: number) =>
+    v == null ? null : v.toFixed(digits)
+  // [label, value, unit, direction]
+  const cells: Array<[string, string | null, string, string | undefined]> = c
     ? [
-        [
-          'WAVE',
-          c.wave_height != null
-            ? `${c.wave_height.toFixed(1)} m ${compass(c.wave_direction)}`
-            : '--',
-        ],
-        ['PERIOD', c.wave_period != null ? `${c.wave_period.toFixed(1)} s` : '--'],
-        [
-          'SWELL',
-          c.swell_wave_height != null
-            ? `${c.swell_wave_height.toFixed(1)} m ${compass(c.swell_wave_direction)}`
-            : '--',
-        ],
-        [
-          'SST',
-          c.sea_surface_temperature != null ? `${c.sea_surface_temperature.toFixed(1)} °C` : '--',
-        ],
-        [
-          'CURRENT',
-          c.ocean_current_velocity != null
-            ? `${c.ocean_current_velocity.toFixed(1)} km/h ${compass(c.ocean_current_direction)}`
-            : '--',
-        ],
-        [
-          'SEA LEVEL',
-          c.sea_level_height_msl != null ? `${c.sea_level_height_msl.toFixed(2)} m` : '--',
-        ],
+        ['WAVE', num(c.wave_height, 1), 'm', compass(c.wave_direction)],
+        ['PERIOD', num(c.wave_period, 1), 's', ''],
+        ['SWELL', num(c.swell_wave_height, 1), 'm', compass(c.swell_wave_direction)],
+        ['SST', num(c.sea_surface_temperature, 1), '°C', ''],
+        ['CURRENT', num(c.ocean_current_velocity, 1), 'km/h', compass(c.ocean_current_direction)],
+        ['SEA LEVEL', num(c.sea_level_height_msl, 2), 'm', ''],
       ]
     : []
   return (
-    <section className={s.section} aria-label="海洋">
+    <section className={`${s.section} ${s.ocean}`} aria-label="海洋">
       <h3 className={s.sectionHead}>
         OCEAN
         {m && <QualityTags provenance={m.series.provenance} />}
@@ -256,10 +252,14 @@ function OceanSection() {
       {m && (
         <>
           <div className={s.grid}>
-            {cells.map(([k, v]) => (
+            {cells.map(([k, v, unit, dir]) => (
               <div key={k} className={s.cell}>
                 <span className={s.cellHead}>{k}</span>
-                <span className={s.value}>{v}</span>
+                <span className={s.value}>
+                  {v ?? '--'}
+                  {v != null && <small>{unit}</small>}
+                  {v != null && dir && <small className={s.dir}>{dir}</small>}
+                </span>
               </div>
             ))}
           </div>
@@ -286,7 +286,7 @@ function SnowSection() {
           : 'なし'
         : '--'
   return (
-    <section className={s.section} aria-label="雪氷">
+    <section className={`${s.section} ${s.snow}`} aria-label="雪氷">
       <h3 className={s.sectionHead}>
         SNOW
         {snow.data && <QualityTags provenance={snow.data.depth.provenance} />}
@@ -318,13 +318,15 @@ export const Environment = memo(function Environment() {
       bodyClassName={s.body}
       meta={<span>MONITORING LOCATION</span>}
     >
-      <section className={s.section} aria-label="水文">
-        <h3 className={s.sectionHead}>HYDRO · RAIN → RISK → RIVER</h3>
-        <HydroChain />
-      </section>
-      <AirSection />
-      <OceanSection />
-      <SnowSection />
+      <div className={s.layout}>
+        <section className={`${s.section} ${s.hydro}`} aria-label="水文">
+          <h3 className={s.sectionHead}>HYDRO · RAIN → RISK → RIVER</h3>
+          <HydroChain />
+        </section>
+        <AirSection />
+        <OceanSection />
+        <SnowSection />
+      </div>
     </Panel>
   )
 })
