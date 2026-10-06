@@ -6,6 +6,7 @@ import type { z } from 'zod'
 import type { Provenance, SourceId } from '@/domain/model'
 import type { SourceError, SourceResult } from '@/domain/result'
 import { toInstant, type Instant } from '@/domain/time'
+import { parseRetryAfter, type GateTicket, type RateGate } from './rate-gate'
 
 export type Fetched<T> = { ok: true; data: T } | { ok: false; error: SourceError }
 
@@ -14,11 +15,17 @@ export type FetchOptions = {
   timeoutMs?: number
   /** 'json' (default) or 'text' */
   as?: 'json' | 'text'
+  /** Provider quota to check before sending (and to notify of a 429) */
+  quota?: GateTicket & { gate: RateGate }
 }
 
 const DEFAULT_TIMEOUT_MS = 12_000
 
 export async function fetchRaw(url: string, opts: FetchOptions = {}): Promise<Fetched<unknown>> {
+  if (opts.quota) {
+    const refused = opts.quota.gate.acquire(opts.quota)
+    if (refused) return { ok: false, error: refused }
+  }
   const timeout = AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS)
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
   let res: Response
@@ -44,6 +51,11 @@ export async function fetchRaw(url: string, opts: FetchOptions = {}): Promise<Fe
     }
   }
   if (!res.ok) {
+    let retryAfterMs: number | undefined
+    if (res.status === 429) {
+      retryAfterMs = parseRetryAfter(res.headers.get('retry-after'))
+      if (opts.quota) retryAfterMs = opts.quota.gate.rejected(retryAfterMs)
+    }
     return {
       ok: false,
       error: {
@@ -52,6 +64,7 @@ export async function fetchRaw(url: string, opts: FetchOptions = {}): Promise<Fe
         httpStatus: res.status,
         // 4xx (other than 429) won't fix itself by retrying
         retryable: res.status >= 500 || res.status === 429,
+        ...(retryAfterMs !== undefined && { retryAfterMs }),
       },
     }
   }

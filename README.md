@@ -103,3 +103,4 @@ npx wrangler deploy --config relay/wrangler.toml
 - GPS 座標はメモリ上のみ。手動地点は「記憶する」を選んだ場合のみ localStorage に保存
 - 外部 API へ送る座標は小数 2 桁(約 1km)に丸める
 - 気象データキャッシュは localStorage(丸めた座標をキーに含む)。SYS パネルの `CLEAR LOCAL DATA` で全消去
+- 地図の風矢印も取得から 1 時間 localStorage に保持する(地点は地図上の固定格子で、利用者の位置は含まない)。同じく `CLEAR LOCAL DATA` で消去

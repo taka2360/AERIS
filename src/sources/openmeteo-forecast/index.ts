@@ -1,6 +1,7 @@
 import type { GeoPoint, ModelForecast, WindSample } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import { fetchSourceResult } from '../http'
+import { openMeteoQuota } from '../openmeteo-quota'
 import { adaptForecast, MODEL_LABEL } from './adapter'
 import { CURRENT_VARS, DAILY_VARS, forecastSchema, HOURLY_VARS, windFieldSchema } from './schema'
 
@@ -33,7 +34,10 @@ export async function fetchForecast(
       data: adaptForecast(raw, retrievedAt),
       provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
     }),
-    { signal },
+    {
+      signal,
+      quota: openMeteoQuota(1, CURRENT_VARS.length + HOURLY_VARS.length + DAILY_VARS.length, 9),
+    },
   )
 }
 
@@ -73,6 +77,7 @@ export async function fetchWindAt(
       ),
       provenance: { source: 'openmeteo', kind: 'model', label: MODEL_LABEL, retrievedAt },
     }),
-    { signal },
+    // Map decoration: capped so it never starves the panels.
+    { signal, quota: { ...openMeteoQuota(pts.length, 2), bulk: true } },
   )
 }

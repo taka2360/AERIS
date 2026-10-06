@@ -11,8 +11,11 @@ export const WIND_TARGET_PX = 96
 /** Finest / coarsest lattice, degrees (finer than the model grid is pointless) */
 export const WIND_MIN_SPACING = 0.125
 export const WIND_MAX_SPACING = 16
-/** Extra lattice rows/columns around the view, so small pans stay covered */
-export const WIND_MARGIN = 2
+/**
+ * Extra lattice rows/columns around the view, so small pans stay covered.
+ * Every point is one model API call: two rows would double a view's cost.
+ */
+export const WIND_MARGIN = 1
 /** Points are not drawn above this |latitude| (Web Mercator stretches them) */
 const MAX_LAT = 80
 

@@ -14,6 +14,7 @@ import { roundPoint } from '@/services/provider'
 import type { SourceDomain, SourceSpec } from '@/domain/source-spec'
 import { nominalPollMs, SOURCES, sourceSpec, staleAfterMin } from '@/sources/registry'
 import { clearPersistedCache } from './client'
+import { clearWindCache } from './viewport-wind'
 import { useMinuteClock } from './clock'
 import { useLocationControl } from './location'
 import { useMapStatus, type MapStatus } from './map-status'
@@ -545,15 +546,17 @@ export function useDataMode(): 'mock' | 'live' {
 /** Refresh all data, or wipe every locally stored item (cache + remembered location). */
 export function useSystemControls() {
   const client = useQueryClient()
+  const provider = useWeatherProvider()
   const { forgetManual } = useLocationControl()
   return useMemo(
     () => ({
       refresh: () => client.invalidateQueries(),
       clearLocalData: () => {
+        clearWindCache(provider)
         clearPersistedCache(client)
         forgetManual()
       },
     }),
-    [client, forgetManual],
+    [client, provider, forgetManual],
   )
 }

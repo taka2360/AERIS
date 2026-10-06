@@ -15,6 +15,7 @@ import type { SourceResult } from '@/domain/result'
 import { haversineKm } from '@/domain/derive'
 import { toInstant, type Instant } from '@/domain/time'
 import { fetchSourceResult } from '../http'
+import { openMeteoQuota } from '../openmeteo-quota'
 import { localToInstant } from '../openmeteo-forecast/adapter'
 
 const BASE = 'https://marine-api.open-meteo.com/v1/marine'
@@ -99,7 +100,7 @@ export async function fetchMarine(
       const data = adaptMarine(raw, p, now, now)
       return { data, provenance: data.series.provenance }
     },
-    { signal },
+    { signal, quota: openMeteoQuota(1, MARINE_KEYS.length + 3, 3) },
   )
 }
 
@@ -178,6 +179,11 @@ export async function fetchMarineGrid(signal?: AbortSignal): Promise<SourceResul
         },
       }
     },
-    { signal, timeoutMs: 20_000 },
+    {
+      signal,
+      timeoutMs: 20_000,
+      // Map layer: one call per grid point.
+      quota: { ...openMeteoQuota(lats.length, 3), bulk: true },
+    },
   )
 }

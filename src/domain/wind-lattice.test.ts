@@ -5,6 +5,7 @@ import {
   latticeSpacing,
   normalizeLon,
   viewLattice,
+  WIND_MARGIN,
 } from './wind-lattice'
 
 describe('wind lattice', () => {
@@ -18,14 +19,15 @@ describe('wind lattice', () => {
 
   it('covers the whole view plus a margin', () => {
     const view = { west: 130, south: 30, east: 145, north: 42, zoom: 5 }
-    const s = latticeSpacing(view.zoom)
+    // The outermost row lies at least (margin − 1) spacings past each edge.
+    const m = (WIND_MARGIN - 1) * latticeSpacing(view.zoom)
     const pts = latticePoints(view)
     const lats = pts.map((p) => p.lat)
     const lons = pts.map((p) => p.lon)
-    expect(Math.min(...lats)).toBeLessThanOrEqual(view.south - s)
-    expect(Math.max(...lats)).toBeGreaterThanOrEqual(view.north + s)
-    expect(Math.min(...lons)).toBeLessThanOrEqual(view.west - s)
-    expect(Math.max(...lons)).toBeGreaterThanOrEqual(view.east + s)
+    expect(Math.min(...lats)).toBeLessThanOrEqual(view.south - m)
+    expect(Math.max(...lats)).toBeGreaterThanOrEqual(view.north + m)
+    expect(Math.min(...lons)).toBeLessThanOrEqual(view.west - m)
+    expect(Math.max(...lons)).toBeGreaterThanOrEqual(view.east + m)
   })
 
   it('reuses coarse points when zooming in (coarser lattice ⊂ finer)', () => {

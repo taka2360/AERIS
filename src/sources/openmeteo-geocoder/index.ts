@@ -5,6 +5,7 @@
 import { z } from 'zod'
 import type { PlaceCandidate } from '@/domain/model'
 import { fetchValidated, type Fetched } from '../http'
+import { openMeteoQuota } from '../openmeteo-quota'
 
 const schema = z.object({
   results: z
@@ -27,6 +28,7 @@ export async function searchPlacesOpenMeteo(
   const q = new URLSearchParams({ name: query, count: '8', language: 'ja', countryCode: 'JP' })
   const r = await fetchValidated(`https://geocoding-api.open-meteo.com/v1/search?${q}`, schema, {
     signal,
+    quota: openMeteoQuota(1),
   })
   if (!r.ok) return r
   return {

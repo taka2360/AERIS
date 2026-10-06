@@ -10,6 +10,7 @@ import type { GeoPoint } from '@/domain/earth/common'
 import type { SourceResult } from '@/domain/result'
 import { jstDateKey, type Instant } from '@/domain/time'
 import { fetchSourceResult } from '../http'
+import { openMeteoQuota } from '../openmeteo-quota'
 
 const BASE = 'https://flood-api.open-meteo.com/v1/flood'
 
@@ -76,6 +77,6 @@ export async function fetchRiverDischarge(
       const s = adaptFlood(raw, now, now)
       return { data: s, provenance: s.provenance }
     },
-    { signal },
+    { signal, quota: openMeteoQuota(1, 4, 21) },
   )
 }
