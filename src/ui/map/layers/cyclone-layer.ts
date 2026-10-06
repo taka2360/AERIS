@@ -2,10 +2,12 @@
  * Tropical cyclones: past path (observed, amber), forecast track and
  * probability circles (forecast, cyan), storm / gale areas, and the centre
  * at the cursor time — interpolated within one issuance, absent when the
- * cursor is outside what the agency stated.
+ * cursor is outside what the agency stated. Each forecast point carries its
+ * valid date and time (JST).
  */
 import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { splitAtAntimeridian } from '@/domain/earth/common'
+import { formatShortDate, formatTime } from '@/domain/time'
 import { destination } from '../geo'
 import { FONT, MAP_COLORS } from '../style'
 import { pickPoint, type MapLayerDef, type MapScene } from './types'
@@ -46,9 +48,20 @@ function cycloneGeoJSON(s: MapScene) {
           sel,
         }),
       )
-    for (const p of fc)
+    for (const p of fc) {
       if (p.circleKm)
         features.push(line(circle(p.lat, p.lon, p.circleKm), { kind: 'circle', id: c.id, sel }))
+      features.push({
+        type: 'Feature',
+        properties: {
+          kind: 'fpoint',
+          id: c.id,
+          sel,
+          label: `${formatShortDate(p.validAt)} ${formatTime(p.validAt, false)}`,
+        },
+        geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
+      })
+    }
     for (const t of c.coneLines) features.push(line(t, { kind: 'cone', id: c.id, sel }))
     if (a?.stormAreaKm)
       features.push(line(circle(a.lat, a.lon, a.stormAreaKm), { kind: 'storm', id: c.id, sel }))
@@ -84,14 +97,20 @@ const KIND_COLOR = [
 export const cycloneLayer: MapLayerDef = {
   id: 'cyclones',
   toggle: 'cyclone',
-  styleLayers: ['cyclone-lines', 'cyclone-centre', 'cyclone-label'],
+  styleLayers: [
+    'cyclone-lines',
+    'cyclone-fpoint',
+    'cyclone-ftime',
+    'cyclone-centre',
+    'cyclone-label',
+  ],
   add(map, s, handlers) {
     map.addSource('cyclones', { type: 'geojson', data: cycloneGeoJSON(s) })
     map.addLayer({
       id: 'cyclone-lines',
       type: 'line',
       source: 'cyclones',
-      filter: ['!=', ['get', 'kind'], 'centre'],
+      filter: ['match', ['get', 'kind'], ['centre', 'fpoint'], false, true],
       paint: {
         'line-color': KIND_COLOR,
         'line-width': ['match', ['get', 'kind'], 'path', 2, 'track', 1.6, 'storm', 1.6, 1],
@@ -107,6 +126,37 @@ export const cycloneLayer: MapLayerDef = {
           ['literal', [1, 0]],
           ['literal', [1, 0]],
         ],
+      },
+    })
+    // Forecast points: a small mark with the valid time beside it.
+    map.addLayer({
+      id: 'cyclone-fpoint',
+      type: 'circle',
+      source: 'cyclones',
+      filter: ['==', ['get', 'kind'], 'fpoint'],
+      paint: {
+        'circle-radius': 2.5,
+        'circle-color': MAP_COLORS.bg,
+        'circle-stroke-color': MAP_COLORS.cyan,
+        'circle-stroke-width': 1.5,
+      },
+    })
+    map.addLayer({
+      id: 'cyclone-ftime',
+      type: 'symbol',
+      source: 'cyclones',
+      filter: ['==', ['get', 'kind'], 'fpoint'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': FONT,
+        'text-size': 10,
+        'text-anchor': 'left',
+        'text-offset': [0.8, 0],
+      },
+      paint: {
+        'text-color': MAP_COLORS.cyan,
+        'text-halo-color': MAP_COLORS.bg,
+        'text-halo-width': 1.2,
       },
     })
     map.addLayer({

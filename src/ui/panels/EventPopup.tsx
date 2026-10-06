@@ -1,13 +1,15 @@
 /**
- * Compact summary of a selected event, shown on the map next to what was
- * clicked. The full record (each source's values, agency levels, AERIS rule)
- * stays in E-03; the popup links there.
+ * Summary of a selected event, shown on the map next to what was clicked.
+ * DETAIL unfolds the full record (each source's values, agency levels, AERIS
+ * rule) inside the popup itself — the same sections as E-03.
  */
+import { useState } from 'react'
 import { haversineKm } from '@/domain/derive'
 import { quakeSeverity } from '@/domain/earth/derive'
 import { formatDate, formatTime } from '@/domain/time'
 import { useNaturalEvents, useVolcanoes } from '@/query/earth-hooks'
 import { useResolvedLocation } from '@/query/hooks'
+import { EventDetailSections, jmaVolcanoUrl } from './EventDetail'
 import {
   ageLabel,
   CATEGORY_JA,
@@ -26,12 +28,6 @@ const SEVERITY_JA = {
   extreme: '甚大',
 } as const
 
-export const EVENT_DETAIL_ID = 'event-detail'
-
-function openDetail() {
-  document.getElementById(EVENT_DETAIL_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-}
-
 export function EventPopup({
   id,
   at,
@@ -44,6 +40,7 @@ export function EventPopup({
   const { events, now } = useNaturalEvents()
   const { sites } = useVolcanoes()
   const { location } = useResolvedLocation()
+  const [open, setOpen] = useState(false)
   const e = events.find((x) => x.id === id)
   const site = id.startsWith('volcano-site:')
     ? sites.find((v) => `volcano-site:${v.code}` === id)
@@ -75,7 +72,10 @@ export function EventPopup({
             <dd>JMA 活火山</dd>
           </dl>
         </div>
-        <Footer />
+        <a className={s.more} href={jmaVolcanoUrl(site.code)} target="_blank" rel="noreferrer">
+          <span className="ja">気象庁 火山の活動状況</span>
+          <span className={s.moreCode}>↗</span>
+        </a>
       </>
     )
   if (!e)
@@ -126,16 +126,15 @@ export function EventPopup({
         </dl>
         {e.lifecycle === 'cancelled' && <div className={s.cancel}>■ 取消</div>}
       </div>
-      <Footer />
+      {open && (
+        <div className={s.detail} data-expanded>
+          <EventDetailSections e={e} />
+        </div>
+      )}
+      <button type="button" className={s.more} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span>{open ? 'CLOSE DETAIL' : 'DETAIL'}</span>
+        <span className={s.moreCode}>{open ? '▴' : '▾'}</span>
+      </button>
     </>
-  )
-}
-
-function Footer() {
-  return (
-    <button type="button" className={s.more} onClick={openDetail}>
-      <span>DETAIL</span>
-      <span className={s.moreCode}>E-03 ▸</span>
-    </button>
   )
 }

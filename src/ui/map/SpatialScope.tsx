@@ -12,6 +12,7 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -48,9 +49,10 @@ import type { ViewBounds } from '@/domain/wind-lattice'
 import { setMapStatus, useMapStatus } from '@/query/map-status'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
-import type { MapLayers, MapPopup, MapRange, MapScene } from './MapView'
+import type { MapLayers, MapPopup, MapProjection, MapRange, MapScene } from './MapView'
 import { NearestExtras } from './NearestExtras'
 import { EventPopup } from '../panels/EventPopup'
+import { PointPopup } from './PointPopup'
 import { legendColor, TILE_PALETTES } from './style'
 import { TimeScrubber, type ScrubSpan, type ScrubTick } from './TimeScrubber'
 import { CATEGORY_TAG } from '../panels/event-format'
@@ -68,7 +70,9 @@ const RINGS = [10, 20, 40]
  */
 const SIDE_SHOW_ZOOM = 7.5
 const SIDE_HIDE_ZOOM = 6.8
-const RANGE_KEY = 'aeris.mapRange'
+/** v3: range and projection became separate settings; older saves are left behind once. */
+const RANGE_KEY = 'aeris.mapRange.v3'
+const PROJECTION_KEY = 'aeris.mapProjection'
 const LAYERS_KEY = 'aeris.layers'
 
 /** Saved visibility merged over defaults (new layers appear with their default). */
@@ -87,9 +91,13 @@ function loadLayers(): MapLayers {
 }
 
 const RANGES: Array<{ id: MapRange; label: string; caption: string }> = [
-  { id: 'local', label: 'LOCAL', caption: `RNG ${RANGE_KM}KM · WEB MERCATOR` },
-  { id: 'region', label: 'REGION', caption: 'RNG JAPAN · WEB MERCATOR' },
-  { id: 'globe', label: 'GLOBE', caption: 'RNG EARTH · GLOBE' },
+  { id: 'local', label: 'LOCAL', caption: `RNG ${RANGE_KM}KM` },
+  { id: 'region', label: 'REGION', caption: 'RNG JAPAN' },
+  { id: 'globe', label: 'GLOBE', caption: 'RNG EARTH' },
+]
+const PROJECTIONS: Array<{ id: MapProjection; label: string; caption: string; title: string }> = [
+  { id: '3d', label: '3D', caption: 'GLOBE 3D', title: '立体表示(右ドラッグで回転)' },
+  { id: '2d', label: '2D', caption: 'WEB MERCATOR', title: '平面表示' },
 ]
 
 function load<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
@@ -108,6 +116,10 @@ function save(key: string, value: string) {
     /* ignore */
   }
 }
+
+/** What the map popup is pointing at: a selected event, or an empty spot. */
+type ScopePopup =
+  { kind: 'event'; id: string; at: [number, number] } | { kind: 'point'; at: [number, number] }
 
 type ScopeFrame = {
   validTime: string
@@ -166,6 +178,9 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
   const [range, setRange] = useState<MapRange>(() =>
     load(RANGE_KEY, ['local', 'region', 'globe'], 'local'),
   )
+  const [projection, setProjection] = useState<MapProjection>(() =>
+    load(PROJECTION_KEY, ['3d', '2d'], '3d'),
+  )
   const [mapFailed, setMapFailed] = useState(false)
   const [layers, setLayersRaw] = useState<MapLayers>(loadLayers)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -183,7 +198,19 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
       v.zoom >= SIDE_SHOW_ZOOM ? true : v.zoom < SIDE_HIDE_ZOOM ? false : open,
     )
   }
-  const [popup, setPopup] = useState<{ id: string; at: [number, number] } | null>(null)
+  const [popup, setPopup] = useState<ScopePopup | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  // The globe is sized to the panel: re-frame it after the panel grows or shrinks.
+  const expandMounted = useRef(false)
+  useEffect(() => {
+    if (!expandMounted.current) {
+      expandMounted.current = true
+      return
+    }
+    if (range !== 'globe') return
+    const id = setTimeout(() => setRecenter((n) => n + 1), 60)
+    return () => clearTimeout(id)
+  }, [expanded, range])
 
   const thunder = useThunder()
   const strokeData = useStrokes()
@@ -321,8 +348,8 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     if (!showMap && !mapFailed) setMapStatus({ state: 'standby' })
   }, [showMap, mapFailed])
   const windSamples = useViewportWind(view, showMap && layers.wind)
-  // A selection made elsewhere (log, monitor, CLEAR) closes the map popup.
-  const popupOpen = popup && popup.id === selectedId ? popup : null
+  // A selection made elsewhere (log, monitor, CLEAR) closes an event popup.
+  const popupOpen = popup && (popup.kind === 'point' || popup.id === selectedId) ? popup : null
 
   const stationList = useMemo(
     () => (stations.data?.data ?? []).filter((st) => st.distanceKm <= RANGE_KM),
@@ -533,6 +560,10 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     setRange(r)
     save(RANGE_KEY, r)
   }
+  const changeProjection = (p: MapProjection) => {
+    setProjection(p)
+    save(PROJECTION_KEY, p)
+  }
   const onMapFailure = (msg: string) => {
     setMapFailed(true)
     setMapStatus({
@@ -541,183 +572,239 @@ export const SpatialScope = memo(function SpatialScope({ active = true }: { acti
     })
   }
 
-  const mapPopup = useMemo<MapPopup | null>(
-    () =>
-      popupOpen
-        ? {
-            key: popupOpen.id,
-            at: popupOpen.at,
-            content: (
-              <EventPopup id={popupOpen.id} at={popupOpen.at} onClose={() => setPopup(null)} />
-            ),
-          }
-        : null,
-    [popupOpen],
-  )
+  const mapPopup = useMemo<MapPopup | null>(() => {
+    if (!popupOpen) return null
+    const close = () => setPopup(null)
+    return popupOpen.kind === 'event'
+      ? {
+          key: popupOpen.id,
+          at: popupOpen.at,
+          label: '選択したイベント',
+          content: <EventPopup id={popupOpen.id} at={popupOpen.at} onClose={close} />,
+        }
+      : {
+          key: `point:${popupOpen.at.join(',')}`,
+          at: popupOpen.at,
+          label: '選択した地点',
+          content: <PointPopup at={popupOpen.at} onClose={close} />,
+        }
+  }, [popupOpen])
+  // Escape closes the popup first, then leaves the expanded view.
   useEffect(() => {
-    if (!popupOpen) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPopup(null)
+    if (!popupOpen && !expanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (popupOpen) setPopup(null)
+      else setExpanded(false)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [popupOpen])
+  }, [popupOpen, expanded])
   const onMapSelect = (id: string, at: [number, number]) => {
     select(id)
-    setPopup({ id, at })
+    setPopup({ kind: 'event', id, at })
   }
+  // An empty spot: dismiss an open event popup, otherwise offer that point.
+  const onBackgroundClick = (at: [number, number]) =>
+    setPopup(popupOpen?.kind === 'event' ? null : { kind: 'point', at })
 
   return (
-    <Panel
-      code="M-01"
-      title="SPATIAL SCOPE"
-      className={s.panel}
-      bodyClassName={showSide ? s.body : `${s.body} ${s.sideClosed}`}
-      meta={
-        <>
-          <div className={s.toggles} role="group" aria-label="表示範囲">
-            {RANGES.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className={s.toggle}
-                data-mode
-                aria-pressed={range === r.id}
-                onClick={() => changeRange(r.id)}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className={s.toggle}
-            aria-expanded={menuOpen}
-            aria-haspopup="true"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            LAYERS {String(LAYER_CATALOG.filter((e) => layers[e.id]).length).padStart(2, '0')}
-          </button>
-        </>
-      }
-    >
-      <div className={s.main}>
-        <div className={s.scopeWrap} data-mode="map">
-          <LayerMenu layers={layers} setLayers={setLayers} open={menuOpen} setOpen={setMenuOpen} />
-          {showMap ? (
-            <MapBoundary onError={onMapFailure}>
-              <Suspense
-                fallback={<div className={s.mapLoading}>◐ LOADING CARTOGRAPHIC ENGINE…</div>}
-              >
-                <MapView
-                  scene={scene}
-                  layers={layers}
-                  range={range}
-                  onSelect={onMapSelect}
-                  onBackgroundClick={() => setPopup(null)}
-                  onView={onView}
-                  onFailure={onMapFailure}
-                  recenterToken={recenter}
-                  popup={mapPopup}
-                />
-              </Suspense>
-            </MapBoundary>
-          ) : mapFailed ? (
-            <div className={s.mapDown} role="status">
-              <b>▲ BASEMAP UNAVAILABLE</b>
-              <span className="ja">
-                地図を表示できません(WebGL または地図タイルの障害)。他の監視は継続しています。
-              </span>
-              <button type="button" className={s.toggle} onClick={() => setMapFailed(false)}>
-                RETRY
-              </button>
-            </div>
-          ) : null}
-
-          <div className={s.overlayTL} aria-hidden="true">
-            <div>CTR {formatCoord(location.lat, location.lon)}</div>
-            <div>{RANGES.find((r) => r.id === range)!.caption}</div>
-          </div>
-          <div className={s.overlayBL} aria-hidden="true">
-            <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
-            <div>ECHO SRC: JMA NOWCAST</div>
-          </div>
-          {showMap && (
-            <div className={s.legend} aria-hidden="true">
-              {legend.colors.map((c) => (
-                <span key={c.label}>
-                  <i style={{ background: legendColor(c.rgba) }} />
-                  {c.label}
-                </span>
-              ))}
-              <span className={s.legendUnit}>{legend.unit}</span>
-            </div>
-          )}
-          {showMap && (
-            <button type="button" className={s.recenter} onClick={() => setRecenter((n) => n + 1)}>
-              ⌖ RECENTER
-            </button>
-          )}
-        </div>
-        {showMap && span && (
-          <TimeScrubber
-            cursor={cursor}
-            span={span}
-            shown={layers.echo ? shown : layers.ltng || layers.torn ? ltngShown : null}
-            label={legend.scrubLabel}
-            playing={playing}
-            setPlaying={setPlaying}
-            ticks={ticks}
-          />
-        )}
-      </div>
-
-      {/* Kept mounted so it can slide in and out; inert while closed. */}
-      <div className={s.side} inert={!showSide}>
-        <div className={s.sideInner}>
-          <div className={s.sideHead}>OBS NETWORK · NEAREST</div>
-          <table className={s.stnTable}>
-            <caption className="visually-hidden">近傍のアメダス観測点</caption>
-            <thead>
-              <tr>
-                <th scope="col">STN</th>
-                <th scope="col">KM</th>
-                <th scope="col">°C</th>
-                <th scope="col">MM</th>
-                <th scope="col">WIND</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stationList.slice(0, 12).map((st) => (
-                <tr
-                  key={st.id}
-                  data-active={focused?.id === st.id || undefined}
-                  onPointerEnter={() => setFocus(st.id)}
-                  tabIndex={0}
-                  onFocus={() => setFocus(st.id)}
+    <>
+      <Panel
+        code="M-01"
+        title="SPATIAL SCOPE"
+        className={expanded ? `${s.panel} ${s.expanded}` : s.panel}
+        bodyClassName={showSide ? s.body : `${s.body} ${s.sideClosed}`}
+        meta={
+          <>
+            <div className={s.toggles} role="group" aria-label="投影">
+              {PROJECTIONS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={s.toggle}
+                  data-mode
+                  title={p.title}
+                  aria-pressed={projection === p.id}
+                  onClick={() => changeProjection(p.id)}
                 >
-                  <th scope="row" className="ja">
-                    {st.name}
-                  </th>
-                  <td>{st.distanceKm.toFixed(1)}</td>
-                  <td>{fmt(st.temperature)}</td>
-                  <td data-wet={(st.precipitation1h ?? 0) > 0 || undefined}>
-                    {fmt(st.precipitation1h)}
-                  </td>
-                  <td>
-                    {fmt(st.windSpeed)}
-                    <small>
-                      {st.windDirection != null ? ` ${compass16(st.windDirection)}` : ''}
-                    </small>
-                  </td>
-                </tr>
+                  {p.label}
+                </button>
               ))}
-            </tbody>
-          </table>
-          {(stations.isError || stations.failureCount > 0) && (
-            <div className={s.err}>■ OBS NETWORK UNAVAILABLE</div>
+            </div>
+            <div className={s.toggles} role="group" aria-label="表示範囲">
+              {RANGES.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={s.toggle}
+                  data-mode
+                  aria-pressed={range === r.id}
+                  onClick={() => changeRange(r.id)}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={s.toggle}
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              LAYERS {String(LAYER_CATALOG.filter((e) => layers[e.id]).length).padStart(2, '0')}
+            </button>
+            {showMap && (
+              <button
+                type="button"
+                className={`${s.toggle} ${s.expandBtn}`}
+                aria-pressed={expanded}
+                title={expanded ? '元の表示に戻す(Esc)' : '地図を大画面で表示'}
+                onClick={() => setExpanded(!expanded)}
+              >
+                {expanded ? '⤡ EXIT' : '⤢ EXPAND'}
+              </button>
+            )}
+          </>
+        }
+      >
+        <div className={s.main}>
+          <div className={s.scopeWrap} data-mode="map">
+            <LayerMenu
+              layers={layers}
+              setLayers={setLayers}
+              open={menuOpen}
+              setOpen={setMenuOpen}
+            />
+            {showMap ? (
+              <MapBoundary onError={onMapFailure}>
+                <Suspense
+                  fallback={<div className={s.mapLoading}>◐ LOADING CARTOGRAPHIC ENGINE…</div>}
+                >
+                  <MapView
+                    scene={scene}
+                    layers={layers}
+                    range={range}
+                    projection={projection}
+                    onSelect={onMapSelect}
+                    onBackgroundClick={onBackgroundClick}
+                    onView={onView}
+                    onFailure={onMapFailure}
+                    recenterToken={recenter}
+                    popup={mapPopup}
+                  />
+                </Suspense>
+              </MapBoundary>
+            ) : mapFailed ? (
+              <div className={s.mapDown} role="status">
+                <b>▲ BASEMAP UNAVAILABLE</b>
+                <span className="ja">
+                  地図を表示できません(WebGL または地図タイルの障害)。他の監視は継続しています。
+                </span>
+                <button type="button" className={s.toggle} onClick={() => setMapFailed(false)}>
+                  RETRY
+                </button>
+              </div>
+            ) : null}
+
+            <div className={s.overlayTL} aria-hidden="true">
+              <div>CTR {formatCoord(location.lat, location.lon)}</div>
+              <div>
+                {RANGES.find((r) => r.id === range)!.caption} ·{' '}
+                {PROJECTIONS.find((p) => p.id === projection)!.caption}
+              </div>
+            </div>
+            <div className={s.overlayBL} aria-hidden="true">
+              <div>OBS {obsTime ? `${formatTime(obsTime, false)} JST` : '--:--'}</div>
+              <div>ECHO SRC: JMA NOWCAST</div>
+            </div>
+            {showMap && (
+              <div className={s.legend} aria-hidden="true">
+                {legend.colors.map((c) => (
+                  <span key={c.label}>
+                    <i style={{ background: legendColor(c.rgba) }} />
+                    {c.label}
+                  </span>
+                ))}
+                <span className={s.legendUnit}>{legend.unit}</span>
+              </div>
+            )}
+            {showMap && (
+              <button
+                type="button"
+                className={s.recenter}
+                onClick={() => setRecenter((n) => n + 1)}
+              >
+                ⌖ RECENTER
+              </button>
+            )}
+          </div>
+          {showMap && span && (
+            <TimeScrubber
+              cursor={cursor}
+              span={span}
+              shown={layers.echo ? shown : layers.ltng || layers.torn ? ltngShown : null}
+              label={legend.scrubLabel}
+              playing={playing}
+              setPlaying={setPlaying}
+              ticks={ticks}
+            />
           )}
-          <NearestExtras stations={stationList} focused={focused} />
         </div>
-      </div>
-    </Panel>
+
+        {/* Kept mounted so it can slide in and out; inert while closed. */}
+        <div className={s.side} inert={!showSide}>
+          <div className={s.sideInner}>
+            <div className={s.sideHead}>OBS NETWORK · NEAREST</div>
+            <table className={s.stnTable}>
+              <caption className="visually-hidden">近傍のアメダス観測点</caption>
+              <thead>
+                <tr>
+                  <th scope="col">STN</th>
+                  <th scope="col">KM</th>
+                  <th scope="col">°C</th>
+                  <th scope="col">MM</th>
+                  <th scope="col">WIND</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stationList.slice(0, 12).map((st) => (
+                  <tr
+                    key={st.id}
+                    data-active={focused?.id === st.id || undefined}
+                    onPointerEnter={() => setFocus(st.id)}
+                    tabIndex={0}
+                    onFocus={() => setFocus(st.id)}
+                  >
+                    <th scope="row" className="ja">
+                      {st.name}
+                    </th>
+                    <td>{st.distanceKm.toFixed(1)}</td>
+                    <td>{fmt(st.temperature)}</td>
+                    <td data-wet={(st.precipitation1h ?? 0) > 0 || undefined}>
+                      {fmt(st.precipitation1h)}
+                    </td>
+                    <td>
+                      {fmt(st.windSpeed)}
+                      <small>
+                        {st.windDirection != null ? ` ${compass16(st.windDirection)}` : ''}
+                      </small>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {(stations.isError || stations.failureCount > 0) && (
+              <div className={s.err}>■ OBS NETWORK UNAVAILABLE</div>
+            )}
+            <NearestExtras stations={stationList} focused={focused} />
+          </div>
+        </div>
+      </Panel>
+      {expanded && (
+        <div className={s.backdrop} aria-hidden="true" onClick={() => setExpanded(false)} />
+      )}
+    </>
   )
 })

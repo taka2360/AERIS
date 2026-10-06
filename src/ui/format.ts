@@ -53,7 +53,9 @@ export type QualityTag = {
  * time role (OBS / NOW / ANL / FCST), production (MODEL / EST / DRV),
  * finality (PRELIM) and interpretability (NOT DECODED / PARTIAL).
  */
-export function qualityTags(p: Provenance): QualityTag[] {
+export function qualityTags(
+  p: Pick<Provenance, 'role' | 'derivation' | 'quality' | 'decode'>,
+): QualityTag[] {
   const tags: QualityTag[] = []
   const role = p.role
   if (role === 'observed') tags.push({ tag: 'OBS', tone: 'obs', desc: '観測値' })

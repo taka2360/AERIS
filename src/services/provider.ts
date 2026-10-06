@@ -3,8 +3,10 @@
  * A provider bundles source adapters; the app can run on the mock provider
  * (development, tests, visual regression) or the live provider.
  */
+import type { ClimateNormals } from '@/domain/climate'
 import type {
   AlertBulletin,
+  ExtendedDaily,
   GeoPoint,
   ModelForecast,
   PlaceCandidate,
@@ -27,6 +29,14 @@ export interface WeatherProvider {
   /** Clock used to interpret data (mock may pin it for reproducible screenshots) */
   now(): Instant
   forecast(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<ModelForecast>>
+  /** Daily model values from a month back to 16 days ahead */
+  extendedDaily(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<ExtendedDaily>>
+  /** 1991–2020 normals for the weeks around `anchor` (a Monday, see weekAnchor) */
+  climateNormals(
+    point: GeoPoint,
+    anchor: string,
+    signal?: AbortSignal,
+  ): Promise<SourceResult<ClimateNormals>>
   stations(point: GeoPoint, signal?: AbortSignal): Promise<SourceResult<StationObservation[]>>
   alerts(location: WeatherLocation, signal?: AbortSignal): Promise<SourceResult<AlertBulletin>>
   officialForecast(

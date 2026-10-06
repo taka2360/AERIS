@@ -1,0 +1,153 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.pending {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+}
+
+/* AERIS classes */
+.body [data-cls='above'] {
+  --cls: var(--amber);
+}
+.body [data-cls='much-above'] {
+  --cls: var(--red);
+}
+.body [data-cls='normal'] {
+  --cls: var(--text);
+}
+.body [data-cls='below'] {
+  --cls: var(--cyan);
+}
+.body [data-cls='much-below'] {
+  --cls: var(--purple);
+}
+
+.todayRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  border-left: 2px solid var(--cls, var(--rule-strong));
+  background: linear-gradient(to right, rgba(255, 176, 0, 0.04), transparent);
+}
+.k {
+  font-size: 0.5625rem;
+  letter-spacing: var(--track-wide);
+  color: var(--text-faint);
+}
+.today b {
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  color: var(--cls, var(--text));
+}
+.sub {
+  font-size: 0.625rem;
+  color: var(--text-dim);
+}
+.cls {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0 5px;
+  font-size: 0.625rem;
+  color: #000;
+  background: var(--cls);
+}
+
+/* Daily mean-temperature anomaly, diverging from the middle line */
+.stripes {
+  position: relative;
+  display: flex;
+  gap: 1px;
+  height: 64px;
+  margin-top: 6px;
+  background: linear-gradient(var(--rule-strong), var(--rule-strong)) center / 100% 1px no-repeat;
+}
+.stripe {
+  position: relative;
+  flex: 1 1 0;
+}
+.stripe i {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.stripe[data-sign='warm'] i {
+  bottom: 50%;
+  background: var(--red);
+}
+.stripe[data-sign='cold'] i {
+  top: 50%;
+  background: var(--cyan);
+}
+.stripe[data-future] i {
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.45) 2px 3px);
+}
+.todayMark {
+  position: absolute;
+  top: -8px;
+  bottom: -2px;
+  border-left: 1px solid var(--amber);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--amber);
+  padding-left: 3px;
+  line-height: 1;
+}
+.axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.5625rem;
+  color: var(--text-faint);
+}
+.axis span:nth-child(2) {
+  font-family: var(--font-ja);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px var(--s4);
+  margin: 0;
+}
+.stats div {
+  display: flex;
+  flex-direction: column;
+}
+.stats dt {
+  font-family: var(--font-ja);
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}
+.stats dd {
+  margin: 0;
+  font-size: var(--fs-data);
+  color: var(--text);
+}
+.stats dd[data-tone='warm'] {
+  color: var(--red);
+}
+.stats dd[data-tone='cold'] {
+  color: var(--cyan);
+}
+.stats dd[data-tone='wet'] {
+  color: var(--cyan);
+}
+.stats dd[data-tone='dry'] {
+  color: var(--amber);
+}
+.note {
+  margin: 0;
+  font-size: 0.625rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}

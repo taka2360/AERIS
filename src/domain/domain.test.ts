@@ -22,6 +22,7 @@ function hour(time: string, over: Partial<HourlyPoint> = {}): HourlyPoint {
     cloudCover: 30,
     visibility: 20,
     uvIndex: 2,
+    solarRadiation: 450,
     condition: 'mostly-clear',
     ...over,
   }

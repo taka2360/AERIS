@@ -329,3 +329,60 @@ test('the 24h timeline can pin the whole terminal to an hour', async ({ page }) 
   await band.getByRole('button', { name: 'LIVE へ戻る' }).click()
   await expect(band).toHaveCount(0)
 })
+
+test.describe('local outlook panels', () => {
+  test('quiet: no rain within the hour, heat estimate labelled as AERIS, tide and moon', async ({
+    page,
+  }) => {
+    await page.goto(mockUrl('&scenario=quiet'))
+    await waitForTerminal(page)
+    await expect(page.getByRole('region', { name: 'RAIN NEXT 60' })).toContainText(
+      '60分以内の降水なし',
+    )
+    const heat = page.getByRole('region', { name: 'HEAT STRESS · WBGT' })
+    await expect(heat).toContainText('AERIS 推定')
+    await expect(heat).toContainText('環境省の暑さ指数予測・熱中症警戒アラートではありません')
+    const tide = page.getByRole('region', { name: 'TIDE' })
+    await expect(tide).toContainText('次の満潮')
+    await expect(tide).toContainText('気象庁の潮位表ではありません')
+    await expect(page.getByRole('region', { name: 'LUNAR' })).toContainText('次の満月')
+  })
+
+  test('storm: the nowcast shows rain at the location for the next hour', async ({ page }) => {
+    await page.goto(mockUrl('&scenario=storm'))
+    await waitForTerminal(page)
+    const rain = page.getByRole('region', { name: 'RAIN NEXT 60' })
+    await expect(rain).toContainText('雨が続く見込み')
+    await expect(rain).toContainText('最大 30〜50 mm/h')
+  })
+
+  test('two-week trend and anomalies against the 1991–2020 normal', async ({ page }) => {
+    await page.goto(mockUrl())
+    await waitForTerminal(page)
+    const trend = page.getByRole('region', { name: '14-DAY TREND' })
+    await expect(trend).toContainText('平年: ERA5 1991–2020')
+    await expect(trend).toContainText('8日目以降は傾向')
+    const anomaly = page.getByRole('region', { name: 'CLIMATE ANOMALY' })
+    await expect(anomaly).toContainText('TODAY MAX')
+    await expect(anomaly).toContainText('過去30日 降水量')
+    await expect(anomaly).toContainText('気象庁の平年値ではありません')
+  })
+})
+
+test('the map defaults to 3D LOCAL and switches projection independently of range', async ({
+  page,
+}) => {
+  await page.goto(mockUrl())
+  await waitForTerminal(page)
+  const scope = page.getByRole('region', { name: 'SPATIAL SCOPE' })
+  const projection = scope.getByRole('group', { name: '投影' })
+  const range = scope.getByRole('group', { name: '表示範囲' })
+  await expect(projection.getByRole('button', { name: '3D' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await expect(range.getByRole('button', { name: 'LOCAL' })).toHaveAttribute('aria-pressed', 'true')
+  await projection.getByRole('button', { name: '2D' }).click()
+  await expect(scope).toContainText('WEB MERCATOR')
+  await expect(range.getByRole('button', { name: 'LOCAL' })).toHaveAttribute('aria-pressed', 'true')
+})

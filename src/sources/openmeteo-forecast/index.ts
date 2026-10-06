@@ -1,9 +1,17 @@
-import type { GeoPoint, ModelForecast, WindSample } from '@/domain/model'
+import type { ExtendedDaily, GeoPoint, ModelForecast, WindSample } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
 import { fetchSourceResult } from '../http'
 import { openMeteoQuota } from '../openmeteo-quota'
-import { adaptForecast, MODEL_LABEL } from './adapter'
-import { CURRENT_VARS, DAILY_VARS, forecastSchema, HOURLY_VARS, windFieldSchema } from './schema'
+import { adaptExtendedDaily, adaptForecast, MODEL_LABEL } from './adapter'
+import {
+  CURRENT_VARS,
+  DAILY_VARS,
+  EXTENDED_DAILY_VARS,
+  extendedDailySchema,
+  forecastSchema,
+  HOURLY_VARS,
+  windFieldSchema,
+} from './schema'
 
 const BASE = 'https://api.open-meteo.com/v1/forecast'
 
@@ -79,5 +87,35 @@ export async function fetchWindAt(
     }),
     // Map decoration: capped so it never starves the panels.
     { signal, quota: { ...openMeteoQuota(pts.length, 2), bulk: true } },
+  )
+}
+
+export function extendedDailyUrl(p: GeoPoint): string {
+  const q = new URLSearchParams({
+    latitude: p.lat.toFixed(2),
+    longitude: p.lon.toFixed(2),
+    timezone: 'Asia/Tokyo',
+    wind_speed_unit: 'ms',
+    past_days: '31',
+    forecast_days: '16',
+    daily: EXTENDED_DAILY_VARS.join(','),
+  })
+  return `${BASE}?${q}`
+}
+
+/** Daily values from a month back to 16 days ahead, in one light request. */
+export async function fetchExtendedDaily(
+  p: GeoPoint,
+  signal?: AbortSignal,
+): Promise<SourceResult<ExtendedDaily>> {
+  return fetchSourceResult(
+    'openmeteo',
+    extendedDailyUrl(p),
+    extendedDailySchema,
+    (raw, retrievedAt) => {
+      const data = adaptExtendedDaily(raw, retrievedAt)
+      return { data, provenance: data.provenance }
+    },
+    { signal, quota: openMeteoQuota(1, EXTENDED_DAILY_VARS.length, 47) },
   )
 }

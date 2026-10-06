@@ -581,11 +581,20 @@ export function synthStrokes(
 }
 
 /** Local class of a field in the storm scenario (otherwise nothing drawn). */
+/** Nowcast rain at the location, by minutes from now: the storm passes over, a typhoon drizzles. */
+function rainClass(minutes: number, scenario: Scenario): number | undefined {
+  if (scenario === 'typhoon') return 1
+  if (scenario !== 'storm') return undefined
+  const steps = [1, 1, 2, 2, 3, 4, 5, 4, 3, 2, 2, 1, 1]
+  return steps[Math.max(0, Math.min(steps.length - 1, Math.round(minutes / 5)))]
+}
+
 export function synthSample(
   kind: RasterFieldKind,
   frame: RasterFrame,
   series: RasterFieldSeries,
   scenario: Scenario,
+  now: Instant,
 ): FieldSample<FieldClass> {
   const pal = PALETTES[kind]
   // Storm scenario: 雷活動度3, 竜巻発生確度1, 土砂「警戒」, 浸水「注意」at the location.
@@ -595,7 +604,12 @@ export function synthSample(
     'kikikuru-land': 2,
     'kikikuru-inundation': 1,
   }
-  const i = scenario === 'storm' ? stormClass[kind] : undefined
+  const i =
+    kind === 'precip-intensity'
+      ? rainClass((epoch(frame.validFrom) - epoch(now)) / 60_000, scenario)
+      : scenario === 'storm'
+        ? stormClass[kind]
+        : undefined
   const cls = i != null ? pal.classes[i]! : null
   return {
     value: cls ? { cls: cls.cls, value: cls.value, label: cls.label } : null,
@@ -745,9 +759,42 @@ export function synthAir(now: Instant): AirQuality {
   }
 }
 
+/**
+ * Hourly sea level around `now`: a semidiurnal (M2) and a diurnal (K1) tide,
+ * so the tide panel has highs and lows of unequal height, as in Tokyo Bay.
+ */
+function synthSeaLevel(now: Instant, base: MarineState): MarineState['series']['points'] {
+  const h0 = epoch(now) - (epoch(now) % 3_600_000)
+  const points: MarineState['series']['points'] = []
+  for (let i = -24; i <= 48; i++) {
+    const ms = h0 + i * 3_600_000
+    const hours = ms / 3_600_000
+    const level =
+      0.52 * Math.cos((2 * Math.PI * (hours - 3.1)) / 12.42) +
+      0.21 * Math.cos((2 * Math.PI * (hours - 9.4)) / 23.93)
+    const time = toInstant(ms)
+    points.push({
+      time,
+      role: time <= now ? 'analysis' : 'forecast',
+      values: {
+        wave_height: base.current.wave_height ?? null,
+        sst: base.current.sea_surface_temperature ?? null,
+        sea_level: Math.round(level * 100) / 100,
+      },
+    })
+  }
+  return points
+}
+
 /** Marine state: the real Tokyo Bay response; the typhoon scenario raises the sea. */
 export function synthMarine(now: Instant, scenario: Scenario): MarineState {
-  const m = adaptMarine(marineSchema.parse(marineFixture), { lat: 35.68, lon: 139.77 }, now, now)
+  const fixture = adaptMarine(
+    marineSchema.parse(marineFixture),
+    { lat: 35.68, lon: 139.77 },
+    now,
+    now,
+  )
+  const m = { ...fixture, series: { ...fixture.series, points: synthSeaLevel(now, fixture) } }
   if (scenario !== 'typhoon') return { ...m, at: now }
   return {
     ...m,

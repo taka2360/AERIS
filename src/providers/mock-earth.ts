@@ -114,7 +114,7 @@ export function createMockEarthProvider(
         ),
       sample: (kind, frame, series, _point, _radiusKm, signal) =>
         run(series.provenance.source, 'official', 'MOCK JMA', signal, () =>
-          synthSample(kind, frame, series, scenario),
+          synthSample(kind, frame, series, scenario, now()),
         ),
     },
   }

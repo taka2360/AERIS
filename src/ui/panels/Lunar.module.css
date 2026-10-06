@@ -1,0 +1,88 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+}
+.disc {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 0 10px rgba(236, 224, 195, 0.18));
+}
+.dark {
+  fill: var(--surface-raise);
+}
+.rim {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+}
+.phase {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.phase > b {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+.code {
+  font-size: 0.625rem;
+  letter-spacing: var(--track-wide);
+  color: var(--amber);
+}
+.figs {
+  display: flex;
+  gap: var(--s4);
+  margin-top: 4px;
+}
+.figs span {
+  display: flex;
+  flex-direction: column;
+}
+.figs i {
+  font-style: normal;
+  font-size: 0.5625rem;
+  letter-spacing: var(--track-wide);
+  color: var(--text-faint);
+}
+.figs b {
+  font-size: var(--fs-data);
+  font-weight: 500;
+  color: var(--text);
+}
+.rows {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--s3);
+  margin: 0;
+  font-size: var(--fs-label);
+}
+.rows dt {
+  font-family: var(--font-ja);
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+}
+.rows dd {
+  margin: 0;
+  color: var(--text);
+}
+.rows dd[data-up] {
+  color: var(--amber);
+}
+.dim {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+}
+.note {
+  margin: 0;
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}

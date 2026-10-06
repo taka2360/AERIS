@@ -81,6 +81,19 @@ function ticksFor(domain: [number, number], step: number, digits = 0, suffix = '
 
 const pick = (pts: HourlyPoint[], k: keyof HourlyPoint) => pts.map((p) => p[k] as number | null)
 
+/** Vertical plot margins per track (viewBox units); the default leaves 6 at both ends. */
+const Y_RANGE: Record<string, [number, number]> = {
+  precip: [4, VB_H],
+  hum: [3, VB_H - 3],
+  wind: [4, VB_H - 2],
+}
+
+/** A track's value → viewBox y. Shared with the cursor probe so its marks sit on the series. */
+export function trackY(layout: TrackLayout) {
+  const [top, bottom] = Y_RANGE[layout.id] ?? [6, VB_H - 6]
+  return yScale(layout.domain, top, bottom)
+}
+
 // ─── Layout computation (shared by labels column and plots) ───────────────
 
 export function computeLayouts(points: HourlyPoint[]): Record<string, TrackLayout> {
@@ -141,7 +154,7 @@ export function computeLayouts(points: HourlyPoint[]): Record<string, TrackLayou
 type TrackProps = { points: HourlyPoint[]; nowIndex: number; layout: TrackLayout }
 
 export const TempTrack = memo(function TempTrack({ points, nowIndex, layout }: TrackProps) {
-  const y = yScale(layout.domain)
+  const y = trackY(layout)
   const t = pick(points, 'temperature')
   return (
     <Frame n={points.length} nowIndex={nowIndex} ticks={layout.ticks} domain={layout.domain}>
@@ -154,7 +167,7 @@ export const TempTrack = memo(function TempTrack({ points, nowIndex, layout }: T
 })
 
 export const PrecipTrack = memo(function PrecipTrack({ points, nowIndex, layout }: TrackProps) {
-  const y = yScale(layout.domain, 4, VB_H)
+  const y = trackY(layout)
   const yPop = yScale([0, 100], 4, VB_H)
   const n = points.length
   const bw = (VB_W / (n - 1)) * 0.62
@@ -190,7 +203,7 @@ export const PrecipTrack = memo(function PrecipTrack({ points, nowIndex, layout 
 })
 
 export const HumidityTrack = memo(function HumidityTrack({ points, nowIndex, layout }: TrackProps) {
-  const y = yScale(layout.domain, 3, VB_H - 3)
+  const y = trackY(layout)
   const h = pick(points, 'humidity')
   return (
     <Frame n={points.length} nowIndex={nowIndex} ticks={layout.ticks} domain={layout.domain}>
@@ -201,7 +214,7 @@ export const HumidityTrack = memo(function HumidityTrack({ points, nowIndex, lay
 })
 
 export const PressureTrack = memo(function PressureTrack({ points, nowIndex, layout }: TrackProps) {
-  const y = yScale(layout.domain)
+  const y = trackY(layout)
   return (
     <Frame n={points.length} nowIndex={nowIndex} ticks={layout.ticks} domain={layout.domain}>
       <path className={s.seriesMain} d={linePath(pick(points, 'pressure'), y)} />
@@ -210,7 +223,7 @@ export const PressureTrack = memo(function PressureTrack({ points, nowIndex, lay
 })
 
 export const WindTrack = memo(function WindTrack({ points, nowIndex, layout }: TrackProps) {
-  const y = yScale(layout.domain, 4, VB_H - 2)
+  const y = trackY(layout)
   return (
     <Frame n={points.length} nowIndex={nowIndex} ticks={layout.ticks} domain={layout.domain}>
       <path className={s.seriesGust} d={linePath(pick(points, 'gust'), y)} />

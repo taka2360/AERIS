@@ -38,6 +38,7 @@ import {
   useUsgsQuakes,
 } from './earth-hooks'
 import { useWeatherProvider } from './provider-context'
+import { useClimateNormals } from './outlook-hooks'
 
 const MIN = 60_000
 
@@ -298,6 +299,7 @@ export function useSystemHealth() {
   const gdacs = useGdacs()
   const firms = useFirms()
   const nhc = useNhc()
+  const normals = useClimateNormals()
 
   return useMemo(() => {
     const opts = (s: SourceId) => ({ now, maxAgeMin: staleAfterMin(s), browserOnline: online })
@@ -430,6 +432,15 @@ export function useSystemHealth() {
         ),
       ),
       channel(
+        'openmeteo-archive',
+        'CLIMATE NORMALS',
+        healthFromSnapshot(
+          'openmeteo-archive',
+          snapshot(normals, normals.data?.provenance.retrievedAt),
+          opts('openmeteo-archive'),
+        ),
+      ),
+      channel(
         'openmeteo-marine',
         'MARINE MODEL',
         healthFromSnapshot(
@@ -534,6 +545,7 @@ export function useSystemHealth() {
     gdacs,
     firms,
     nhc,
+    normals,
   ])
 }
 

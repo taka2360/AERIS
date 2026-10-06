@@ -91,7 +91,7 @@ export async function fetchMarine(
   const url =
     `${BASE}?latitude=${p.lat}&longitude=${p.lon}&current=${MARINE_KEYS.join(',')}` +
     '&hourly=wave_height,sea_surface_temperature,sea_level_height_msl' +
-    '&past_days=1&forecast_days=2&timezone=Asia%2FTokyo'
+    '&past_days=1&forecast_days=3&timezone=Asia%2FTokyo'
   return fetchSourceResult(
     'openmeteo-marine',
     url,
@@ -100,7 +100,7 @@ export async function fetchMarine(
       const data = adaptMarine(raw, p, now, now)
       return { data, provenance: data.series.provenance }
     },
-    { signal, quota: openMeteoQuota(1, MARINE_KEYS.length + 3, 3) },
+    { signal, quota: openMeteoQuota(1, MARINE_KEYS.length + 3, 4) },
   )
 }
 

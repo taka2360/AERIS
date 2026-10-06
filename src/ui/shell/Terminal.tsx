@@ -12,13 +12,18 @@ import { CurrentStatus } from '../panels/CurrentStatus'
 import { DailyForecast } from '../panels/DailyForecast'
 import { Environment } from '../panels/Environment'
 import { EventDetail } from '../panels/EventDetail'
-import { EVENT_DETAIL_ID } from '../panels/EventPopup'
 import { EventLog } from '../panels/EventLog'
 import { EventMonitor } from '../panels/EventMonitor'
 import { JmaWarning } from '../panels/JmaWarning'
 import { OfficialForecast } from '../panels/OfficialForecast'
 import { Solar } from '../panels/Solar'
 import { SpaceWeather } from '../panels/SpaceWeather'
+import { ClimateAnomaly } from '../panels/ClimateAnomaly'
+import { HeatStress } from '../panels/HeatStress'
+import { Lunar } from '../panels/Lunar'
+import { RainAhead } from '../panels/RainAhead'
+import { Tide } from '../panels/Tide'
+import { TwoWeek } from '../panels/TwoWeek'
 import { AlertBand } from './AlertBand'
 import { BootSequence } from './BootSequence'
 import { SystemPanel } from './SystemPanel'
@@ -106,6 +111,21 @@ export function Terminal() {
         <div className={`${s.area} ${s.timeline}`} data-view-group="timeline">
           <Timeline />
         </div>
+        {/* Local conditions now: rain next hour, heat, tide, moon. */}
+        <div className={s.quad}>
+          <div className={s.area} data-view-group="status">
+            <RainAhead />
+          </div>
+          <div className={s.area} data-view-group="status">
+            <HeatStress />
+          </div>
+          <div className={s.area} data-view-group="forecast">
+            <Tide />
+          </div>
+          <div className={s.area} data-view-group="forecast">
+            <Lunar />
+          </div>
+        </div>
         {/* Two independent stacks, so a tall panel never leaves a hole beside a short one. */}
         <div className={`${s.stack} ${s.lowerMain}`}>
           <div className={`${s.area} ${s.env}`} data-view-group="status">
@@ -119,12 +139,20 @@ export function Terminal() {
           <div className={`${s.area} ${s.space}`} data-view-group="sys">
             <SpaceWeather />
           </div>
-          <div id={EVENT_DETAIL_ID} className={`${s.area} ${s.detail}`} data-view-group="events">
+          <div className={`${s.area} ${s.detail}`} data-view-group="events">
             <EventDetail />
           </div>
         </div>
         <div className={`${s.area} ${s.daily}`} data-view-group="forecast">
           <DailyForecast />
+        </div>
+        <div className={s.trend}>
+          <div className={s.area} data-view-group="forecast">
+            <TwoWeek />
+          </div>
+          <div className={s.area} data-view-group="forecast">
+            <ClimateAnomaly />
+          </div>
         </div>
         <div className={`${s.area} ${s.sys}`} data-view-group="sys">
           <SystemPanel />

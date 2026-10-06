@@ -15,7 +15,7 @@ import type {
   VolcanoSite,
 } from '@/domain/earth/events'
 import { cycloneProximity, quakeRelevance } from '@/domain/earth/status'
-import { formatDate, formatTime } from '@/domain/time'
+import { formatDate, formatShortDate, formatTime } from '@/domain/time'
 import {
   useTsunami,
   useVolcanoes,
@@ -331,7 +331,7 @@ function CycloneDetail({ e }: { e: CycloneEvent }) {
             {issue.points.map((p) => (
               <tr key={p.validAt}>
                 <th scope="row">
-                  {formatTime(p.validAt, false)}{' '}
+                  {formatShortDate(p.validAt)} {formatTime(p.validAt, false)}{' '}
                   <small className={s.dim}>{p.role === 'forecast' ? 'FCST' : 'ANL'}</small>
                 </th>
                 <td>
@@ -350,7 +350,7 @@ function CycloneDetail({ e }: { e: CycloneEvent }) {
 }
 
 /** JMA's volcano activity page for a volcano code. */
-const jmaVolcanoUrl = (code: string) =>
+export const jmaVolcanoUrl = (code: string) =>
   `https://www.data.jma.go.jp/vois/data/tokyo/STOCK/activity_info/${code}.html`
 
 function VolcanoDetail({ e }: { e: VolcanoEvent }) {
@@ -502,15 +502,25 @@ function Body({ e, auto }: { e: NaturalEvent; auto: boolean }) {
         <span className="ja">{CATEGORY_JA[e.category]}</span> · {sourceTags(e).join(' + ')}
         {e.lifecycle === 'cancelled' && <b className={s.cancel}> · 取消</b>}
       </div>
-      {e.category === 'earthquake' && <QuakeDetail e={e} />}
-      {e.category === 'tsunami' && <TsunamiDetail e={e} />}
-      {e.category === 'tropical-cyclone' && <CycloneDetail e={e} />}
-      {e.category === 'volcano' && <VolcanoDetail e={e} />}
-      {!['earthquake', 'tsunami', 'tropical-cyclone', 'volcano'].includes(e.category) && (
-        <GenericDetail e={e} />
-      )}
+      <EventDetailSections e={e} />
     </>
   )
+}
+
+/** The category-specific record of an event (also shown inside the map popup). */
+export function EventDetailSections({ e }: { e: NaturalEvent }) {
+  switch (e.category) {
+    case 'earthquake':
+      return <QuakeDetail e={e} />
+    case 'tsunami':
+      return <TsunamiDetail e={e} />
+    case 'tropical-cyclone':
+      return <CycloneDetail e={e} />
+    case 'volcano':
+      return <VolcanoDetail e={e} />
+    default:
+      return <GenericDetail e={e} />
+  }
 }
 
 export const EventDetail = memo(function EventDetail() {

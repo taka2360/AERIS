@@ -40,6 +40,7 @@ export type SourceId =
   | 'openmeteo-marine'
   | 'openmeteo-air'
   | 'openmeteo-flood'
+  | 'openmeteo-archive'
   | 'noaa-tides'
   | 'relay-firms'
   | 'relay-nhc'
@@ -137,6 +138,8 @@ export type HourlyPoint = {
   cloudCover: number | null
   visibility: number | null // km
   uvIndex: number | null
+  /** Global (shortwave) solar radiation, mean of the preceding hour, W/m² */
+  solarRadiation: number | null
   condition: WeatherCondition
 }
 
@@ -166,6 +169,17 @@ export type DailyPoint = {
 
 export type DailySeries = {
   days: DailyPoint[]
+  provenance: Provenance
+}
+
+/**
+ * Daily model values from a month back to about two weeks ahead (2-week trend
+ * and anomalies). Past days are the model's own analysed values.
+ */
+export type ExtendedDaily = {
+  days: DailyPoint[]
+  /** Today (JST) as 'YYYY-MM-DD': earlier days are past, later ones forecast */
+  today: string
   provenance: Provenance
 }
 
