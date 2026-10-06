@@ -5,18 +5,20 @@
  */
 import type { Provenance, SourceId, WeatherLocation } from '@/domain/model'
 import type { SourceResult } from '@/domain/result'
-import { toInstant, type Instant } from '@/domain/time'
+import { jstDateKey, toInstant, type Instant } from '@/domain/time'
 import type { PlaceCandidate, WeatherProvider } from '@/services/provider'
 import {
   modelCurrentFrom,
   synthAlerts,
   synthDaily,
+  synthExtendedDaily,
   synthHourly,
   synthNowcastFrames,
   synthOfficialForecast,
   synthStations,
   synthWindAt,
 } from '@/sources/mock/generator'
+import { synthNormals } from '@/sources/mock/climate'
 import { SCENARIOS, type Scenario } from '@/sources/mock/scenario'
 import { createMockEarthProvider } from './mock-earth'
 
@@ -100,6 +102,18 @@ export function createMockProvider(opts: MockOptions = {}): WeatherProvider {
           daily: { days: synthDaily(hourly, t), provenance: { ...prov, kind: 'forecast' } },
         }
       }),
+    extendedDaily: (_p, signal) =>
+      run('openmeteo', 'forecast', 'MOCK MODEL', signal, (prov) => ({
+        days: synthExtendedDaily(now()),
+        today: jstDateKey(now()),
+        provenance: prov,
+      })),
+    climateNormals: (_p, anchor, signal) =>
+      run('openmeteo-archive', 'model', 'MOCK ERA5 1991–2020', signal, (prov) => ({
+        anchor,
+        days: synthNormals(anchor),
+        provenance: prov,
+      })),
     stations: (p, signal) =>
       run('jma-amedas', 'observation', 'MOCK AMeDAS', signal, () => {
         const t = now()

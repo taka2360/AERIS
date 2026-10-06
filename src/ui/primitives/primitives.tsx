@@ -22,7 +22,11 @@ export function ProvTag({ provenance }: { provenance?: Provenance }) {
 }
 
 /** Earth-observation badges: OBS / FCST / MODEL / EST / PRELIM / NOT DECODED … */
-export function QualityTags({ provenance }: { provenance?: Provenance }) {
+export function QualityTags({
+  provenance,
+}: {
+  provenance?: Pick<Provenance, 'role' | 'derivation' | 'quality' | 'decode'>
+}) {
   if (!provenance) return null
   return (
     <span className={s.qtags}>

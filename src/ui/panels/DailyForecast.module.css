@@ -1,105 +1,412 @@
 .body {
-  padding: var(--s2) var(--s4) var(--s3);
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4) var(--s4);
 }
 .pending {
   color: var(--text-dim);
   letter-spacing: var(--track-wide);
 }
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-label);
-  white-space: nowrap;
-}
-.table th,
-.table td {
-  padding: 3px 8px;
-  text-align: right;
-  border-bottom: 1px dotted var(--rule-faint);
-}
-.table thead th {
-  font-size: var(--fs-micro);
-  font-weight: 400;
-  color: var(--text-dim);
-  letter-spacing: var(--track-wide);
+
+/* ── Digest line ────────────────────────────────── */
+.digest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--s5);
+  padding-bottom: var(--s3);
   border-bottom: 1px solid var(--rule);
-}
-.table th:first-child,
-.table td:nth-child(2) {
-  text-align: left;
-}
-.table th:first-child {
-  padding-left: 0;
-}
-.table tbody th {
-  font-weight: 400;
-}
-.table small {
-  margin-left: 2px;
   font-size: var(--fs-micro);
+}
+.digest > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.digestTag {
+  padding: 0 6px;
+  background: var(--amber);
+  color: #000;
+  font-weight: 700;
+  letter-spacing: var(--track);
+}
+.digest i {
+  font-style: normal;
   color: var(--text-faint);
 }
-.table tbody tr[data-today] {
-  background: linear-gradient(to right, rgba(255, 176, 0, 0.08), transparent);
-}
-.table tbody tr[data-today] .wd {
-  color: var(--amber);
-}
-.table tbody tr:hover {
-  background: rgba(255, 176, 0, 0.05);
-}
-.date {
+.digest b {
+  font-size: var(--fs-data);
+  font-weight: 500;
   color: var(--text);
 }
-.wd {
-  display: inline-block;
-  min-width: 4.5em;
-  margin-left: 6px;
+.digest b[data-tone='wet'],
+.digest b[data-tone='min'] {
+  color: var(--cyan);
+}
+.digest b[data-tone='max'] {
+  color: var(--amber);
+}
+.digest em {
+  font-style: normal;
   color: var(--text-dim);
+}
+
+/* ── Day-column grid ───────────────────────────── */
+.scroller {
+  overflow-x: auto;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 64px repeat(var(--n), minmax(84px, 1fr));
+  min-width: calc(64px + var(--n) * 84px);
+}
+.row {
+  display: contents;
+}
+.rowLabel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding-right: var(--s3);
+  border-bottom: 1px dotted var(--rule-faint);
   font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  color: var(--amber);
+}
+.rowLabel small {
+  font-size: 0.625rem;
+  color: var(--text-faint);
   letter-spacing: var(--track);
+}
+.legendMax,
+.legendMin {
+  font-size: 0.5625rem;
+  letter-spacing: var(--track);
+}
+.legendMax {
+  color: var(--amber);
+}
+.legendMin {
+  color: var(--cyan);
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 5px 4px;
+  border-bottom: 1px dotted var(--rule-faint);
+  border-left: 1px solid var(--rule-faint);
+  font-size: var(--fs-label);
+  text-align: center;
+  transition: background var(--dur-fast) ease;
+}
+.cell[data-today] {
+  background: rgba(255, 176, 0, 0.05);
+}
+.cell[data-hover] {
+  background: rgba(255, 176, 0, 0.09);
+}
+.cell small {
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}
+
+/* Date */
+.head {
+  padding-top: 6px;
+  border-bottom: 1px solid var(--rule);
+}
+.head[data-today] {
+  box-shadow: inset 0 2px 0 var(--amber);
+}
+.date {
+  font-size: var(--fs-data);
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.wd {
+  font-size: 0.625rem;
+  letter-spacing: var(--track-wide);
+  color: var(--text-dim);
 }
 .wd[data-weekend] {
   color: var(--cyan);
 }
-.code {
-  display: inline-block;
-  min-width: 3.2em;
-  color: var(--amber);
+.head[data-today] .wd {
+  padding: 0 5px;
+  background: var(--amber);
+  color: #000;
+  font-weight: 700;
+}
+
+/* Sky */
+.sky {
+  padding: 6px 4px;
+}
+.icon {
+  width: 34px;
+  height: 34px;
+  overflow: visible;
+}
+.icon * {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icSun {
+  stroke: var(--amber);
+}
+.icSun circle {
+  fill: rgba(255, 176, 0, 0.15);
+}
+.icCloud {
+  stroke: var(--text-dim);
+  fill: rgba(10, 12, 13, 0.9) !important;
+}
+g.icCloud {
+  fill: none !important;
+}
+.icRain {
+  stroke: var(--cyan);
+}
+.icSnow text,
+.icUnknown {
+  fill: var(--text) !important;
+  stroke: none;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.icUnknown {
+  font-size: 14px;
+  fill: var(--text-faint) !important;
+}
+.icBolt {
+  stroke: var(--yellow);
+  fill: rgba(255, 225, 74, 0.3) !important;
 }
 .ja {
-  color: var(--text-dim);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-micro);
+  color: var(--text);
 }
-.rangeHead {
-  text-align: center !important;
+.code {
+  font-size: 0.625rem;
+  letter-spacing: var(--track);
+  color: var(--text-faint);
 }
-.rangeCell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 200px;
-}
-.min {
-  color: var(--cyan);
-  min-width: 3em;
-}
-.max {
-  color: var(--amber);
-  min-width: 3em;
-}
-.range {
+
+/* Temperature chart across all day columns */
+.chartCell {
+  grid-column: 2 / -1;
   position: relative;
+  height: 104px;
+  border-bottom: 1px dotted var(--rule-faint);
+}
+.chart {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.chart svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.band {
+  fill: rgba(255, 176, 0, 0.06);
+  stroke: none;
+}
+.maxLine,
+.minLine {
+  fill: none;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+.maxLine {
+  stroke: var(--amber);
+  filter: drop-shadow(0 0 3px var(--amber-glow));
+}
+.minLine {
+  stroke: var(--cyan);
+  filter: drop-shadow(0 0 3px var(--cyan-glow));
+}
+.chartCol {
+  position: relative;
+  flex: 1 1 0;
+  border-left: 1px solid var(--rule-faint);
+  transition: background var(--dur-fast) ease;
+}
+.chartCol[data-hover] {
+  background: rgba(255, 176, 0, 0.09);
+}
+.maxPt,
+.minPt {
+  position: absolute;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid;
+}
+.maxPt {
+  border-color: var(--amber);
+}
+.minPt {
+  border-color: var(--cyan);
+}
+.maxPt b,
+.minPt b {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.maxPt b {
+  bottom: 9px;
+  color: var(--amber);
+}
+.minPt b {
+  top: 9px;
+  color: var(--cyan);
+}
+
+/* Rain chance and amount */
+.pop {
+  flex-direction: row;
+  gap: 6px;
+}
+.meter {
   flex: 1;
-  height: 4px;
+  max-width: 48px;
+  height: 5px;
+  background: var(--rule-faint);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.meter i {
+  display: block;
+  height: 100%;
+  background: var(--cyan-dim);
+}
+.pop b,
+.prcp b,
+.wind b,
+.uv b {
+  font-weight: 500;
+  color: var(--text);
+}
+.pop b[data-wet],
+.prcp b[data-wet] {
+  color: var(--cyan);
+}
+.pop:has(b[data-wet]) .meter i {
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan-glow);
+}
+.prcp {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+}
+.rainBar {
+  display: flex;
+  align-items: flex-end;
+  width: 8px;
+  height: 18px;
   background: var(--rule-faint);
 }
-.rangeFill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(to right, var(--cyan), var(--amber));
+.rainBar i {
+  display: block;
+  width: 100%;
+  background: var(--cyan);
 }
-.table td[data-hot] {
+
+/* Wind */
+.wind {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 5px;
+}
+.arrow {
+  display: inline-block;
   color: var(--cyan);
+  font-size: var(--fs-data);
+  line-height: 1;
+}
+.wind small {
+  flex-basis: 100%;
+}
+
+/* UV: WHO categories */
+.uv [data-level='low'] {
+  color: var(--green);
+}
+.uv [data-level='moderate'] {
+  color: var(--yellow);
+}
+.uv [data-level='high'] {
+  color: var(--amber);
+}
+.uv [data-level='very-high'] {
+  color: var(--red);
+}
+.uv [data-level='extreme'] {
+  color: var(--purple);
+}
+.uv b[data-level] {
+  color: var(--text);
+}
+.uvJa {
+  font-size: 0.625rem;
+}
+.uvBar {
+  display: block;
+  width: 70%;
+  height: 2px;
+  margin-top: 1px;
+  background: var(--rule-strong);
+}
+.uvBar[data-level='low'] {
+  background: var(--green);
+}
+.uvBar[data-level='moderate'] {
+  background: var(--yellow);
+}
+.uvBar[data-level='high'] {
+  background: var(--amber);
+}
+.uvBar[data-level='very-high'] {
+  background: var(--red);
+}
+.uvBar[data-level='extreme'] {
+  background: var(--purple);
+}
+
+/* Sunrise / sunset */
+.sun {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: 48px repeat(var(--n), minmax(68px, 1fr));
+    min-width: calc(48px + var(--n) * 68px);
+  }
 }

@@ -19,12 +19,14 @@
   background: var(--rule);
   border: 1px solid var(--rule-strong);
   grid-template-columns: minmax(360px, 410px) minmax(0, 1fr) minmax(320px, 370px);
-  grid-template-rows: minmax(470px, 1fr) auto auto auto auto;
+  grid-template-rows: minmax(470px, 1fr) auto auto auto auto auto auto;
   grid-template-areas:
     'left center right'
     'tl tl tl'
+    'quad quad quad'
     'main main side'
     'daily daily daily'
+    'trend trend trend'
     'sys sys sys';
 }
 
@@ -96,6 +98,22 @@
 .sys {
   grid-area: sys;
 }
+
+/* Rows of side-by-side panels sharing the housing rules */
+.quad,
+.trend {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.quad {
+  grid-area: quad;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.trend {
+  grid-area: trend;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+}
 .space {
   grid-area: space;
 }
@@ -109,7 +127,7 @@
   .grid {
     /* Give the spatial scope the extra room: wider centre, taller top row. */
     grid-template-columns: minmax(400px, 0.9fr) minmax(0, 2.1fr) minmax(380px, 0.85fr);
-    grid-template-rows: minmax(max(520px, 58vh), 1fr) auto auto auto auto;
+    grid-template-rows: minmax(max(520px, 58vh), 1fr) auto auto auto auto auto auto;
   }
 }
 
@@ -123,11 +141,19 @@
       'left right'
       'center center'
       'tl tl'
+      'quad quad'
       'env env'
       'log log'
       'space detail'
       'daily daily'
+      'trend trend'
       'sys sys';
+  }
+  .quad {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .trend {
+    grid-template-columns: minmax(0, 1fr);
   }
   .stack {
     display: contents;
@@ -148,6 +174,11 @@
   }
   .area {
     grid-area: auto;
+  }
+  .quad,
+  .trend {
+    grid-area: auto;
+    grid-template-columns: minmax(0, 1fr);
   }
   .stack {
     display: contents;

@@ -1,0 +1,167 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.pending {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+}
+
+/* Level colours (日本生気象学会の区分) */
+.body [data-level='safe'] {
+  --lv: var(--cyan);
+}
+.body [data-level='caution'] {
+  --lv: var(--green);
+}
+.body [data-level='warning'] {
+  --lv: var(--yellow);
+}
+.body [data-level='severe'] {
+  --lv: var(--amber);
+}
+.body [data-level='danger'] {
+  --lv: var(--red);
+}
+
+.now {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+}
+.value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.value b {
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--lv);
+  text-shadow: 0 0 12px var(--amber-glow);
+}
+.value span {
+  font-size: var(--fs-label);
+  color: var(--text-faint);
+}
+.levelBox {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.levelJa {
+  align-self: flex-start;
+  padding: 1px 8px;
+  font-family: var(--font-ja);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  color: #000;
+  background: var(--lv);
+}
+.advice {
+  font-family: var(--font-ja);
+  font-size: 0.625rem;
+  color: var(--text-dim);
+}
+
+/* Level bar with a marker at the current value */
+.scale {
+  position: relative;
+  height: 16px;
+  margin-top: 2px;
+}
+.scale i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lv);
+  opacity: 0.32;
+  border-right: 1px solid var(--surface);
+}
+.scale i span {
+  font-family: var(--font-ja);
+  font-style: normal;
+  font-size: 0.5625rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  transform: translateX(-50%);
+  background: var(--text);
+  box-shadow: 0 0 6px var(--text);
+}
+
+/* Next 24 hours, one bar per hour */
+.strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 46px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.hour {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  flex: 1 1 0;
+  height: 100%;
+}
+.hour i {
+  display: block;
+  width: 100%;
+  background: var(--lv, var(--rule-strong));
+  opacity: 0.8;
+}
+.hour:first-child i {
+  opacity: 1;
+  box-shadow: 0 0 6px var(--lv);
+}
+.hour small {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 0.5625rem;
+  color: var(--text-faint);
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--s3);
+  margin: var(--s2) 0 0;
+  font-size: var(--fs-label);
+}
+.rows dt {
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: var(--track-wide);
+}
+.rows dd {
+  margin: 0;
+  color: var(--text-dim);
+}
+.rows b {
+  font-weight: 500;
+  color: var(--lv);
+}
+.note {
+  margin: 0;
+  font-size: 0.625rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+.note a {
+  color: var(--amber);
+}

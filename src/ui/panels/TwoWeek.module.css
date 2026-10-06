@@ -1,0 +1,236 @@
+.body {
+  padding: var(--s3) var(--s4) var(--s4);
+}
+.pending {
+  color: var(--text-dim);
+  letter-spacing: var(--track-wide);
+}
+.scroller {
+  overflow-x: auto;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 64px repeat(var(--n), minmax(44px, 1fr));
+  min-width: calc(64px + var(--n) * 44px);
+}
+.label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding-right: var(--s3);
+  border-bottom: 1px dotted var(--rule-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-wide);
+  color: var(--amber);
+}
+.label small {
+  font-size: 0.5625rem;
+  color: var(--text-faint);
+  letter-spacing: var(--track);
+}
+.keyMax,
+.keyMin,
+.keyNormal {
+  font-size: 0.5625rem;
+}
+.keyMax {
+  color: var(--amber);
+}
+.keyMin {
+  color: var(--cyan);
+}
+.keyNormal {
+  color: var(--text-dim);
+}
+
+/* Day heads */
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 0 2px;
+  border-left: 1px solid var(--rule-faint);
+  border-bottom: 1px solid var(--rule);
+}
+.day[data-today] {
+  box-shadow: inset 0 2px 0 var(--amber);
+  background: rgba(255, 176, 0, 0.05);
+}
+.day svg {
+  width: 24px;
+  height: 24px;
+}
+.date {
+  font-size: var(--fs-label);
+  color: var(--text);
+}
+.wd {
+  font-size: 0.5625rem;
+  letter-spacing: var(--track);
+  color: var(--text-dim);
+}
+.wd[data-weekend] {
+  color: var(--cyan);
+}
+.day[data-today] .wd {
+  padding: 0 4px;
+  background: var(--amber);
+  color: #000;
+  font-weight: 700;
+}
+[data-low] {
+  opacity: 0.72;
+}
+
+/* Temperature chart over the day columns */
+.chart {
+  grid-column: 2 / -1;
+  position: relative;
+  height: 128px;
+  border-bottom: 1px dotted var(--rule-faint);
+}
+.chart svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.lowSkill {
+  fill: rgba(255, 255, 255, 0.025);
+}
+.normalBand {
+  fill: rgba(236, 224, 195, 0.05);
+}
+.normalMax,
+.normalMin,
+.maxLine,
+.minLine {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.normalMax,
+.normalMin {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.maxLine,
+.minLine {
+  stroke-width: 1.6;
+}
+.maxLine {
+  stroke: var(--amber);
+}
+.minLine {
+  stroke: var(--cyan);
+}
+.col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--rule-faint);
+}
+.ptMax,
+.ptMin {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid;
+}
+.ptMax {
+  border-color: var(--amber);
+}
+.ptMin {
+  border-color: var(--cyan);
+}
+.ptMax b,
+.ptMin b {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+}
+.ptMax b {
+  bottom: 7px;
+  color: var(--amber);
+}
+.ptMin b {
+  top: 7px;
+  color: var(--cyan);
+}
+.skillNote {
+  position: absolute;
+  top: 2px;
+  margin-left: 4px;
+  font-family: var(--font-ja);
+  font-size: 0.5625rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* Difference from normal (AERIS class colours) */
+.diff {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 0;
+  border-left: 1px solid var(--rule-faint);
+  border-bottom: 1px dotted var(--rule-faint);
+  font-size: var(--fs-label);
+  color: var(--text-dim);
+}
+.diff b {
+  font-weight: 500;
+}
+.diff[data-cls='above'] {
+  color: var(--amber);
+}
+.diff[data-cls='much-above'] {
+  color: var(--red);
+}
+.diff[data-cls='below'] {
+  color: var(--cyan);
+}
+.diff[data-cls='much-below'] {
+  color: var(--purple);
+}
+
+.rain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 0;
+  border-left: 1px solid var(--rule-faint);
+  font-size: var(--fs-micro);
+}
+.rainBar {
+  display: flex;
+  align-items: flex-end;
+  width: 8px;
+  height: 18px;
+  background: var(--rule-faint);
+}
+.rainBar i {
+  display: block;
+  width: 100%;
+  background: var(--cyan);
+}
+.rain b {
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.rain b[data-wet] {
+  color: var(--cyan);
+}
+.rain small {
+  font-size: 0.5625rem;
+  color: var(--text-faint);
+}

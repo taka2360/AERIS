@@ -26,7 +26,7 @@ import { useTimeCursor } from '@/query/time-cursor'
 import { useForecast } from '@/query/hooks'
 import { fmt } from '../format'
 import { Panel } from '../primitives/Panel'
-import { pct } from './geometry'
+import { pct, VB_H } from './geometry'
 import { buildTimelineModel } from './timeline-model'
 import {
   computeLayouts,
@@ -34,6 +34,7 @@ import {
   PrecipTrack,
   PressureTrack,
   TempTrack,
+  trackY,
   WindTrack,
   type TrackLayout,
 } from './Tracks'
@@ -62,55 +63,166 @@ function valueText(p: HourlyPoint): string {
   ].join('、')
 }
 
+/** Readout rows grouped by the track they belong to (main value first). */
+function readoutGroups(
+  p: HourlyPoint,
+): Array<{ id: string; rows: Array<[string, string, string]> }> {
+  return [
+    {
+      id: 'temp',
+      rows: [
+        ['TEMP', fmt(p.temperature), '°C'],
+        ['FEELS', fmt(p.apparentTemperature), '°C'],
+        ['DEW', fmt(p.dewPoint), '°C'],
+      ],
+    },
+    {
+      id: 'precip',
+      rows: [
+        ['PRECIP', fmt(p.precipitation), 'mm/h'],
+        ['POP', fmt(p.precipitationProbability, 0), '%'],
+      ],
+    },
+    { id: 'hum', rows: [['HUMID', fmt(p.humidity, 0), '%']] },
+    { id: 'pres', rows: [['PRESS', fmt(p.pressure), 'hPa']] },
+    {
+      id: 'wind',
+      rows: [
+        [
+          'WIND',
+          fmt(p.windSpeed),
+          `m/s ${p.windDirection != null ? compass16(p.windDirection) : ''}`,
+        ],
+        ['GUST', fmt(p.gust), 'm/s'],
+      ],
+    },
+    { id: 'cloud', rows: [['CLOUD', fmt(p.cloudCover, 0), '%']] },
+  ]
+}
+
 const Readout = memo(function Readout({
   point,
   offsetH,
   isPast,
+  active,
 }: {
   point: HourlyPoint
   offsetH: number
   isPast: boolean
+  active: boolean
 }) {
   const cond = CONDITION_LABEL[point.condition]
-  const rows: Array<[string, string, string]> = [
-    ['TEMP', fmt(point.temperature), '°C'],
-    ['FEELS', fmt(point.apparentTemperature), '°C'],
-    ['DEW', fmt(point.dewPoint), '°C'],
-    ['PRECIP', fmt(point.precipitation), 'mm/h'],
-    ['POP', fmt(point.precipitationProbability, 0), '%'],
-    ['HUMID', fmt(point.humidity, 0), '%'],
-    ['PRESS', fmt(point.pressure), 'hPa'],
-    [
-      'WIND',
-      `${fmt(point.windSpeed)}`,
-      `m/s ${point.windDirection != null ? compass16(point.windDirection) : ''}`,
-    ],
-    ['GUST', fmt(point.gust), 'm/s'],
-    ['CLOUD', fmt(point.cloudCover, 0), '%'],
-  ]
   return (
-    <aside className={s.readout} aria-label="カーソル位置の値">
+    <aside
+      className={s.readout}
+      data-active={active || undefined}
+      data-past={isPast || undefined}
+      aria-label="カーソル位置の値"
+    >
       <div className={s.readoutHead}>
-        <span className={s.readoutTime}>{formatTime(point.time, false)}</span>
-        <span className={s.readoutOffset} data-past={isPast || undefined}>
-          T{offsetH >= 0 ? '+' : '−'}
+        <span className={s.readoutDate}>
+          {formatShortDate(point.time)} {formatWeekday(point.time)}
+        </span>
+        <span className={s.readoutOffset}>
+          {offsetH === 0 && !active ? 'NOW' : 'CURSOR'} · T{offsetH >= 0 ? '+' : '−'}
           {String(Math.abs(offsetH)).padStart(2, '0')}H
         </span>
       </div>
-      <div className={s.readoutKind} data-past={isPast || undefined}>
+      <div className={s.readoutTime}>{formatTime(point.time, false)}</div>
+      <div className={s.readoutKind}>
         {isPast ? '■ ANALYSIS' : '□ FORECAST'} · {cond.code} <span className="ja">{cond.ja}</span>
       </div>
       <dl className={s.readoutRows}>
-        {rows.map(([k, v, u]) => (
-          <div key={k} className={s.readoutRow}>
-            <dt>{k}</dt>
-            <dd>
-              <b>{v}</b> <span>{u}</span>
-            </dd>
+        {readoutGroups(point).map((g) => (
+          <div key={g.id} className={s.readoutGroup}>
+            {g.rows.map(([k, v, u], i) => (
+              <div key={k} className={s.readoutRow} data-main={i === 0 || undefined}>
+                <dt>{k}</dt>
+                <dd>
+                  <b>{v}</b> <span>{u}</span>
+                </dd>
+              </div>
+            ))}
           </div>
         ))}
       </dl>
     </aside>
+  )
+})
+
+type ProbeValue = { v: number | null; text: string; sub?: string }
+
+function probeValues(p: HourlyPoint): Record<string, ProbeValue> {
+  return {
+    temp: { v: p.temperature, text: `${fmt(p.temperature)}°C` },
+    precip: {
+      v: p.precipitation ?? 0,
+      text: `${fmt(p.precipitation)} mm`,
+      sub: `${fmt(p.precipitationProbability, 0)}%`,
+    },
+    hum: { v: p.humidity, text: `${fmt(p.humidity, 0)}%` },
+    pres: { v: p.pressure, text: `${fmt(p.pressure)} hPa` },
+    wind: {
+      v: p.windSpeed,
+      text: `${fmt(p.windSpeed)} m/s`,
+      sub: p.windDirection != null ? compass16(p.windDirection) : undefined,
+    },
+  }
+}
+
+/**
+ * Values at the cursor, written on the plots themselves: a mark on each
+ * series and a chip beside it, flipped to the left in the right third so it
+ * never runs off the plot.
+ */
+const Probe = memo(function Probe({
+  layouts,
+  point,
+  idx,
+  n,
+  isPast,
+  active,
+}: {
+  layouts: TrackLayout[]
+  point: HourlyPoint
+  idx: number
+  n: number
+  isPast: boolean
+  active: boolean
+}) {
+  const values = probeValues(point)
+  const flip = idx > (n - 1) * 0.66
+  return (
+    <div
+      className={s.probe}
+      data-active={active || undefined}
+      data-past={isPast || undefined}
+      aria-hidden="true"
+    >
+      {layouts.map((l) => {
+        const pv = values[l.id]
+        if (!pv) return null
+        const top = pv.v == null ? null : (trackY(l)(pv.v) / VB_H) * 100
+        return (
+          <div key={l.id} className={s.probeRow} style={{ height: rem(l.height) }}>
+            {top != null && (
+              <span className={s.probeDot} style={{ left: pct(idx, n), top: `${top}%` }} />
+            )}
+            <span
+              className={s.probeChip}
+              data-flip={flip || undefined}
+              style={{
+                left: pct(idx, n),
+                top: `clamp(10px, ${top ?? 50}%, calc(100% - 10px))`,
+              }}
+            >
+              <b>{pv.text}</b>
+              {pv.sub && <span>{pv.sub}</span>}
+            </span>
+          </div>
+        )
+      })}
+    </div>
   )
 })
 
@@ -331,6 +443,14 @@ export const Timeline = memo(function Timeline() {
             >
               <span>{formatTime(point.time, false)}</span>
             </div>
+            <Probe
+              layouts={ordered}
+              point={point}
+              idx={idx}
+              n={n}
+              isPast={idx < model.nowIndex}
+              active={cursor != null}
+            />
             {pinned != null && (
               <div className={s.pinned} style={{ left: pct(pinned, n) }} aria-hidden="true">
                 <span>SCRUB</span>
@@ -338,7 +458,12 @@ export const Timeline = memo(function Timeline() {
             )}
           </div>
         </div>
-        <Readout point={point} offsetH={offsetH} isPast={idx < model.nowIndex} />
+        <Readout
+          point={point}
+          offsetH={offsetH}
+          isPast={idx < model.nowIndex}
+          active={cursor != null}
+        />
       </div>
     </Panel>
   )

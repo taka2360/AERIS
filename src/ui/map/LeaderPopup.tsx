@@ -11,6 +11,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import s from './MapView.module.css'
 
+/** Fallback width before the box is laid out; the real width comes from CSS. */
 const BOX_W = 272
 /** Diagonal then horizontal run of the leader, px */
 const DIAG = 26
@@ -22,10 +23,12 @@ const MARGIN = 6
 export function LeaderPopup({
   map,
   at,
+  label,
   children,
 }: {
   map: MapLibreMap
   at: [number, number]
+  label: string
   children: ReactNode
 }) {
   const layer = useRef<HTMLDivElement>(null)
@@ -44,18 +47,19 @@ export function LeaderPopup({
       const c = map.getContainer()
       const w = c.clientWidth
       const h = c.clientHeight
+      const boxW = box.current!.offsetWidth || BOX_W
       const boxH = box.current!.offsetHeight || 140
       const { x, y } = p
       // Off-screen target (panned away or behind the globe): hide, keep state.
       const visible = x >= -8 && x <= w + 8 && y >= -8 && y <= h + 8
       layer.current!.toggleAttribute('data-hidden', !visible)
       if (!visible) return
-      const dirX = x + DIAG + RUN + BOX_W + MARGIN <= w || x < w / 2 ? 1 : -1
+      const dirX = x + DIAG + RUN + boxW + MARGIN <= w || x < w / 2 ? 1 : -1
       const dirY = y - DIAG - JOIN < MARGIN ? 1 : -1
       const p1x = x + dirX * DIAG
       const p1y = y + dirY * DIAG
       const p2x = p1x + dirX * RUN
-      const left = Math.max(MARGIN, Math.min(w - BOX_W - MARGIN, dirX > 0 ? p2x : p2x - BOX_W))
+      const left = Math.max(MARGIN, Math.min(w - boxW - MARGIN, dirX > 0 ? p2x : p2x - boxW))
       const top = Math.max(MARGIN, Math.min(h - boxH - MARGIN, p1y - JOIN))
 
       svg.current!.setAttribute('width', String(w))
@@ -93,13 +97,7 @@ export function LeaderPopup({
         <polyline ref={line} className={s.leaderLine} pathLength={1} />
         <circle ref={end} className={s.leaderEnd} r={2} />
       </svg>
-      <div
-        ref={box}
-        className={s.popup}
-        style={{ width: BOX_W }}
-        role="dialog"
-        aria-label="選択したイベント"
-      >
+      <div ref={box} className={s.popup} role="dialog" aria-label={label}>
         {children}
       </div>
     </div>

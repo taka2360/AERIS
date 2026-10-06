@@ -34,6 +34,7 @@ export const HOURLY_VARS = [
   'wind_gusts_10m',
   'visibility',
   'uv_index',
+  'shortwave_radiation',
 ] as const
 
 export const DAILY_VARS = [
@@ -86,6 +87,8 @@ export const forecastSchema = z.object({
     wind_gusts_10m: nums,
     visibility: nums,
     uv_index: nums,
+    // Optional: older cached responses and fixtures predate it.
+    shortwave_radiation: nums.optional(),
   }),
   daily: z.object({
     time: z.array(z.string()),
@@ -116,3 +119,28 @@ export const windFieldSchema = z.preprocess(
     }),
   ),
 )
+
+/** Daily-only request: a month back and 16 days ahead (2-week trend, anomalies). */
+export const EXTENDED_DAILY_VARS = [
+  'weather_code',
+  'temperature_2m_max',
+  'temperature_2m_min',
+  'precipitation_sum',
+  'precipitation_probability_max',
+  'wind_speed_10m_max',
+] as const
+
+export const extendedDailySchema = z.object({
+  utc_offset_seconds: z.number(),
+  daily: z.object({
+    time: z.array(z.string()),
+    weather_code: nums,
+    temperature_2m_max: nums,
+    temperature_2m_min: nums,
+    precipitation_sum: nums,
+    precipitation_probability_max: nums,
+    wind_speed_10m_max: nums,
+  }),
+})
+
+export type ExtendedDailyResponse = z.infer<typeof extendedDailySchema>

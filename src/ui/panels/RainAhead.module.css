@@ -1,0 +1,104 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.pending {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-wide);
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: var(--s3);
+  border-left: 3px solid var(--text-faint);
+}
+.head b {
+  font-size: var(--fs-data);
+  font-weight: 700;
+  color: var(--text);
+}
+.head span {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}
+.head[data-tone='dry'] {
+  border-left-color: var(--green);
+}
+.head[data-tone='dry'] b {
+  color: var(--green);
+}
+.head[data-tone='onset'] {
+  border-left-color: var(--yellow);
+}
+.head[data-tone='onset'] b {
+  color: var(--yellow);
+}
+.head[data-tone='rain'] {
+  border-left-color: var(--cyan);
+}
+.head[data-tone='rain'] b {
+  color: var(--cyan);
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 72px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--rule-strong);
+  background: repeating-linear-gradient(to top, transparent 0 17px, var(--rule-faint) 17px 18px);
+}
+.col {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  flex: 1 1 0;
+  height: 100%;
+}
+.col i {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  background: var(--rule-strong);
+  transition: height var(--dur) var(--ease);
+}
+/* The observed frame is set apart: solid, with a rule after it. */
+.col[data-observed] {
+  margin-right: 4px;
+}
+.col[data-observed]::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 0;
+  bottom: 0;
+  border-right: 1px dashed var(--amber-dim);
+}
+.col:not([data-observed]) i {
+  opacity: 0.8;
+}
+.col[data-unknown] i {
+  height: 100% !important;
+  background: repeating-linear-gradient(135deg, var(--rule) 0 3px, transparent 3px 6px) !important;
+}
+.axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}
+.axis span:first-child {
+  color: var(--amber);
+}
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 0.625rem;
+  color: var(--text-faint);
+}

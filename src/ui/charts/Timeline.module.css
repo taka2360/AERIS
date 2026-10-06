@@ -259,55 +259,93 @@
 }
 
 /* ── Readout ───────────────────────────────────── */
+/* The readout follows the series colour: amber for analysis, cyan for forecast. */
 .readout {
+  --tone: var(--cyan);
+  --tone-bg: rgba(69, 224, 232, 0.06);
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-left: var(--s3);
+  gap: 2px;
+  padding: 0 0 0 var(--s4);
   border-left: 1px solid var(--rule);
   min-width: 0;
+  transition: border-color var(--dur-fast) ease;
+}
+.readout[data-past] {
+  --tone: var(--amber);
+  --tone-bg: rgba(255, 176, 0, 0.06);
+}
+/* While the cursor is in use, the readout lights up as its target. */
+.readout[data-active] {
+  border-left-color: var(--tone);
+}
+.readout[data-active]::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 3px;
+  height: 46px;
+  background: var(--tone);
+  box-shadow: 0 0 8px var(--tone);
 }
 .readoutHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-}
-.readoutTime {
-  font-size: var(--fs-lg);
-  color: var(--text);
-}
-.readoutOffset {
-  font-size: var(--fs-label);
-  color: var(--cyan);
+  gap: var(--s3);
+  font-size: var(--fs-micro);
   letter-spacing: var(--track);
 }
-.readoutOffset[data-past] {
-  color: var(--amber);
+.readoutDate {
+  color: var(--text-dim);
+}
+.readoutOffset {
+  color: var(--tone);
+}
+.readoutTime {
+  font-size: var(--fs-xl);
+  line-height: 1.1;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.readout[data-active] .readoutTime {
+  color: var(--tone);
+  text-shadow: 0 0 10px var(--tone-bg);
 }
 .readoutKind {
   font-size: var(--fs-micro);
-  color: var(--cyan);
+  color: var(--tone);
   letter-spacing: var(--track);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   padding-bottom: 4px;
-  border-bottom: 1px solid var(--rule-faint);
-}
-.readoutKind[data-past] {
-  color: var(--amber);
+  border-bottom: 1px solid var(--rule);
 }
 .readoutRows {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 0;
+}
+.readoutGroup {
+  padding-left: 6px;
+  border-left: 2px solid var(--rule-strong);
+}
+.readout[data-active] .readoutGroup {
+  border-left-color: var(--tone);
+  background: linear-gradient(to right, var(--tone-bg), transparent 80%);
 }
 .readoutRow {
   display: flex;
   justify-content: space-between;
-  padding: 1px 0;
-  font-size: var(--fs-label);
+  align-items: baseline;
+  font-size: var(--fs-micro);
 }
 .readoutRow dt {
-  color: var(--text-dim);
+  color: var(--text-faint);
   letter-spacing: var(--track);
 }
 .readoutRow dd {
@@ -315,11 +353,79 @@
 }
 .readoutRow b {
   font-weight: 500;
-  color: var(--text);
+  color: var(--text-dim);
 }
 .readoutRow span {
   color: var(--text-faint);
   font-size: var(--fs-micro);
+}
+/* The main value of each group: the one drawn on the track. */
+.readoutRow[data-main] {
+  font-size: var(--fs-body);
+}
+.readoutRow[data-main] dt {
+  color: var(--text-dim);
+}
+.readoutRow[data-main] b {
+  font-size: var(--fs-data);
+  color: var(--text);
+}
+
+/* ── Cursor probe: values written on the plots ─── */
+.probe {
+  --tone: var(--cyan);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease;
+}
+.probe[data-past] {
+  --tone: var(--amber);
+}
+.probe[data-active],
+.plots:focus-visible .probe {
+  opacity: 1;
+}
+.probeRow {
+  position: relative;
+  flex: 0 0 auto;
+}
+.probeDot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  background: var(--bg);
+  border: 1.5px solid var(--tone);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--tone);
+}
+.probeChip {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  transform: translate(9px, -50%);
+  padding: 1px 5px;
+  white-space: nowrap;
+  font-size: var(--fs-micro);
+  line-height: 1.35;
+  background: rgba(5, 6, 7, 0.9);
+  border: 1px solid var(--tone);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+}
+.probeChip[data-flip] {
+  transform: translate(calc(-100% - 9px), -50%);
+}
+.probeChip b {
+  font-weight: 500;
+  color: var(--text);
+}
+.probeChip span {
+  color: var(--tone);
 }
 
 .legendPast {

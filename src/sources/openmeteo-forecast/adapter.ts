@@ -5,13 +5,14 @@
 import type {
   CurrentConditions,
   DailyPoint,
+  ExtendedDaily,
   HourlyPoint,
   ModelForecast,
   Provenance,
   WeatherCondition,
 } from '@/domain/model'
 import { jstDateKey, type Instant } from '@/domain/time'
-import type { ForecastResponse } from './schema'
+import type { ExtendedDailyResponse, ForecastResponse } from './schema'
 
 export const MODEL_LABEL = 'OPEN-METEO · JMA BLEND'
 
@@ -93,6 +94,7 @@ export function adaptForecast(r: ForecastResponse, retrievedAt: Instant): ModelF
     cloudCover: h.cloud_cover[i] ?? null,
     visibility: km(h.visibility[i]),
     uvIndex: h.uv_index[i] ?? null,
+    solarRadiation: h.shortwave_radiation?.[i] ?? null,
     condition: wmoToCondition(h.weather_code[i] ?? null),
   }))
 
@@ -121,5 +123,27 @@ export function adaptForecast(r: ForecastResponse, retrievedAt: Instant): ModelF
     current,
     hourly: { points, provenance: { ...prov, kind: 'forecast', validFrom: currentTime } },
     daily: { days, provenance: { ...prov, kind: 'forecast' } },
+  }
+}
+
+export function adaptExtendedDaily(r: ExtendedDailyResponse, retrievedAt: Instant): ExtendedDaily {
+  const d = r.daily
+  return {
+    today: jstDateKey(retrievedAt),
+    days: d.time.map((date, i) => ({
+      date,
+      condition: wmoToCondition(d.weather_code[i] ?? null),
+      tempMax: d.temperature_2m_max[i] ?? null,
+      tempMin: d.temperature_2m_min[i] ?? null,
+      precipitationSum: d.precipitation_sum[i] ?? null,
+      precipitationProbability: d.precipitation_probability_max[i] ?? null,
+      windSpeedMax: d.wind_speed_10m_max[i] ?? null,
+      gustMax: null,
+      windDirectionDominant: null,
+      uvIndexMax: null,
+      sunrise: null,
+      sunset: null,
+    })),
+    provenance: { source: 'openmeteo', kind: 'forecast', label: MODEL_LABEL, retrievedAt },
   }
 }

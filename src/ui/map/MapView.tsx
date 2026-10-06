@@ -25,6 +25,8 @@ export type { LayerVisibility as MapLayers, MapScene } from './layers/types'
 
 /** Spatial range of the view. */
 export type MapRange = 'local' | 'region' | 'globe'
+/** 3D: globe projection (the Earth curves away). 2D: flat Web Mercator. Both top-down. */
+export type MapProjection = '3d' | '2d'
 
 /** Japan and its surrounding seas, [[w, s], [e, n]]. */
 export const REGION_BOUNDS: [[number, number], [number, number]] = [
@@ -33,15 +35,16 @@ export const REGION_BOUNDS: [[number, number], [number, number]] = [
 ]
 
 /** A popup pinned to a map position by a leader line. */
-export type MapPopup = { key: string; at: [number, number]; content: ReactNode }
+export type MapPopup = { key: string; at: [number, number]; label: string; content: ReactNode }
 
 export type MapViewProps = {
   scene: MapScene
   layers: LayerVisibility
   range: MapRange
+  projection: MapProjection
   onSelect: (eventId: string, at: [number, number]) => void
-  /** A click that hit no selectable feature */
-  onBackgroundClick: () => void
+  /** A click that hit no selectable feature, at [lon, lat] */
+  onBackgroundClick: (at: [number, number]) => void
   /** Visible bounds and zoom: while moving (throttled), after each move and once ready */
   onView: (view: ViewBounds) => void
   onFailure: (reason: string) => void
@@ -58,16 +61,42 @@ function crosshairElement(): HTMLElement {
   return el
 }
 
-function frameView(map: MapLibreMap, range: MapRange, scene: MapScene) {
+function frameView(map: MapLibreMap, range: MapRange, projection: MapProjection, scene: MapScene) {
   const { lat, lon } = scene.center
+  const is3d = projection === '3d'
+  map.setProjection({ type: is3d ? 'globe' : 'mercator' })
+  // Rotation (right-drag, two-finger, Shift+arrows) is 3D-only; the camera never tilts.
+  if (is3d) {
+    map.dragRotate.enable()
+    map.touchZoomRotate.enableRotation()
+    map.keyboard.enableRotation()
+  } else {
+    map.dragRotate.disable()
+    map.touchZoomRotate.disableRotation()
+    map.keyboard.disableRotation()
+  }
+  const c = map.getContainer()
+  const w = c.clientWidth || 400
+  const h = c.clientHeight || 400
   if (range === 'globe') {
-    map.setProjection({ type: 'globe' })
-    map.jumpTo({ center: [lon, lat], zoom: 1.4 })
+    // 3D: radius ≈ 42% of the shorter side (the world is 512·2^z px around at
+    // zoom z, so radius = 512·2^z / 2π). 2D: the whole world across the width.
+    const zoom = is3d ? Math.log2((0.42 * Math.min(w, h) * 2 * Math.PI) / 512) : Math.log2(w / 512)
+    map.jumpTo({
+      center: [lon, is3d ? lat : 20],
+      zoom: Math.max(0, Math.min(2.6, zoom)),
+      pitch: 0,
+      bearing: 0,
+    })
     return
   }
-  map.setProjection({ type: 'mercator' })
   const bounds = range === 'local' ? circleBounds(lat, lon, scene.rangeKm) : REGION_BOUNDS
-  map.fitBounds(bounds, { padding: 12, duration: 0 })
+  map.fitBounds(bounds, {
+    padding: 12,
+    duration: 0,
+    bearing: 0,
+    pitch: 0,
+  })
 }
 
 function applyVisibility(map: MapLibreMap, layers: LayerVisibility) {
@@ -105,6 +134,9 @@ export default function MapView(props: MapViewProps) {
         attributionControl: { compact: true, customAttribution: JMA_ATTRIBUTION },
         dragRotate: false,
         pitchWithRotate: false,
+        touchPitch: false,
+        // Always looking straight down, in 3D as in 2D.
+        maxPitch: 0,
         maxZoom: 13,
         minZoom: 0,
         // Japanese labels rendered with a local font instead of downloading CJK glyphs.
@@ -141,10 +173,11 @@ export default function MapView(props: MapViewProps) {
     // Registered before any layer's own click handler, so it runs first: a click
     // that no layer claims (no onSelect in the same turn) is a background click.
     let picked = false
-    map.on('click', () => {
+    map.on('click', (e) => {
       picked = false
+      const at: [number, number] = [e.lngLat.lng, e.lngLat.lat]
       setTimeout(() => {
-        if (!picked) latest.current.onBackgroundClick()
+        if (!picked) latest.current.onBackgroundClick(at)
       }, 0)
     })
     const onSelect = (id: string, at: [number, number]) => {
@@ -177,7 +210,7 @@ export default function MapView(props: MapViewProps) {
         .setLngLat([p.scene.center.lon, p.scene.center.lat])
         .addTo(map)
       // The location may have changed (e.g. GPS fix) while the style was loading.
-      frameView(map, p.range, p.scene)
+      frameView(map, p.range, p.projection, p.scene)
       applyVisibility(map, p.layers)
       reportView()
       setMapStatus({ state: 'online' })
@@ -197,7 +230,7 @@ export default function MapView(props: MapViewProps) {
   }, [])
 
   // ── Updates ──────────────────────────────────────────────────────────────
-  const { scene, layers, range, recenterToken } = props
+  const { scene, layers, range, projection, recenterToken } = props
 
   useEffect(() => {
     const map = mapRef.current
@@ -210,15 +243,26 @@ export default function MapView(props: MapViewProps) {
     }
   }, [scene])
 
-  // Re-frame only when the target, range or view mode changes — not on data updates.
+  // Re-frame only when the range, view mode or RECENTER changes — not on data updates.
   const { lat, lon } = scene.center
   const rangeKm = scene.rangeKm
   useEffect(() => {
     const map = mapRef.current
     if (!map || !loaded.current) return
+    frameView(map, range, projection, latest.current.scene)
+  }, [rangeKm, range, projection, recenterToken])
+
+  // A new target moves the crosshair. LOCAL is drawn around the target, so it
+  // follows; REGION / GLOBE keep their zoom and only pan when the target is out
+  // of view (a point picked on the map never moves the view).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !loaded.current) return
     markerRef.current?.setLngLat([lon, lat])
-    frameView(map, range, latest.current.scene)
-  }, [lat, lon, rangeKm, range, recenterToken])
+    if (latest.current.range === 'local')
+      frameView(map, 'local', latest.current.projection, latest.current.scene)
+    else if (!map.getBounds().contains([lon, lat])) map.easeTo({ center: [lon, lat] })
+  }, [lat, lon])
 
   useEffect(() => {
     const map = mapRef.current
@@ -230,7 +274,12 @@ export default function MapView(props: MapViewProps) {
     <div className={s.wrap}>
       <div ref={container} className={s.map} role="presentation" data-testid="map-canvas" />
       {mapObj && props.popup && (
-        <LeaderPopup key={props.popup.key} map={mapObj} at={props.popup.at}>
+        <LeaderPopup
+          key={props.popup.key}
+          map={mapObj}
+          at={props.popup.at}
+          label={props.popup.label}
+        >
           {props.popup.content}
         </LeaderPopup>
       )}

@@ -23,6 +23,22 @@ AERIS が利用する各データソースの利用条件・出典表記・ア�
 | 鮮度 | 想定更新 1h・3h 超で STALE |
 | 取得間隔 | 10min |
 
+### CLIMATE NORMALS — `openmeteo-archive`
+
+| 項目 | 内容 |
+| --- | --- |
+| 提供元 | Open-Meteo / Copernicus ERA5 |
+| エンドポイント | `https://archive-api.open-meteo.com/v1/archive` |
+| ライセンス | CC BY 4.0(無料枠は非商用・1日1万回まで)。ERA5 は Copernicus 利用条件 |
+| 出典表記 | [Open-Meteo.com / Contains modified Copernicus Climate Change Service information](https://open-meteo.com/en/docs/historical-weather-api) |
+| 再配布 | 出典明記で可 |
+| アクセス | ブラウザ直接(CORS 可) |
+| 利用制限 | 10,000 calls/day(非商用・Open-Meteo 共通枠) |
+| 役割 / 導出 | aggregation / modeled(既定の時間区分: analysis) |
+| 鮮度 | 想定更新 7d・14d 超で STALE |
+| 取得間隔 | 1d |
+| 注記 | ERA5 再解析の 1991–2020 日別値から AERIS が平年値(±7日窓の平均・百分位)を算出。気象庁の平年値ではない。週1回・30リクエスト |
+
 ### AMeDAS OBS — `jma-amedas`
 
 | 項目 | 内容 |

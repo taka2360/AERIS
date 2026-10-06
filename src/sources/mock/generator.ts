@@ -115,6 +115,8 @@ export function synthHourly(now: Instant, pastHours = 24, futureHours = 168): Ho
       cloudCover,
       visibility: round1(clamp(24 - rain * 2.6 - (humidity > 92 ? 6 : 0), 0.4, 30)),
       uvIndex: round1(uvRaw * (1 - cloudCover / 160)),
+      // Clear-sky ~850 W/m² at noon, dimmed by cloud.
+      solarRadiation: Math.round((uvRaw / 6.5) * 850 * (1 - (cloudCover / 100) * 0.75)),
       condition: conditionFor(precipitation, cloudCover, isThunder),
     })
   }
@@ -309,4 +311,53 @@ export function synthNowcastFrames(now: Instant): NowcastFrame[] {
     })
   }
   return frames
+}
+
+/** Rainy days of the synthetic month, as day offsets from today (past and beyond D-01). */
+const WET_DAYS: Record<number, number> = {
+  [-24]: 6.5,
+  [-17]: 18,
+  [-16]: 3.2,
+  [-9]: 1.5,
+  9: 4.5,
+  10: 12,
+}
+
+/**
+ * A month back to 16 days ahead. The first 7 days repeat the outlook
+ * (synthDaily) so every panel tells the same story; the rest drift slowly
+ * cooler with the season.
+ */
+export function synthExtendedDaily(now: Instant): DailyPoint[] {
+  const today = jstDateKey(now)
+  const outlook = new Map(synthDaily(synthHourly(now), now).map((d) => [d.date, d]))
+  const base = epoch(`${today}T00:00:00+09:00`)
+  const days: DailyPoint[] = []
+  for (let k = -31; k <= 15; k++) {
+    const date = jstDateKey(toInstant(base + k * 86_400_000 + 12 * 3_600_000))
+    const known = outlook.get(date)
+    if (known) {
+      days.push({ ...known, sunrise: null, sunset: null })
+      continue
+    }
+    const rain = WET_DAYS[k] ?? 0
+    const cool = k * 0.12 + (rain > 5 ? 2.5 : 0)
+    days.push({
+      date,
+      condition:
+        rain >= 10 ? 'heavy-rain' : rain >= 1 ? 'rain' : k % 3 === 0 ? 'overcast' : 'partly-cloudy',
+      tempMax: round1(25.6 - cool + noise(k + 101) * 1.6),
+      tempMin: round1(17.2 - cool * 0.8 + noise(k + 202) * 1.2),
+      precipitationSum: rain,
+      precipitationProbability:
+        k <= 0 ? null : rain >= 1 ? 70 : Math.round(clamp(20 + noise(k) * 30, 0, 40) / 10) * 10,
+      windSpeedMax: round1(4.5 + noise(k + 303) * 2),
+      gustMax: null,
+      windDirectionDominant: null,
+      uvIndexMax: null,
+      sunrise: null,
+      sunset: null,
+    })
+  }
+  return days
 }
