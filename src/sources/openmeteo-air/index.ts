@@ -9,6 +9,7 @@ import type { GeoPoint } from '@/domain/earth/common'
 import type { SourceResult } from '@/domain/result'
 import { type Instant } from '@/domain/time'
 import { fetchSourceResult } from '../http'
+import { openMeteoQuota } from '../openmeteo-quota'
 import { localToInstant } from '../openmeteo-forecast/adapter'
 
 const BASE = 'https://air-quality-api.open-meteo.com/v1/air-quality'
@@ -84,6 +85,6 @@ export async function fetchAirQuality(
       const data = adaptAir(raw, now, now)
       return { data, provenance: data.series.provenance }
     },
-    { signal },
+    { signal, quota: openMeteoQuota(1, AIR_KEYS.length + 2, 4) },
   )
 }

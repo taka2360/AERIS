@@ -12,12 +12,16 @@ export type SourceErrorKind =
   | 'aborted'
   /** An optional source (e.g. the relay) is not set up in this deployment */
   | 'not_configured'
+  /** Held back on the client to stay inside the provider's request quota */
+  | 'rate_limited'
 
 export type SourceError = {
   kind: SourceErrorKind
   message: string
   retryable: boolean
   httpStatus?: number
+  /** Earliest sensible retry (HTTP 429 Retry-After or a local quota window) */
+  retryAfterMs?: number
 }
 
 export type SourceResult<T> =

@@ -10,6 +10,8 @@ const CACHE_STORAGE_PREFIX = 'aeris.cache'
 /** One cache per data provider — simulated data must never be restored as live (or vice versa). */
 export const cacheStorageKey = (providerId: string) => `${CACHE_STORAGE_PREFIX}.${providerId}`
 export const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000
+/** Longer waits are left to the next scheduled refetch. */
+const MAX_RETRY_AFTER_MS = 2 * 60 * 1000
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({
@@ -21,7 +23,11 @@ export function createQueryClient(): QueryClient {
           if (error instanceof SourceFailure && !error.detail.retryable) return false
           return count < 2
         },
-        retryDelay: (attempt) => Math.min(2_000 * 2 ** attempt, 15_000),
+        // Rate-limited requests wait as long as the provider (or local quota) asks.
+        retryDelay: (attempt, error) =>
+          error instanceof SourceFailure && error.detail.retryAfterMs
+            ? Math.min(error.detail.retryAfterMs, MAX_RETRY_AFTER_MS)
+            : Math.min(2_000 * 2 ** attempt, 15_000),
       },
     },
   })

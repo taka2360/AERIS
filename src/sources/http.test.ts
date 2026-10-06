@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { toInstant } from '@/domain/time'
 import { fetchRaw, fetchSourceResult, fetchValidated } from './http'
+import { RateGate } from './rate-gate'
 
 const json = (body: unknown, init?: ResponseInit) =>
   new Response(JSON.stringify(body), {
@@ -51,6 +52,38 @@ describe('fetchRaw', () => {
     expect(r).toEqual({
       ok: false,
       error: { kind: 'http', message: `HTTP ${status}`, httpStatus: status, retryable },
+    })
+  })
+
+  it('carries Retry-After of a 429 as retryAfterMs', async () => {
+    stubFetch(async () => new Response('', { status: 429, headers: { 'Retry-After': '30' } }))
+    const r = await fetchRaw('https://example.test/x')
+    expect(r.ok === false && r.error.retryAfterMs).toBe(30_000)
+  })
+
+  describe('with a quota', () => {
+    const gate = () =>
+      new RateGate({ windows: [{ ms: 60_000, limit: 10, bulkLimit: 5 }], cooldownMs: 60_000 })
+
+    it('does not send a request the quota refuses', async () => {
+      const fetchFn = stubFetch(async () => json({}))
+      const g = gate()
+      expect((await fetchRaw('https://example.test/a', { quota: { gate: g, cost: 8 } })).ok).toBe(
+        true,
+      )
+      const r = await fetchRaw('https://example.test/b', { quota: { gate: g, cost: 8 } })
+      expect(r.ok === false && r.error.kind).toBe('rate_limited')
+      expect(fetchFn).toHaveBeenCalledTimes(1)
+    })
+
+    it('holds every request back after a 429', async () => {
+      const fetchFn = stubFetch(async () => new Response('', { status: 429 }))
+      const g = gate()
+      const first = await fetchRaw('https://example.test/a', { quota: { gate: g, cost: 1 } })
+      expect(first.ok === false && first.error.retryAfterMs).toBe(60_000)
+      const second = await fetchRaw('https://example.test/b', { quota: { gate: g, cost: 1 } })
+      expect(second.ok === false && second.error.kind).toBe('rate_limited')
+      expect(fetchFn).toHaveBeenCalledTimes(1)
     })
   })
 
