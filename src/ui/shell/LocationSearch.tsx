@@ -90,7 +90,7 @@ export function LocationSearch({ onClose }: { onClose: () => void }) {
       </ul>
       <label className={s.remember}>
         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-        この地点を端末に記憶する(位置情報は保存されません)
+        この地点を端末に記憶する
       </label>
     </div>
   )

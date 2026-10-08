@@ -24,6 +24,7 @@ const Clock = memo(function Clock() {
 
 const GPS_TEXT: Record<GpsStatus, string> = {
   idle: '',
+  stored: 'LAST FIX (STORED)',
   locating: 'ACQUIRING GPS…',
   ok: '',
   denied: 'GPS DENIED',

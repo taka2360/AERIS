@@ -1,7 +1,9 @@
 /**
- * Location state. Two channels, kept apart on purpose:
- *  - GPS: held in memory only, never persisted.
- *  - MANUAL: persisted to localStorage only when the user opts in.
+ * Location state. Two channels, each persisted to localStorage separately:
+ *  - GPS: the last fix, rounded to 0.01° (~1 km), so a reload starts from it.
+ *    Dropped when the browser reports the geolocation permission as denied.
+ *  - MANUAL: only when the user opts in.
+ * On load the newer of the two wins.
  */
 import {
   createContext,
@@ -13,6 +15,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { WeatherLocation } from '@/domain/model'
+import { roundPoint } from '@/services/provider'
 
 export type TargetPoint = {
   lat: number
@@ -22,14 +25,15 @@ export type TargetPoint = {
 }
 
 export type GpsStatus =
-  'idle' | 'locating' | 'ok' | 'denied' | 'unavailable' | 'timeout' | 'unsupported'
+  'idle' | 'stored' | 'locating' | 'ok' | 'denied' | 'unavailable' | 'timeout' | 'unsupported'
 
 type LocationContextValue = {
   target: TargetPoint
   gps: GpsStatus
   locate: () => void
   setManual: (p: { lat: number; lon: number; label?: string }, remember: boolean) => void
-  forgetManual: () => void
+  /** Forget every stored location (manual and GPS). */
+  forgetStored: () => void
 }
 
 export const DEFAULT_TARGET: TargetPoint = {
@@ -39,30 +43,51 @@ export const DEFAULT_TARGET: TargetPoint = {
   label: '東京',
 }
 const MANUAL_KEY = 'aeris.manualLocation'
+const GPS_KEY = 'aeris.gpsLocation'
 
-function loadManual(): TargetPoint | null {
+type Stored = { point: TargetPoint; at: number }
+
+function load(key: string, origin: 'gps' | 'manual'): Stored | null {
   try {
-    const raw = window.localStorage.getItem(MANUAL_KEY)
+    const raw = window.localStorage.getItem(key)
     if (!raw) return null
-    const v = JSON.parse(raw) as Partial<TargetPoint>
+    const v = JSON.parse(raw) as { lat?: unknown; lon?: unknown; label?: unknown; at?: unknown }
     if (typeof v.lat !== 'number' || typeof v.lon !== 'number') return null
-    return { lat: v.lat, lon: v.lon, label: v.label, origin: 'manual' }
+    if (Math.abs(v.lat) > 90 || Math.abs(v.lon) > 180) return null
+    return {
+      point: {
+        lat: v.lat,
+        lon: v.lon,
+        label: typeof v.label === 'string' ? v.label : undefined,
+        origin,
+      },
+      // Entries written before timestamps existed count as oldest.
+      at: typeof v.at === 'number' ? v.at : 0,
+    }
   } catch {
     return null
   }
 }
 
-function saveManual(p: TargetPoint | null) {
+function save(key: string, p: TargetPoint | null) {
   try {
     if (p)
       window.localStorage.setItem(
-        MANUAL_KEY,
-        JSON.stringify({ lat: p.lat, lon: p.lon, label: p.label }),
+        key,
+        JSON.stringify({ lat: p.lat, lon: p.lon, label: p.label, at: Date.now() }),
       )
-    else window.localStorage.removeItem(MANUAL_KEY)
+    else window.localStorage.removeItem(key)
   } catch {
     /* storage unavailable */
   }
+}
+
+/** The newer of the remembered manual point and the last GPS fix. */
+function loadStored(): Stored | null {
+  const manual = load(MANUAL_KEY, 'manual')
+  const gps = load(GPS_KEY, 'gps')
+  if (!manual || !gps) return manual ?? gps
+  return gps.at > manual.at ? gps : manual
 }
 
 const LocationContext = createContext<LocationContextValue | null>(null)
@@ -76,8 +101,11 @@ export function LocationScope({
   initial?: TargetPoint
   autoLocate?: boolean
 }) {
-  const [target, setTarget] = useState<TargetPoint>(() => initial ?? loadManual() ?? DEFAULT_TARGET)
-  const [gps, setGps] = useState<GpsStatus>('idle')
+  const [stored] = useState(() => (initial ? null : loadStored()))
+  const [target, setTarget] = useState<TargetPoint>(
+    () => initial ?? stored?.point ?? DEFAULT_TARGET,
+  )
+  const [gps, setGps] = useState<GpsStatus>(stored?.point.origin === 'gps' ? 'stored' : 'idle')
 
   const locate = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -87,8 +115,13 @@ export function LocationScope({
     setGps('locating')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const t: TargetPoint = {
+          ...roundPoint({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          origin: 'gps',
+        }
         setGps('ok')
-        setTarget({ lat: pos.coords.latitude, lon: pos.coords.longitude, origin: 'gps' })
+        setTarget(t)
+        save(GPS_KEY, t)
       },
       (err) => {
         setGps(
@@ -98,40 +131,53 @@ export function LocationScope({
               ? 'timeout'
               : 'unavailable',
         )
+        if (err.code === err.PERMISSION_DENIED) save(GPS_KEY, null)
       },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
     )
   }, [])
 
   // Only auto-locate when permission was already granted — never prompt on load.
+  // A remembered manual point that is newer than the last fix stays put.
   useEffect(() => {
-    if (!autoLocate || initial || loadManual()) return
+    if (!autoLocate || initial || stored?.point.origin === 'manual') return
     let cancelled = false
     navigator.permissions
       ?.query({ name: 'geolocation' })
       .then((s) => {
-        if (!cancelled && s.state === 'granted') locate()
+        if (cancelled) return
+        if (s.state === 'granted') locate()
+        else if (s.state === 'denied' && stored) {
+          // Permission revoked since the fix was stored: drop it.
+          save(GPS_KEY, null)
+          setTarget(load(MANUAL_KEY, 'manual')?.point ?? DEFAULT_TARGET)
+          setGps('idle')
+        }
       })
       .catch(() => undefined)
     return () => {
       cancelled = true
     }
-  }, [autoLocate, initial, locate])
+  }, [autoLocate, initial, stored, locate])
 
   const setManual = useCallback(
     (p: { lat: number; lon: number; label?: string }, remember: boolean) => {
       const t: TargetPoint = { ...p, origin: 'manual' }
       setTarget(t)
-      saveManual(remember ? t : null)
+      setGps((g) => (g === 'stored' ? 'idle' : g))
+      save(MANUAL_KEY, remember ? t : null)
     },
     [],
   )
 
-  const forgetManual = useCallback(() => saveManual(null), [])
+  const forgetStored = useCallback(() => {
+    save(MANUAL_KEY, null)
+    save(GPS_KEY, null)
+  }, [])
 
   const value = useMemo(
-    () => ({ target, gps, locate, setManual, forgetManual }),
-    [target, gps, locate, setManual, forgetManual],
+    () => ({ target, gps, locate, setManual, forgetStored }),
+    [target, gps, locate, setManual, forgetStored],
   )
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>
 }
