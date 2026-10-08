@@ -1,7 +1,8 @@
 /**
  * N-01 — Environment at the monitoring location. Each section chains values
  * of different kinds and says which kind each is:
- *   HYDRO  rain (AMeDAS OBS) → キキクル (JMA ASSESSMENT) → river (GloFAS MODEL) → gauge
+ *   HYDRO  rain (AMeDAS OBS) → キキクル (JMA ASSESSMENT) → river (GloFAS MODEL) →
+ *          river risk (洪水キキクル, JMA ASSESSMENT; stands in for gauges, which are not relayed)
  */
 import { memo, useMemo } from 'react'
 import { formatShortDate } from '@/domain/time'
@@ -76,6 +77,7 @@ function HydroChain() {
   const kiki = useKikikuru()
   const land = useLocalSample('kikikuru-land', kiki.data?.land, 1)
   const inund = useLocalSample('kikikuru-inundation', kiki.data?.inundation, 1)
+  const flood = useLocalSample('kikikuru-flood', kiki.data?.flood, 2)
   const river = useRiver()
   const now = useMinuteClock()
   const pts = useMemo(() => river.data?.data.points ?? [], [river.data])
@@ -135,10 +137,11 @@ function HydroChain() {
         </div>
         <div className={s.node}>
           <span className={s.nodeHead}>
-            <i>4</i>RIVER GAUGE
+            <i>4</i>RIVER RISK
           </span>
-          <DataStateBadge state="not-available" />
-          <span className={s.note}>水位観測の中継は利用条件確認中</span>
+          <Kiki label="洪水" sample={flood} />
+          <span className={s.tag}>JMA ASSESSMENT</span>
+          <span className={s.note}>洪水キキクル · 周辺 2km の河川 · 水位の観測値ではない</span>
         </div>
       </div>
     </div>

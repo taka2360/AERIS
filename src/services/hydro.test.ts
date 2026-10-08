@@ -51,10 +51,20 @@ describe('hydro / ground status (AERIS rule)', () => {
 
   it('lets modeled discharge add context but never a warning', () => {
     const storm = dischargeSummary(synthRiver(now, 'storm').points, now)
+    const inund = (l: number | null) => ({ flood: null, inundation: l })
     // Storm peak 480 vs today 351: below twice today, so no change.
-    expect(hydroStatus(1, storm, true).status).toBe('nominal')
-    expect(hydroStatus(1, { today: 100, peak: 1000 }, true).status).toBe('active')
-    expect(hydroStatus(4, storm, true).status).toBe('warning')
-    expect(hydroStatus(null, null, false).status).toBe('unknown')
+    expect(hydroStatus(inund(1), storm, true).status).toBe('nominal')
+    expect(hydroStatus(inund(1), { today: 100, peak: 1000 }, true).status).toBe('active')
+    expect(hydroStatus(inund(4), storm, true).status).toBe('warning')
+    expect(hydroStatus(inund(null), null, false).status).toBe('unknown')
+  })
+
+  it('takes the worse of 洪水 and 浸水 キキクル', () => {
+    const r = hydroStatus({ flood: 4, inundation: 2 }, null, true)
+    expect(r.status).toBe('warning')
+    expect(r.headline).toBe('洪水キキクル 危険 · 浸水キキクル 注意')
+    expect(hydroStatus({ flood: 1, inundation: 1 }, null, true).headline).toBe(
+      '洪水・浸水キキクル 危険度なし',
+    )
   })
 })

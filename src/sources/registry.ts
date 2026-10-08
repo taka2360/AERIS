@@ -362,9 +362,14 @@ export const SOURCES: SourceSpec[] = [
     domain: 'hydro',
     status: 'unavailable',
     endpoints: ['(relay) /hydro'],
-    license: '要確認(実装時に利用規約を確認し、再配信不可なら実装しない)',
-    attribution: { text: '国土交通省 水文水質データベース', url: 'http://www1.river.go.jp/' },
-    redistribution: '要確認',
+    license:
+      '川の防災情報: 政府標準利用規約 第2.0版(CC BY 4.0 互換)。ただしツールによる定期取得は控えるよう求められ、定期・定常取得は河川情報センターの有償配信を案内。水文水質DB も自動取得を制限(2026-10 確認)',
+    attribution: {
+      text: '出典：国土交通省 川の防災情報ホームページ',
+      url: 'https://www.river.go.jp/kawabou/kwb_apend/html/caution.html',
+    },
+    redistribution:
+      '再利用は出典明記で可。ただしサイトからの定期取得による中継は不可(要 河川情報数値データ配信事業の契約)',
     apiKey: 'none',
     cors: false,
     sourceRole: 'observation',
@@ -372,6 +377,8 @@ export const SOURCES: SourceSpec[] = [
     derivation: 'measured',
     freshness: { expectedIntervalMin: 10, staleAfterMin: 60 },
     poll: { nominalMs: 10 * MIN },
+    notes:
+      '代替: 洪水キキクル(周辺 2km の河川)・浸水キキクル(JMA ASSESSMENT)と GloFAS 流量(MODEL)。観測値としては表示しない',
   },
 
   // ── Ocean / environment ────────────────────────────────────────────────────

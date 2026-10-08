@@ -22,6 +22,7 @@ import {
   fetchThunderSeries,
   type TileFieldKind,
 } from '@/sources/jma-tile'
+import { sampleFlood } from '@/sources/jma-tile/flood'
 import { sampleFrame } from '@/sources/jma-tile/image'
 import { PALETTES } from '@/sources/jma-tile/palettes'
 import { fetchUsgsQuakes } from '@/sources/usgs-quake'
@@ -71,6 +72,17 @@ export function createLiveEarthProvider(): EarthProvider {
         // z8: ~0.6 km per pixel at Japan's latitudes.
         const radiusPx = Math.max(0, Math.round(radiusKm / 0.5))
         try {
+          if (kind === 'kikikuru-flood') {
+            const f = await sampleFlood(
+              frame,
+              point.lat,
+              point.lon,
+              radiusKm,
+              series.provenance,
+              signal,
+            )
+            return { ok: true, data: f, provenance: f.provenance }
+          }
           const s = await sampleFrame(
             frame,
             PALETTES[kind as TileFieldKind],

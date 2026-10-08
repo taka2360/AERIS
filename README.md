@@ -81,7 +81,7 @@ ui → query (TanStack Query) → services → domain ← sources
 - 中継経由: NASA FIRMS(山火事検出)、NOAA NHC(大西洋・東太平洋のハリケーン)
 - 国土地理院(地名)、OpenFreeMap / © OpenStreetMap contributors(背景地図)
 
-未対応: 河川水位・ダム(国交省 水文水質DB は再配布条件を確認するまで `NOT AVAILABLE`)、GNSS 変位、検潮所の観測値(NOAA CO-OPS は日本を含まない)、噴火の観測情報(構造未確認)、日本域の花粉。
+未対応: 河川水位・ダムの観測値(国交省「川の防災情報」はツールでの定期取得を控えるよう求めており、定期取得は河川情報センターの有償配信が必要。代わりに洪水・浸水キキクルと GloFAS の流量モデルで示す)、GNSS 変位、検潮所の観測値(NOAA CO-OPS は日本を含まない)、噴火の観測情報(構造未確認)、日本域の花粉。
 
 ## 中継 Worker(任意)
 
