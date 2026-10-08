@@ -7,7 +7,7 @@
  */
 import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { splitAtAntimeridian } from '@/domain/earth/common'
-import { formatShortDate, formatTime } from '@/domain/time'
+import { formatShortDate, formatTime, formatWeekday } from '@/domain/time'
 import { destination } from '../geo'
 import { FONT, MAP_COLORS } from '../style'
 import { pickPoint, type MapLayerDef, type MapScene } from './types'
@@ -57,7 +57,7 @@ function cycloneGeoJSON(s: MapScene) {
           kind: 'fpoint',
           id: c.id,
           sel,
-          label: `${formatShortDate(p.validAt)} ${formatTime(p.validAt, false)}`,
+          label: `${formatShortDate(p.validAt)} ${formatWeekday(p.validAt)} ${formatTime(p.validAt, false)}`,
         },
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
       })

@@ -555,20 +555,20 @@ export function useDataMode(): 'mock' | 'live' {
   return useWeatherProvider().id
 }
 
-/** Refresh all data, or wipe every locally stored item (cache + remembered location). */
+/** Refresh all data, or wipe every locally stored item (cache + stored locations). */
 export function useSystemControls() {
   const client = useQueryClient()
   const provider = useWeatherProvider()
-  const { forgetManual } = useLocationControl()
+  const { forgetStored } = useLocationControl()
   return useMemo(
     () => ({
       refresh: () => client.invalidateQueries(),
       clearLocalData: () => {
         clearWindCache(provider)
         clearPersistedCache(client)
-        forgetManual()
+        forgetStored()
       },
     }),
-    [client, provider, forgetManual],
+    [client, provider, forgetStored],
   )
 }

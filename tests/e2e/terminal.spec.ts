@@ -250,7 +250,7 @@ test('eruption scenario: a level-4 warning reaches the monitor and the detail', 
   await expect(detail).toContainText('噴火警戒レベル 4')
 })
 
-test('storm scenario: the hydro chain shows rain, キキクル and modeled river flow', async ({
+test('storm scenario: the hydro chain shows rain, キキクル, modeled river flow and river risk', async ({
   page,
 }) => {
   await page.goto(mockUrl('&scenario=storm'))
@@ -258,11 +258,16 @@ test('storm scenario: the hydro chain shows rain, キキクル and modeled river
   const chain = page.getByRole('group', { name: '雨から河川への連鎖' })
   await expect(chain).toContainText('警戒')
   await expect(chain).toContainText('MODEL')
-  await expect(chain).toContainText('NOT AVAILABLE')
+  // River gauges are not relayed: 洪水キキクル stands in, labelled as an assessment.
+  await expect(chain).toContainText(/RIVER RISK\s*洪水\s*警戒\s*JMA ASSESSMENT/)
+  await expect(chain).not.toContainText('NOT AVAILABLE')
   const monitor = page.getByRole('region', { name: 'EVENT MONITOR' })
   await expect(monitor.getByRole('listitem').filter({ hasText: 'GROUND' })).toContainText(
     'ELEVATED',
   )
+  const hydro = monitor.getByRole('listitem').filter({ hasText: 'HYDRO' })
+  await expect(hydro).toContainText('ELEVATED')
+  await expect(hydro).toContainText('洪水キキクル 警戒')
 })
 
 test('environment panel: air quality index with references and ocean model values', async ({
@@ -385,4 +390,19 @@ test('the map defaults to 3D LOCAL and switches projection independently of rang
   await projection.getByRole('button', { name: '2D' }).click()
   await expect(scope).toContainText('WEB MERCATOR')
   await expect(range.getByRole('button', { name: 'LOCAL' })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('with reduced motion, a popup opening to the left is still shown', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(mockUrl())
+  await waitForTerminal(page)
+  const scope = page.getByRole('region', { name: 'SPATIAL SCOPE' })
+  const canvas = scope.locator('canvas').first()
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('map canvas has no box')
+  // Near the right edge there is no room on the right, so the box opens left.
+  await canvas.click({ position: { x: box.width - 30, y: box.height / 2 } })
+  const popup = scope.getByRole('dialog').first()
+  await expect(popup).toHaveAttribute('data-dir', 'left')
+  expect(await popup.evaluate((el) => getComputedStyle(el).clipPath)).toBe('none')
 })

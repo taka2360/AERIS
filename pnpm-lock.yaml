@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@mapbox/vector-tile':
+        specifier: 3.0.0
+        version: 3.0.0
       '@tanstack/query-sync-storage-persister':
         specifier: ^5.104.1
         version: 5.104.1
@@ -26,6 +29,9 @@ importers:
       maplibre-gl:
         specifier: ^6.11.2
         version: 6.11.2
+      pbf:
+        specifier: 5.1.2
+        version: 5.1.2
       react:
         specifier: ^19.3.0
         version: 19.3.0

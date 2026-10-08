@@ -443,7 +443,7 @@ export function volcanoStatus(
 
 // ── Hydro / ground (キキクル) ───────────────────────────────────────────────
 
-const HYDRO_RULE = 'aeris:hydro-status/v1'
+const HYDRO_RULE = 'aeris:hydro-status/v2'
 const GROUND_RULE = 'aeris:ground-status/v1'
 
 /** キキクル 警戒レベル相当 → status (5 → CRITICAL … 2 → ACTIVE). */
@@ -463,22 +463,25 @@ function kikikuruStatus(level: number | null): SystemStatus {
 const KIKIKURU_WORD: Record<number, string> = { 2: '注意', 3: '警戒', 4: '危険', 5: '災害切迫' }
 
 /**
- * HYDRO: 浸水キキクル at the location (JMA assessment) sets the status. Modeled
- * river discharge (GloFAS) only adds context: a forecast peak above twice
- * today's value makes a quiet line ACTIVE, never more.
+ * HYDRO: the worse of 洪水キキクル (rivers within ~2 km) and 浸水キキクル at the
+ * location (JMA assessments) sets the status. They stand in for river gauge
+ * observations, which are not relayed (see the relay-hydro registry entry).
+ * Modeled river discharge (GloFAS) only adds context: a forecast peak above
+ * twice today's value makes a quiet line ACTIVE, never more.
  */
 export function hydroStatus(
-  inundationLevel: number | null,
+  levels: { flood: number | null; inundation: number | null },
   discharge: { today: number | null; peak: number | null } | null,
   hasData: boolean,
 ): SystemReading {
   if (!hasData) return { status: 'unknown', rule: HYDRO_RULE }
-  let status = kikikuruStatus(inundationLevel)
-  const parts = [
-    inundationLevel && inundationLevel >= 2
-      ? `浸水キキクル ${KIKIKURU_WORD[inundationLevel]}`
-      : '浸水キキクル 危険度なし',
-  ]
+  const flood = levels.flood ?? 0
+  const inund = levels.inundation ?? 0
+  let status = kikikuruStatus(Math.max(flood, inund))
+  const parts: string[] = []
+  if (flood >= 2) parts.push(`洪水キキクル ${KIKIKURU_WORD[flood]}`)
+  if (inund >= 2) parts.push(`浸水キキクル ${KIKIKURU_WORD[inund]}`)
+  if (parts.length === 0) parts.push('洪水・浸水キキクル 危険度なし')
   if (discharge?.today != null) {
     parts.push(`河川流量(MODEL) ${Math.round(discharge.today)}m³/s`)
     if (status === 'nominal' && discharge.peak != null && discharge.peak > 2 * discharge.today)

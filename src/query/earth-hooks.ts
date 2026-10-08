@@ -609,6 +609,7 @@ export function useEarthSystems(): SystemRow[] {
   const river = useRiver()
   const land = useLocalSample('kikikuru-land', kiki.data?.land, 1)
   const inund = useLocalSample('kikikuru-inundation', kiki.data?.inundation, 1)
+  const flood = useLocalSample('kikikuru-flood', kiki.data?.flood, 2)
   const ltng = useLocalSample('lightning-activity', thunder.data?.lightning, 3)
   const torn = useLocalSample('tornado-probability', thunder.data?.tornado, 3)
   const air = useAir()
@@ -666,12 +667,15 @@ export function useEarthSystems(): SystemRow[] {
         id: 'hydro',
         label: 'HYDRO',
         reading: hydroStatus(
-          inund.data?.value?.value ?? null,
+          {
+            flood: flood.data?.value?.value ?? null,
+            inundation: inund.data?.value?.value ?? null,
+          },
           river.data ? dischargeSummary(river.data.data.points, now) : null,
-          !!inund.data || !!river.data,
+          !!flood.data || !!inund.data || !!river.data,
         ),
-        checkedAt: inund.data?.validFrom,
-        feed: sampleFeed(inund.data, kiki.isError),
+        checkedAt: inund.data?.validFrom ?? flood.data?.validFrom,
+        feed: sampleFeed(inund.data ?? flood.data, kiki.isError),
         sources: ['JMA', 'GloFAS'],
       },
       {
@@ -812,6 +816,7 @@ export function useEarthSystems(): SystemRow[] {
     volc.sites,
     volc.query,
     inund.data,
+    flood.data,
     land.data,
     river.data,
     kiki.isError,

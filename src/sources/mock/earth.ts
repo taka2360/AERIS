@@ -597,12 +597,14 @@ export function synthSample(
   now: Instant,
 ): FieldSample<FieldClass> {
   const pal = PALETTES[kind]
-  // Storm scenario: 雷活動度3, 竜巻発生確度1, 土砂「警戒」, 浸水「注意」at the location.
+  // Storm scenario: 雷活動度3, 竜巻発生確度1, 土砂「警戒」, 浸水「注意」, 洪水「警戒」
+  // at the location.
   const stormClass: Partial<Record<RasterFieldKind, number>> = {
     'lightning-activity': 2,
     'tornado-probability': 0,
     'kikikuru-land': 2,
     'kikikuru-inundation': 1,
+    'kikikuru-flood': 2,
   }
   const i =
     kind === 'precip-intensity'

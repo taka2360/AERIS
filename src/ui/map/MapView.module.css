@@ -184,7 +184,8 @@
 @media (prefers-reduced-motion: reduce) {
   .leaderLine,
   .leaderEnd,
-  .popup {
+  .popup,
+  .popup[data-dir='left'] {
     animation: none;
     stroke-dashoffset: 0;
     opacity: 1;

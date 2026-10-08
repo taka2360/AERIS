@@ -81,7 +81,7 @@ ui → query (TanStack Query) → services → domain ← sources
 - 中継経由: NASA FIRMS(山火事検出)、NOAA NHC(大西洋・東太平洋のハリケーン)
 - 国土地理院(地名)、OpenFreeMap / © OpenStreetMap contributors(背景地図)
 
-未対応: 河川水位・ダム(国交省 水文水質DB は再配布条件を確認するまで `NOT AVAILABLE`)、GNSS 変位、検潮所の観測値(NOAA CO-OPS は日本を含まない)、噴火の観測情報(構造未確認)、日本域の花粉。
+未対応: 河川水位・ダムの観測値(国交省「川の防災情報」はツールでの定期取得を控えるよう求めており、定期取得は河川情報センターの有償配信が必要。代わりに洪水・浸水キキクルと GloFAS の流量モデルで示す)、GNSS 変位、検潮所の観測値(NOAA CO-OPS は日本を含まない)、噴火の観測情報(構造未確認)、日本域の花粉。
 
 ## 中継 Worker(任意)
 
@@ -100,7 +100,7 @@ npx wrangler deploy --config relay/wrangler.toml
 
 ## プライバシー
 
-- GPS 座標はメモリ上のみ。手動地点は「記憶する」を選んだ場合のみ localStorage に保存
+- GPS の最終測位は小数 2 桁(約 1km)に丸めて localStorage に保存し、次回起動時の初期地点にする(位置情報の許可が取り消されていれば起動時に破棄)。手動地点は「記憶する」を選んだ場合のみ保存。両方あるときは新しい方を使う
 - 外部 API へ送る座標は小数 2 桁(約 1km)に丸める
 - 気象データキャッシュは localStorage(丸めた座標をキーに含む)。SYS パネルの `CLEAR LOCAL DATA` で全消去
 - 地図の風矢印も取得から 1 時間 localStorage に保持する(地点は地図上の固定格子で、利用者の位置は含まない)。同じく `CLEAR LOCAL DATA` で消去
