@@ -386,3 +386,18 @@ test('the map defaults to 3D LOCAL and switches projection independently of rang
   await expect(scope).toContainText('WEB MERCATOR')
   await expect(range.getByRole('button', { name: 'LOCAL' })).toHaveAttribute('aria-pressed', 'true')
 })
+
+test('with reduced motion, a popup opening to the left is still shown', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(mockUrl())
+  await waitForTerminal(page)
+  const scope = page.getByRole('region', { name: 'SPATIAL SCOPE' })
+  const canvas = scope.locator('canvas').first()
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('map canvas has no box')
+  // Near the right edge there is no room on the right, so the box opens left.
+  await canvas.click({ position: { x: box.width - 30, y: box.height / 2 } })
+  const popup = scope.getByRole('dialog').first()
+  await expect(popup).toHaveAttribute('data-dir', 'left')
+  expect(await popup.evaluate((el) => getComputedStyle(el).clipPath)).toBe('none')
+})
